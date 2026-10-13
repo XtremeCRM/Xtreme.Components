@@ -43,7 +43,7 @@ public sealed partial class SchedulerPage : Grid
     };
 
     private static string BalanceText(int eventId)
-        => CustomerBalances.TryGetValue(eventId, out var due) && due > 0 ? $"Balance {due:C0} due" : "Paid up";
+        => CustomerBalances.TryGetValue(eventId, out var due) && due > 0 ? $"{due:C0} due" : "Paid up";
 
     // Appointment editor (host-side example): the control raises edit / create requests and ships
     // no form. This one is SectionCard + DateTimePicker + EditorActionBar from the other packages.
