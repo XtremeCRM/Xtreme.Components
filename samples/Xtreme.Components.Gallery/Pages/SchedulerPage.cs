@@ -198,7 +198,7 @@ public sealed partial class SchedulerPage : Grid
 
         var hint = new TextBlock
         {
-            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it, or click an empty slot to create one. Right-click an appointment for the context menu.",
+            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it, or double-click (or drag across) an empty slot to create one. Right-click an appointment for the context menu.",
             Opacity = 0.7, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8),
         };
 

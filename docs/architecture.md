@@ -89,7 +89,7 @@ Xtreme.Components (meta)
  ├── Xtreme.Components.Docking   ─────────────────> Core
  ├── Xtreme.Components.Cards     ─────────────────> Core
  ├── Xtreme.Components.Primitives ────────────────> Core
- └── Xtreme.Components.TableView ──> Primitives (+ WinUI.TableView)
+ └── Xtreme.Components.TableView ──> Core (+ WinUI.TableView)
 ```
 
 | Package | Contents | Notes |
@@ -189,7 +189,7 @@ Optional seams, each an interface with a no-op default so nothing is required:
 |---|---|---|
 | Layout persistence | `IDockPersistence` | Where the layout document is saved (local settings, server, nothing) |
 | OS windows | `IDockPlatformServices` | Float-to-window, drag tracking, window pool; desktop reference implementation ships in the package, other heads fall back to in-surface |
-| Card layout persistence | `ICardLayoutPersistence` | Same shape as docking |
+| Card layout persistence | None: the host serializes `CardDockerLayout` on `LayoutChanged` | See [cards.md](cards.md#persisting-a-layout) |
 
 The gallery app is the living reference: every control page shows the XAML and the
 seam registrations side by side.
@@ -306,7 +306,7 @@ Xtreme.Components (meta)
  ├── Xtreme.Components.Docking   ─────────────────> Core
  ├── Xtreme.Components.Cards     ─────────────────> Core
  ├── Xtreme.Components.Primitives ────────────────> Core
- └── Xtreme.Components.TableView ──> Primitives (+ WinUI.TableView)
+ └── Xtreme.Components.TableView ──> Core (+ WinUI.TableView)
 Core = Xc* theme tokens + ActualTheme surface helper (today's DockTheme). No controls.
 ```
 

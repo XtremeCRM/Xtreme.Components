@@ -27,8 +27,10 @@ public sealed partial class PrimitivesPage : UserControl
             new ChipItem { ChipId = 4, Name = "Monitoring", GroupName = "Service" },
             new ChipItem { ChipId = 5, Name = "Past due", GroupName = "Billing", BackgroundColor = Color.FromArgb(0xFF, 0xF4, 0xC7, 0xC3) },
         ];
-        Chips.SaveAsync = picked =>
+        // The dialog hands back its whole working list; IsSelected marks the picks.
+        Chips.SaveAsync = items =>
         {
+            var picked = items.Where(i => i.IsSelected).ToList();
             ChipEcho.Text = picked.Count == 0 ? "Nothing selected." : "Selected: " + string.Join(", ", picked.Select(p => p.Name));
             return ValueTask.CompletedTask;
         };

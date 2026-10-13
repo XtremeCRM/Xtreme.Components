@@ -19,11 +19,11 @@ namespace Xtreme.Components.Docking.Controls;
 /// independently, so adding a fourth pane rearranges nothing.</para>
 /// <para><b>Layout.</b> Top and Bottom span the full width; Left and Right sit beside the document
 /// between them. Each edge region stacks its items along the cross axis with draggable splitters
-/// between them — the "adjacent" arrangement. Tabbed groups are the other half of that model and are
-/// not built yet.</para>
+/// between them — the "adjacent" arrangement. Items sharing a <see cref="DockItem.TabGroup"/> are tabbed
+/// in one slot, and items sharing a <see cref="DockItem.LayerGroup"/> sit side by side in one layer.</para>
 /// <para><b>Responsive.</b> Below a width threshold the host drops to a narrow zone and each item
-/// applies its <see cref="DockItem.NarrowBehavior"/> — by default overlaying the document rather than
-/// taking space from it. This works everywhere, including WASM and mobile; only floating is
+/// applies its <see cref="DockItem.NarrowBehavior"/> — by default collapsing to its auto-hide rail
+/// (<see cref="DockNarrowBehavior.AutoHide"/>) rather than taking space from the document. This works everywhere, including WASM and mobile; only floating is
 /// desktop-only.</para>
 /// </remarks>
 [ContentProperty(Name = nameof(Items))]

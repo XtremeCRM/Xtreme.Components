@@ -5,6 +5,8 @@ Helpers for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) on
 [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components). Kept separate from
 `Xtreme.Components.Primitives` because it carries the `WinUI.TableView` dependency.
 
+**Full guide:** [docs/tableview.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/tableview.md) covers every option with samples.
+
 ## RowFlagDecorator
 
 Frames a flagged row in a 2px coloured border and pins a small caps tag ("NEW", "CHANGED",

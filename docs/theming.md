@@ -5,8 +5,10 @@ named token the app can override. Nothing is reachable only by editing library c
 
 ## 1. Merge the dictionaries
 
-Each family ships a `Themes/Generic.xaml`. Merge the ones you use once, in `App.xaml`; a
-family's dictionary merges Core's tokens itself.
+Two packages ship a `Themes/Generic.xaml`: Core (the tokens) and Primitives (control styles,
+which merges Core's tokens itself). Merge the one you need once, in `App.xaml`. Scheduler,
+Docking, Cards and TableView ship no dictionary: they build their visuals in code and read the
+Core tokens at runtime.
 
 ```xml
 <Application.Resources>

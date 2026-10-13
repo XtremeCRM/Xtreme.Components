@@ -47,7 +47,7 @@ family on a shared version.
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event
   indicators; templatable appointments.
-- `Xtreme.Components.Docking`: `DockHost`, `DockItem`, `DockItemHeader`, `DockSplitter`;
+- `Xtreme.Components.Docking`: `DockHost`, `DockItem`, `DockSplitter`;
   tab groups and side-by-side layers; auto-hide rails with slide-in flyouts; float to an OS
   window and drag back to re-dock through `IDockPlatformServices`; layout document v5 through
   `IDockPersistence`.

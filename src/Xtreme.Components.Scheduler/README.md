@@ -4,6 +4,8 @@ A scheduler / calendar control for [Uno Platform](https://platform.uno) built fr
 primitives only: no WebView, no third-party licence. Part of
 [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components).
 
+**Full guide:** [docs/scheduler.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/scheduler.md) covers every option with samples.
+
 ## Features
 
 - **Five views:** Day, Week, Month, Agenda, and a multi-resource **Planner** with a two-tier
@@ -41,8 +43,8 @@ Scheduler.Appointments = new[]
     {
         Id = 100,
         Subject = "Install",
-        Start = DateTime.UtcNow.Date.AddHours(15),   // UTC
-        End   = DateTime.UtcNow.Date.AddHours(17),
+        Start = DateTime.Today.AddHours(9),
+        End   = DateTime.Today.AddHours(11),
         ResourceIds = { 1 },
     },
 };
@@ -67,7 +69,8 @@ Scheduler.ExternalAppointmentDropped += (_, e) => { /* create from e.Item at e.S
 | `AppointmentMoveRequested` / `…ResizeRequested` / `…CreateRequested` | User edits. |
 | `ExternalAppointmentDropped` | An `ISchedulerDroppable` dropped on a slot. |
 
-Times on `AppointmentModel` are UTC instants; the Planner converts them to each resource's
-`TimeZoneId`. All other views render in the viewer's local time.
+Only a Planner lane whose resource sets `TimeZoneId` converts times (treating them as UTC and
+showing that zone's wall-clock). Every other view and lane draws `Start`/`End` exactly as given,
+so pass local times unless you use per-resource zones. See the guide's Data section.
 
 Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.

@@ -7,8 +7,8 @@
 
       <StackPanel Spacing="8" Margin="0,0,16,16">
         <TextBlock Text="Input" Style="{ThemeResource SubtitleTextBlockStyle}" />
-        <xc:MaskedTextBox Header="Phone (mask 000-000-0000)" Mask="000-000-0000" PlaceholderText="555-010-2030" />
-        <xc:MaskedTextBox Header="Postal code (mask A0A 0A0)" Mask="A0A 0A0" />
+        <xc:MaskedTextBox Header="Phone (mask ###-###-####)" Mask="###-###-####" PlaceholderText="555-010-2030" />
+        <xc:MaskedTextBox Header="ZIP+4 (mask #####-####)" Mask="#####-####" />
         <TextBlock Text="Typeable time: type 9, 930, 9:30p or 21:30 then Tab" Style="{StaticResource XcFieldLabelStyle}" />
         <xc:TypeableTimeBox x:Name="TimeBox" TimeCommitted="TimeBox_TimeCommitted" />
         <TextBlock x:Name="TimeEcho" Opacity="0.7" />

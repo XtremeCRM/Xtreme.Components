@@ -3,6 +3,8 @@
 An IDE-style dock manager for [Uno Platform](https://platform.uno), built from WinUI
 primitives only. Part of [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components).
 
+**Full guide:** [docs/docking.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/docking.md) covers every option with samples.
+
 ## Features
 
 - **Centre document + edge panes.** `DockItem`s dock to any edge; each edge holds layers

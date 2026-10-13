@@ -3,6 +3,8 @@
 Card controls for [Uno Platform](https://platform.uno). Part of
 [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components).
 
+**Full guide:** [docs/cards.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/cards.md) covers every option with samples.
+
 ## SectionCard
 
 A boxed card for grouping related fields inside an editor or detail pane. It owns the card
@@ -13,18 +15,21 @@ matches. Add `SectionCardTab` children and the header renders them as a top-pane
 ```xml
 <Page xmlns:cards="using:Xtreme.Components.Cards">
   <cards:SectionCard>
-    <cards:SectionCardTab Header="Details">
-      <StackPanel> ... </StackPanel>
-    </cards:SectionCardTab>
-    <cards:SectionCardTab Header="Notes">
-      <TextBox AcceptsReturn="True" />
-    </cards:SectionCardTab>
+    <!-- Body is the content property, so tabs go inside SectionCard.Tabs. -->
+    <cards:SectionCard.Tabs>
+      <cards:SectionCardTab Header="Details">
+        <StackPanel> ... </StackPanel>
+      </cards:SectionCardTab>
+      <cards:SectionCardTab Header="Notes">
+        <TextBox AcceptsReturn="True" />
+      </cards:SectionCardTab>
+    </cards:SectionCard.Tabs>
   </cards:SectionCard>
 </Page>
 ```
 
-The title font size reads the `XcFontSizeTitle` resource when the app defines it and falls
-back to 14.
+The title font size reads the `XcFontSizeTitle` resource (16 in Core's defaults) and falls
+back to 14 only when no such resource exists.
 
 ## CardDockerControl
 

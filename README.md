@@ -20,7 +20,7 @@ dotnet add package Xtreme.Components.Docking --prerelease
 | `Xtreme.Components.Scheduler` | Day / Week / Month / Agenda and multi-resource Planner views with drag-to-move, resize, click-to-create and external drag-drop. | Primitives |
 | `Xtreme.Components.Docking` | Dock manager: dockable panes, tab groups, auto-hide rails, float to a real OS window and re-dock, layout persistence. | Core |
 | `Xtreme.Components.Cards` | `SectionCard` frame with tab strip, and `CardDockerControl` for arranging cards across a column grid by dragging. | Core |
-| `Xtreme.Components.TableView` | `RowFlagDecorator` for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) rows. | Primitives |
+| `Xtreme.Components.TableView` | `RowFlagDecorator` for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) rows. | Core |
 | `Xtreme.Components` | Meta-package that pulls everything above. | all |
 
 All packages share one version. Pre-release (`0.x-preview`) until the Docking layout document
@@ -65,6 +65,19 @@ the Core tokens with it), then override any token after the merge:
 
 Every token, the high-contrast keys and the runtime hooks are listed in
 [docs/theming.md](docs/theming.md).
+
+## Guides
+
+One guide per package, covering every option with samples taken from the gallery:
+
+- [Scheduler](docs/scheduler.md): views, data, interaction events, context menus, host-built
+  editors, tiles, icons, adornments, tooltips and templates
+- [Docking](docs/docking.md): dock host, panes, pinning, floating windows, persistence
+- [Cards](docs/cards.md): SectionCard and the card docker
+- [Primitives](docs/primitives.md): pickers, masked input, editor action bar, chips, panels
+- [TableView](docs/tableview.md): helpers for WinUI.TableView
+- [Core](docs/core.md): ComponentHost and the shared theme hooks
+- [Theming](docs/theming.md) and [Architecture](docs/architecture.md)
 
 ## Gallery
 

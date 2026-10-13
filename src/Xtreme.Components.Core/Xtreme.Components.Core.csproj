@@ -1,6 +1,6 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <Description>Shared foundation for the Xtreme.Components control families: the ActualTheme-driven surface brushes and the Xc* theme token keys. No controls; referenced by Xtreme.Components.Docking, .Cards and .Primitives.</Description>
+    <Description>Shared foundation for the Xtreme.Components control families: the ActualTheme-driven surface brushes and the Xc* theme token keys. No controls; referenced by Xtreme.Components.Primitives, .Docking, .Cards and .TableView (and .Scheduler through Primitives).</Description>
     <PackageTags>uno;uno-platform;winui;theme;tokens;cross-platform;skia</PackageTags>
   </PropertyGroup>
 </Project>

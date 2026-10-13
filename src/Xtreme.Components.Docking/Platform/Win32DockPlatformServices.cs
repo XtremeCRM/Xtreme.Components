@@ -56,7 +56,6 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     public bool SupportsFloatingWindows { get; } =
         !OperatingSystem.IsBrowser() && !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS();
 
-    /// <summary>Lets the dock manager place a torn-out pane's window at the cursor.</summary>
     /// <summary>The app's main window; the owner of every floating window. Set it once after the window exists.</summary>
     public Window? HostWindow { get; set; }
 

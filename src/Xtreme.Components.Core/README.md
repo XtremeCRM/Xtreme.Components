@@ -3,6 +3,8 @@
 The shared foundation of the [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components)
 control families. No controls live here; the family packages reference it.
 
+**Full guide:** [docs/core.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/core.md) covers every option with samples.
+
 - `ComponentTheme.Surface(ElementTheme)` and `ComponentTheme.SurfaceOutline(ElementTheme)`:
   the pane-surface and hairline-outline brushes a control paints from code-behind when it
   cannot bind a `ThemeResource`. They follow the element's **actual** theme, which a plain
