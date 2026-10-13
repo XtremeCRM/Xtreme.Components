@@ -97,6 +97,12 @@ jobs:
           -p:GalleryBasePath=/Xtreme.Components/
       - name: Add a .nojekyll marker
         run: touch artifacts/gallery/wwwroot/.nojekyll
+      # Old visitors may still hold the caching worker from the PWA-era builds; ship a worker that
+      # clears its caches and unregisters instead of the bootstrapper's (see the file's header).
+      - name: Replace the service worker with a self-unregistering one
+        run: |
+          rm -f artifacts/gallery/wwwroot/service-worker.js.br artifacts/gallery/wwwroot/service-worker.js.gz
+          cp build/gallery/service-worker.js artifacts/gallery/wwwroot/service-worker.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: artifacts/gallery/wwwroot

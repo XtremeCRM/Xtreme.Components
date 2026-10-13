@@ -191,11 +191,14 @@ public sealed partial class SchedulerPage : Grid
         switches.Children.Add(Switch("Adornments", on => { _adornments = on; Refresh(); }));
         switches.Children.Add(Switch("Tooltip details", on => { _tooltips = on; Refresh(); }));
         switches.Children.Add(Switch("Appointment editor", on => { _editorEnabled = on; if (!on) CloseEditor(); }));
-        switches.Children.Add(Switch("Context menu", on => { _contextMenu = on; }));
+        // On by default: a right-click that silently does nothing reads as a broken control.
+        var contextMenuSwitch = Switch("Context menu", on => { _contextMenu = on; });
+        contextMenuSwitch.IsChecked = true;
+        switches.Children.Add(contextMenuSwitch);
 
         var hint = new TextBlock
         {
-            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it, or click an empty slot to create one. With the context menu on, right-click an appointment.",
+            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it, or click an empty slot to create one. Right-click an appointment for the context menu.",
             Opacity = 0.7, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8),
         };
 
