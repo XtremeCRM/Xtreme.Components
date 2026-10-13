@@ -7,7 +7,7 @@ public sealed partial class MainPage : Page
     private static readonly (string Tag, string Title, string Blurb, Func<UIElement> Create)[] Catalog =
     [
         ("scheduler", "Scheduler",
-         "Xtreme.Components.Scheduler. Day / Week / Month / Agenda / Planner. Drag an appointment to move it, drag its edge to resize, click an empty slot to create. The Examples switches add a host-side resource picker, data-driven tiles (with the toolbar's tile options), indicator icons, and positioned adornments (the toolbar's Urgent / Paid toggles act on the selected appointment).",
+         "Xtreme.Components.Scheduler. Day / Week / Month / Agenda / Planner. Drag an appointment to move it, drag its edge to resize, click an empty slot to create. The Examples switches add a host-side resource picker, data-driven tiles (with the toolbar's tile options), indicator icons, positioned adornments (the toolbar's Urgent / Paid toggles act on the selected appointment), and an appointment editor: with it on, double-click an appointment or click an empty slot to open a side form built from SectionCard, DateTimePicker and EditorActionBar.",
          () => new SchedulerPage()),
         ("docking", "Docking",
          "Xtreme.Components.Docking. A centre document with panes on all four edges, two stacked on the left and two tabbed. Drag a header or tab onto the guides, pin a pane to its rail, narrow the window below ~580px to see the overlay mode.",

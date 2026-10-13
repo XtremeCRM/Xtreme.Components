@@ -28,8 +28,21 @@ public sealed partial class SchedulerPage : Grid
     private readonly StackPanel _resourcePane = new() { Spacing = 6, Margin = new Thickness(0, 0, 16, 0), MinWidth = 150, Visibility = Visibility.Collapsed };
     private readonly TextBlock _log = new() { Opacity = 0.75, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 6, 0, 0) };
 
-    private bool _tiles, _icons, _adornments;
+    private bool _tiles, _icons, _adornments, _editorEnabled;
     private readonly HashSet<string> _tileKeys = new() { "status", "tech" };
+
+    // Appointment editor (host-side example): the control raises edit / create requests and ships
+    // no form. This one is SectionCard + DateTimePicker + EditorActionBar from the other packages.
+    private readonly Border _editorPane = new() { Width = 320, Margin = new Thickness(16, 0, 0, 0), Visibility = Visibility.Collapsed };
+    private AppointmentModel? _editing;
+    private bool _editingIsNew;
+    private string _editorBaseline = "";
+    private TextBox _subject = null!, _memo = null!;
+    private ComboBox _resource = null!;
+    private Primitives.DateTimePicker _start = null!, _end = null!;
+    private CheckBox _allDay = null!;
+    private Primitives.EditorActionBar _actions = null!;
+    private TextBlock _editorTitle = null!;
 
     public SchedulerPage()
     {
@@ -77,13 +90,25 @@ public sealed partial class SchedulerPage : Grid
 
         _scheduler.AppointmentCreateRequested += (_, e) =>
         {
-            _appointments.Add(new AppointmentModel
+            var created = new AppointmentModel
             {
-                Id = Guid.NewGuid(), Subject = "New appointment", Start = e.Start, End = e.End,
+                Id = Guid.NewGuid(), Subject = "New appointment", Start = e.Start, End = e.End, IsAllDay = e.IsAllDay,
                 ResourceIds = e.ResourceId is { } r ? [r] : [],
-            });
+            };
+            if (_editorEnabled)
+            {
+                OpenEditor(created, isNew: true);   // the editor adds it on Save
+                return;
+            }
+            _appointments.Add(created);
             Log($"Create {e.Start:ddd h:mm tt} to {e.End:h:mm tt}");
             Refresh();
+        };
+        _scheduler.AppointmentEditRequested += (_, e) =>
+        {
+            if (!_editorEnabled) return;      // unhandled: the control keeps its default (nothing)
+            e.Handled = true;
+            OpenEditor(e.Appointment, isNew: false);
         };
         _scheduler.AppointmentMoveRequested += (_, e) =>
         {
@@ -109,6 +134,7 @@ public sealed partial class SchedulerPage : Grid
         switches.Children.Add(Switch("Tiles", on => { _tiles = on; Refresh(); }));
         switches.Children.Add(Switch("Icons", on => { _icons = on; Refresh(); }));
         switches.Children.Add(Switch("Adornments", on => { _adornments = on; Refresh(); }));
+        switches.Children.Add(Switch("Appointment editor", on => { _editorEnabled = on; if (!on) CloseEditor(); }));
 
         // Resource picker: plain checkboxes, one per resource, filtering what the scheduler shows.
         _resourcePane.Children.Add(new TextBlock { Text = "Resources", Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] });
@@ -121,12 +147,17 @@ public sealed partial class SchedulerPage : Grid
         }
         _resourcePane.Children.Add(new TextBlock { Text = "The library ships no picker; the host filters SchedulerResources.", Opacity = 0.6, TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(0, 8, 0, 0) });
 
+        BuildEditor();
+
         var body = new Grid();
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         SetColumn(_scheduler, 1);
+        SetColumn(_editorPane, 2);
         body.Children.Add(_resourcePane);
         body.Children.Add(_scheduler);
+        body.Children.Add(_editorPane);
 
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -142,10 +173,112 @@ public sealed partial class SchedulerPage : Grid
 
     private readonly List<CheckBox> _switches = new();
 
-    /// <summary>Turns every example switch on (the self-test uses it to render the decorated path).</summary>
+    /// <summary>Turns every example switch on and opens the editor (the self-test renders the decorated path).</summary>
     public void EnableAllExamples()
     {
         foreach (var box in _switches) box.IsChecked = true;
+        OpenEditor(_appointments[0], isNew: false);
+    }
+
+    // ---- Appointment editor -------------------------------------------------------------------
+
+    private void BuildEditor()
+    {
+        _editorTitle = new TextBlock { Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"] };
+        _subject = new TextBox { Header = "Subject" };
+        _resource = new ComboBox { Header = "Resource", ItemsSource = _resources.Select(r => r.Name).ToList(), HorizontalAlignment = HorizontalAlignment.Stretch };
+        _start = new Primitives.DateTimePicker { Header = "Start", MinuteStep = 15 };
+        _end = new Primitives.DateTimePicker { Header = "End", MinuteStep = 15 };
+        _allDay = new CheckBox { Content = "All day" };
+        _memo = new TextBox { Header = "Memo", AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 80 };
+        _actions = new Primitives.EditorActionBar { DeleteConfirmTitle = "Delete appointment?", DeleteConfirmMessage = "This only removes it from the sample list." };
+
+        _subject.TextChanged += (_, _) => UpdateDirty();
+        _memo.TextChanged += (_, _) => UpdateDirty();
+        _resource.SelectionChanged += (_, _) => UpdateDirty();
+        _start.ValueChanged += (_, _) => UpdateDirty();
+        _end.ValueChanged += (_, _) => UpdateDirty();
+        _allDay.Checked += (_, _) => { _start.ShowTime = _end.ShowTime = false; UpdateDirty(); };
+        _allDay.Unchecked += (_, _) => { _start.ShowTime = _end.ShowTime = true; UpdateDirty(); };
+        _actions.SaveRequested += (_, _) => SaveEditor();
+        _actions.CancelRequested += (_, _) => CloseEditor();
+        _actions.DeleteRequested += (_, _) =>
+        {
+            if (_editing is not null && !_editingIsNew) { _appointments.Remove(_editing); Log($"Deleted '{_editing.Subject}'"); }
+            CloseEditor();
+            Refresh();
+        };
+
+        var fields = new StackPanel { Spacing = 10, Margin = new Thickness(12) };
+        fields.Children.Add(_editorTitle);
+        fields.Children.Add(_subject);
+        fields.Children.Add(_resource);
+        fields.Children.Add(_allDay);
+        fields.Children.Add(_start);
+        fields.Children.Add(_end);
+        fields.Children.Add(_memo);
+        fields.Children.Add(_actions);
+
+        _editorPane.Child = new Cards.SectionCard
+        {
+            Body = new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+        };
+    }
+
+    private void OpenEditor(AppointmentModel appointment, bool isNew)
+    {
+        _editing = appointment;
+        _editingIsNew = isNew;
+        _editorTitle.Text = isNew ? "New appointment" : "Edit appointment";
+        _subject.Text = appointment.Subject;
+        _memo.Text = appointment.Memo ?? "";
+        _resource.SelectedIndex = appointment.ResourceIds.Count > 0 ? _resources.FindIndex(r => Equals(r.Id, appointment.ResourceIds[0])) : -1;
+        _allDay.IsChecked = appointment.IsAllDay;
+        _start.ShowTime = _end.ShowTime = !appointment.IsAllDay;
+        _start.Date = DateOnly.FromDateTime(appointment.Start); _start.Time = TimeOnly.FromDateTime(appointment.Start);
+        _end.Date = DateOnly.FromDateTime(appointment.End);     _end.Time = TimeOnly.FromDateTime(appointment.End);
+        _actions.ShowDelete = !isNew;
+        _editorBaseline = Signature();
+        _actions.IsDirty = isNew;             // a new appointment can be saved as-is
+        _editorPane.Visibility = Visibility.Visible;
+        Log(isNew ? $"New appointment at {appointment.Start:ddd h:mm tt}: fill in the editor" : $"Editing '{appointment.Subject}' (double-click opened it)");
+    }
+
+    private void CloseEditor()
+    {
+        _editing = null;
+        _editorPane.Visibility = Visibility.Collapsed;
+    }
+
+    private string Signature() =>
+        $"{_subject.Text}|{_memo.Text}|{_resource.SelectedIndex}|{_allDay.IsChecked}|{_start.Date}|{_start.Time}|{_end.Date}|{_end.Time}";
+
+    private void UpdateDirty()
+    {
+        if (_editing is null) return;
+        _actions.IsDirty = _editingIsNew || Signature() != _editorBaseline;
+    }
+
+    private void SaveEditor()
+    {
+        if (_editing is null) return;
+        var allDay = _allDay.IsChecked == true;
+        var start = (_start.Date ?? DateOnly.FromDateTime(_editing.Start)).ToDateTime(allDay ? TimeOnly.MinValue : _start.Time ?? TimeOnly.FromDateTime(_editing.Start));
+        var end = (_end.Date ?? DateOnly.FromDateTime(_editing.End)).ToDateTime(allDay ? TimeOnly.MinValue : _end.Time ?? TimeOnly.FromDateTime(_editing.End));
+        if (allDay && end <= start) end = start.AddDays(1);
+        if (end <= start) end = start.AddMinutes(30);
+
+        _editing.Subject = string.IsNullOrWhiteSpace(_subject.Text) ? "Untitled" : _subject.Text.Trim();
+        _editing.Memo = string.IsNullOrWhiteSpace(_memo.Text) ? null : _memo.Text;
+        _editing.IsAllDay = allDay;
+        _editing.Start = start;
+        _editing.End = end;
+        if (_resource.SelectedIndex >= 0) _editing.ResourceIds = [_resources[_resource.SelectedIndex].Id];
+
+        if (_editingIsNew) _appointments.Add(_editing);
+        Log($"{(_editingIsNew ? "Created" : "Saved")} '{_editing.Subject}' {start:ddd h:mm tt} to {end:h:mm tt}");
+        CloseEditor();
+        Refresh();
     }
 
     private CheckBox Switch(string label, Action<bool> changed)
