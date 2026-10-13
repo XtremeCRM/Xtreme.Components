@@ -28,7 +28,7 @@ public sealed partial class SchedulerPage : Grid
     private readonly StackPanel _resourcePane = new() { Spacing = 6, Margin = new Thickness(0, 0, 16, 0), MinWidth = 150, Visibility = Visibility.Collapsed };
     private readonly TextBlock _log = new() { Opacity = 0.75, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 6, 0, 0) };
 
-    private bool _tiles, _icons, _adornments, _editorEnabled, _tooltips;
+    private bool _tiles, _icons, _adornments, _editorEnabled, _tooltips, _contextMenu;
     private readonly HashSet<string> _tileKeys = new() { "status", "tech" };
 
     // Appointment editor (host-side example): the control raises edit / create requests and ships
@@ -134,6 +134,19 @@ public sealed partial class SchedulerPage : Grid
             e.Handled = true;
             OpenEditor(e.Appointment, isNew: false);
         };
+
+        // Right-click: the control selects the appointment and reports it with a position; the host
+        // owns the menu (the library is domain-agnostic, so it ships none).
+        _scheduler.AppointmentContextRequested += (_, e) =>
+        {
+            if (!_contextMenu) return;
+            var menu = BuildContextMenu(e.Appointment);
+            if (e.Position is { } pos)
+                menu.ShowAt(_scheduler, new FlyoutShowOptions { Position = pos, Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft });
+            else
+                menu.ShowAt(_scheduler);
+            Log($"Context menu for '{e.Appointment.Subject}'");
+        };
         _scheduler.AppointmentMoveRequested += (_, e) =>
         {
             e.Appointment.Start = e.NewStart;
@@ -160,10 +173,11 @@ public sealed partial class SchedulerPage : Grid
         switches.Children.Add(Switch("Adornments", on => { _adornments = on; Refresh(); }));
         switches.Children.Add(Switch("Tooltips", on => { _tooltips = on; Refresh(); }));
         switches.Children.Add(Switch("Appointment editor", on => { _editorEnabled = on; if (!on) CloseEditor(); }));
+        switches.Children.Add(Switch("Context menu", on => { _contextMenu = on; }));
 
         var hint = new TextBlock
         {
-            Text = "Hover an appointment for its tooltip. With the editor on, double-click an appointment to edit it, or click an empty slot to create one.",
+            Text = "Hover an appointment for its tooltip. With the editor on, double-click an appointment to edit it, or click an empty slot to create one. With the context menu on, right-click an appointment.",
             Opacity = 0.7, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8),
         };
 
@@ -405,6 +419,51 @@ public sealed partial class SchedulerPage : Grid
     }
 
     private static AppointmentIndicator Icon(string glyph, string tip, Color? color) => new() { Glyph = glyph, Tooltip = tip, Color = color };
+
+    /// <summary>The host-side context menu for one appointment. Every item mutates the sample data and re-renders.</summary>
+    private MenuFlyout BuildContextMenu(AppointmentModel a)
+    {
+        var menu = new MenuFlyout();
+
+        var edit = new MenuFlyoutItem { Text = "Edit…", Icon = new SymbolIcon(Symbol.Edit), IsEnabled = _editorEnabled };
+        edit.Click += (_, _) => OpenEditor(a, isNew: false);
+        menu.Items.Add(edit);
+
+        var complete = new ToggleMenuFlyoutItem { Text = "Complete", IsChecked = a.IsComplete };
+        complete.Click += (_, _) => { a.IsComplete = !a.IsComplete; Log($"'{a.Subject}' {(a.IsComplete ? "completed" : "reopened")}"); Refresh(); };
+        menu.Items.Add(complete);
+
+        var urgent = new ToggleMenuFlyoutItem { Text = "Urgent", IsChecked = a.Adornments.Any(d => d.Tooltip == "urgent") };
+        urgent.Click += (_, _) =>
+        {
+            var existing = a.Adornments.FirstOrDefault(d => d.Tooltip == "urgent");
+            if (existing is not null) a.Adornments.Remove(existing); else a.Adornments.Add(Adornment("urgent"));
+            if (!_adornments) _switches.First(s => (string)s.Content == "Adornments").IsChecked = true;   // make the ribbon visible
+            Refresh();
+        };
+        menu.Items.Add(urgent);
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        var duplicate = new MenuFlyoutItem { Text = "Duplicate to tomorrow", Icon = new SymbolIcon(Symbol.Copy) };
+        duplicate.Click += (_, _) =>
+        {
+            _appointments.Add(new AppointmentModel
+            {
+                Id = Guid.NewGuid(), Subject = a.Subject, Start = a.Start.AddDays(1), End = a.End.AddDays(1), IsAllDay = a.IsAllDay,
+                ResourceIds = a.ResourceIds.ToList(), BarColor = a.BarColor, BackColor = a.BackColor, Memo = a.Memo,
+            });
+            Log($"Duplicated '{a.Subject}' to {a.Start.AddDays(1):ddd}");
+            Refresh();
+        };
+        menu.Items.Add(duplicate);
+
+        var delete = new MenuFlyoutItem { Text = "Delete", Icon = new SymbolIcon(Symbol.Delete) };
+        delete.Click += (_, _) => { _appointments.Remove(a); if (ReferenceEquals(_editing, a)) CloseEditor(); Log($"Deleted '{a.Subject}'"); Refresh(); };
+        menu.Items.Add(delete);
+
+        return menu;
+    }
 
     /// <summary>Six appointment types, each a (bar, fill) pair that reads in light and dark.</summary>
     private static (Color Bar, Color Back) TypeColours(string subject)
