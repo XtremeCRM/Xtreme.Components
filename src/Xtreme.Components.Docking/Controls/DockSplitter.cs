@@ -9,7 +9,7 @@ namespace Xtreme.Components.Docking.Controls;
 
 /// <summary>
 /// The draggable divider between a dock region and its neighbour — rendered as a SEAM, not a band:
-/// the two sides genuinely touch along a thin dark border line, and the only chrome is a centred
+/// the two sides genuinely touch along a thin dark border line, and the only chrome is a centered
 /// grab handle (a small tab with a grip bar only — no pin, no chevron; those affordances live in the
 /// pane headers).
 /// </summary>
@@ -18,7 +18,7 @@ namespace Xtreme.Components.Docking.Controls;
 /// <c>Thumb</c> is sealed and cannot carry a cursor, and manipulation events stay reliable on Uno
 /// WASM where raw <c>PointerMoved</c> is not dependable during a held drag.</para>
 /// <para>The splitter's grid track collapses to NOTHING: the root is <see cref="HitSpan"/> thick
-/// with negative margins cancelling it out, so the neighbors meet flush along a thin dark line
+/// with negative margins canceling it out, so the neighbors meet flush along a thin dark line
 /// while the hit area still straddles the seam.
 /// That also means it overhangs both neighbours and must draw above them (ZIndex).</para>
 /// <para><see cref="Dragged"/> reports the CUMULATIVE translation from the start of the drag, not a
@@ -122,7 +122,7 @@ public sealed partial class DockSplitter : Grid
         // The seam line is drawn as TWO segments that stop at the handle rather than one full run —
         // the line must go AROUND the handle, never under it, so the handle reads as an
         // opening in the seam that belongs to its pane. Track layout [* | handle | *] keeps the gap
-        // centred at any length.
+        // centered at any length.
         var visual = new Grid { IsHitTestVisible = false };
         if (vertical)
         {

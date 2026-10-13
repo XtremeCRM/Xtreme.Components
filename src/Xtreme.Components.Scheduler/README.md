@@ -1,7 +1,7 @@
 # Xtreme.Components.Scheduler
 
 A scheduler / calendar control for [Uno Platform](https://platform.uno) built from WinUI
-primitives only: no WebView, no third-party licence. Part of
+primitives only: no WebView, no third-party license. Part of
 [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components).
 
 **Full guide:** [docs/scheduler.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/scheduler.md) covers every option with samples.
@@ -77,4 +77,4 @@ Only a Planner lane whose resource sets `TimeZoneId` converts times (treating th
 showing that zone's wall-clock). Every other view and lane draws `Start`/`End` exactly as given,
 so pass local times unless you use per-resource zones. See the guide's Data section.
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.
+Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.

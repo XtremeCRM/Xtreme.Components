@@ -61,8 +61,8 @@ public interface IDockPlatformServices
     /// <remarks>
     /// Platform territory for the same reason as the pool: whether the primary button is still down
     /// during an OS window move, and where the cursor is, take per-OS interop (or windowing events
-    /// that may or may not exist) that this single-TFM library cannot contain. One behavioural
-    /// contract implementations must honour: do NOT report the gesture already in flight when the
+    /// that may or may not exist) that this single-TFM library cannot contain. One behavioral
+    /// contract implementations must honor: do NOT report the gesture already in flight when the
     /// window spawns — a tear-out floats the pane while the user's button is STILL DOWN, and
     /// reporting that same gesture would re-dock the pane the instant it floated. Require a fully
     /// released pointer before the first report.
@@ -126,7 +126,7 @@ public interface IDockPlatformServices
 
 /// <summary>
 /// Conservative fallback used when the host supplies no <see cref="IDockPlatformServices"/>: reports no
-/// multi-window support, so the dock manager degrades to docked-only behaviour rather than attempting a
+/// multi-window support, so the dock manager degrades to docked-only behavior rather than attempting a
 /// float the platform may not survive. A head that wants floating opts in explicitly.
 /// </summary>
 public sealed class DockedOnlyPlatformServices : IDockPlatformServices

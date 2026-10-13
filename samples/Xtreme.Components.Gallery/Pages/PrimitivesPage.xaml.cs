@@ -74,7 +74,7 @@ public sealed partial class PrimitivesPage : UserControl
     private void DirtyBox_TextChanged(object sender, TextChangedEventArgs e) => Actions.IsDirty = DirtyBox.Text.Length > 0;
 
     private void Actions_SaveRequested(object sender, object e) { ActionEcho.Text = "Saved."; Actions.IsDirty = false; }
-    private void Actions_CancelRequested(object sender, object e) { ActionEcho.Text = "Cancelled."; DirtyBox.Text = ""; Actions.IsDirty = false; }
+    private void Actions_CancelRequested(object sender, object e) { ActionEcho.Text = "Canceled."; DirtyBox.Text = ""; Actions.IsDirty = false; }
     private void Actions_DeleteRequested(object sender, object e) => ActionEcho.Text = "Delete requested (confirmed in the bar's own dialog).";
 
     private void Toast_Click(object sender, RoutedEventArgs e)

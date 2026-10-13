@@ -472,7 +472,7 @@ internal sealed class PlannerTimelineInteraction
         }
     }
 
-    // When Ctrl is held during a move, a centred "+ Copy" pill on the ghost signals that the drop will
+    // When Ctrl is held during a move, a centered "+ Copy" pill on the ghost signals that the drop will
     // duplicate rather than relocate; null in every other mode. Reuses the event time-pill look.
     private FrameworkElement? CopyBadge()
     {

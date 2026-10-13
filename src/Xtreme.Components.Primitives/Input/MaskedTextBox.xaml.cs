@@ -7,7 +7,7 @@ namespace Xtreme.Components.Primitives;
 /// <c>#</c> = digit, <c>A</c> = letter, <c>*</c> = letter or digit, <c>\</c> escapes the next
 /// character, anything else = a literal shown as-is (see <see cref="InputMask"/>).
 ///
-/// Invalid keystrokes (one that fits no slot, or any once every slot is full) are cancelled in
+/// Invalid keystrokes (one that fits no slot, or any once every slot is full) are canceled in
 /// <see cref="OnBeforeTextChanging"/> so they never reach the screen — no flash. Deletions are left
 /// to the native TextBox and reconciled in <see cref="OnTextChanged"/>, which drops the last character
 /// when a literal/placeholder was the thing deleted (so backspace never feels stuck and never

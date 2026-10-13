@@ -544,7 +544,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         var accent = palette.SelectionFill;
         var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         // Adjacent-month days sit on a faint fill so the current month still reads as a block,
-        // while staying obviously live rather than greyed-out-disabled.
+        // while staying obviously live rather than grayed-out-disabled.
         var outOfScopeFill = palette.OutsideMonthFill;
 
         foreach (var (date, cell, outOfScope) in _cells)

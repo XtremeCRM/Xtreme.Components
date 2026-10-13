@@ -813,7 +813,7 @@ public sealed partial class SchedulerControl : UserControl
     /// feature — Legacy's multi-select DateNavigator). When non-null and non-empty, the Day view
     /// renders exactly these dates as adjacent columns (gaps collapsed) and the Agenda view groups
     /// by them, overriding <see cref="SelectedDate"/> + <see cref="VisibleDays"/>. Null/empty (the
-    /// default) = the ordinary single-anchor behaviour. Only Day and Agenda honour it; switching to
+    /// default) = the ordinary single-anchor behavior. Only Day and Agenda honor it; switching to
     /// Week/Month/Planner clears it. A contiguous run collapses back to the anchor + span path, so
     /// this only ever holds a genuinely scattered set.
     /// </summary>

@@ -7,7 +7,7 @@ primitives only. Part of [Xtreme.Components](https://github.com/XtremeCRM/Xtreme
 
 ## Features
 
-- **Centre document + edge panes.** `DockItem`s dock to any edge; each edge holds layers
+- **Center document + edge panes.** `DockItem`s dock to any edge; each edge holds layers
   stacked outward and slots side by side within a layer, with tab groups anywhere.
 - **Drag with guides.** Header and tab drags show edge markers and a document compass
   (inner and outer bands, insert before/after, tab into), with a shaded landing preview.

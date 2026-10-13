@@ -8,7 +8,7 @@ multi-resource Planner view over a list of appointments and a list of resources.
 - Sample source used throughout this guide:
   [`samples/Xtreme.Components.Gallery/Pages/SchedulerPage.cs`](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/Pages/SchedulerPage.cs)
 - Package layout and conventions: [architecture.md](architecture.md)
-- Colours and theme tokens: [theming.md](theming.md)
+- Colors and theme tokens: [theming.md](theming.md)
 
 Namespaces:
 
@@ -802,21 +802,21 @@ _scheduler.AppointmentRenderer = ctx => ctx.Surface switch
 };
 ```
 
-### Colours
+### Colors
 
-- Per appointment: `BarColor` and `BackColor`. The gallery colours by appointment type:
+- Per appointment: `BarColor` and `BackColor`. The gallery colors by appointment type:
 
   ```csharp
   foreach (var a in _appointments)
   {
-      var (bar, back) = TypeColours(a.Subject);
+      var (bar, back) = TypeColors(a.Subject);
       a.BarColor = bar;
       a.BackColor = back;
   }
   ```
 
 - Per resource: `ResourceModel.Color` for the header chip.
-- Grid, headers, selection and default event colours come from the scheduler palette, overridable with
+- Grid, headers, selection and default event colors come from the scheduler palette, overridable with
   `XcScheduler<Role>Brush` resources per theme. See
   [theming.md, Scheduler roles](theming.md#scheduler-roles-xcschedulerrolebrush-optional).
 - `AppointmentCornerRadius` sets the radius of timed blocks and the selection outline (chips and bars
@@ -836,7 +836,7 @@ _scheduler.AppointmentRenderer = ctx => ctx.Surface switch
 `SchedulerControl` contains its own `SchedulerToolbar`: Previous / Today / Next, a period button that
 opens a multi-date picker (click, Ctrl-click, Shift-click or range mode; a scattered pick sets
 `SelectedDates`), the view switcher, host buttons, the adornment group, the "Visible tiles" button and
-the Settings flyout. The embedded toolbar instance is not exposed; customise it through the members
+the Settings flyout. The embedded toolbar instance is not exposed; customize it through the members
 below.
 
 ### Custom toolbar buttons

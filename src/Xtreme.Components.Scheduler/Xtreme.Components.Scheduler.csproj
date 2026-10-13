@@ -1,7 +1,7 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
     <RootNamespace>Xtreme.Components.Scheduler</RootNamespace>
-    <Description>Primitive-only Uno Platform scheduler: Day, Week, Month, Agenda and multi-resource Planner views; drag-to-move and resize, click-to-create, external drag-drop, per-resource IANA time zones, recurring-event indicators and templatable appointments. No WebView, no third-party licence.</Description>
+    <Description>Primitive-only Uno Platform scheduler: Day, Week, Month, Agenda and multi-resource Planner views; drag-to-move and resize, click-to-create, external drag-drop, per-resource IANA time zones, recurring-event indicators and templatable appointments. No WebView, no third-party license.</Description>
     <PackageTags>uno;uno-platform;winui;scheduler;calendar;planner;appointments;cross-platform;skia</PackageTags>
   </PropertyGroup>
   <ItemGroup>

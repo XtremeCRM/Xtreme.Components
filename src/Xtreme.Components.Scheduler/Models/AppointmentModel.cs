@@ -82,7 +82,7 @@ public sealed class AppointmentModel
     /// <summary>Completed appointments show a check glyph in the default template.</summary>
     public bool IsComplete { get; set; }
 
-    /// <summary>Cancelled appointments show a cancel glyph in the default template.</summary>
+    /// <summary>Canceled appointments show a cancel glyph in the default template.</summary>
     public bool IsCancelled { get; set; }
 
     /// <summary>Tentative appointments show a question-mark glyph in the default template.</summary>

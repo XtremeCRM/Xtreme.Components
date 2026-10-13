@@ -328,7 +328,7 @@ public sealed partial class DateTimePicker : UserControl
             Grid.SetColumnSpan(PART_TimePanel, 3);
             PART_TimePanel.Width = StepBarWidth();
             // The time column stays step-bar width (narrower than the 250 calendar above it), so
-            // centre it — left-aligned it reads as a ragged edge rather than a deliberate stack.
+            // center it — left-aligned it reads as a ragged edge rather than a deliberate stack.
             PART_TimePanel.HorizontalAlignment = HorizontalAlignment.Center;
 
             // Shorter list: stacked adds the calendar's height to the popup, so a full-height list

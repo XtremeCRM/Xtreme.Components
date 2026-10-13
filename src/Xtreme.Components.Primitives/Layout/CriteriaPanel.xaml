@@ -7,7 +7,7 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <!-- Secondary label colour as a ThemeResource so it follows the element theme live. -->
+        <!-- Secondary label color as a ThemeResource so it follows the element theme live. -->
         <Style x:Key="CriteriaLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         </Style>

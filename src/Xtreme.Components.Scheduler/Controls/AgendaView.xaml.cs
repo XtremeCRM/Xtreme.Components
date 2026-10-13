@@ -189,7 +189,7 @@ internal sealed partial class AgendaView : UserControl, ISelectionView
         };
         Grid.SetColumn(time, 0);
 
-        // Render the event with the SAME appointment template as the scheduler blocks (fill colour +
+        // Render the event with the SAME appointment template as the scheduler blocks (fill color +
         // accent + status indicators), so the Agenda matches Day/Week/Month rather than a plain text row.
         var chip = EventBlockFactory.CreateChip(appt, palette, templating);
         chip.HorizontalAlignment = HorizontalAlignment.Stretch;

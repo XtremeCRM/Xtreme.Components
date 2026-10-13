@@ -446,7 +446,7 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
             if (isSel)
             {
                 // Pin the LEFT edge (X origin 0) so the modest enlarge grows rightward only; vertically
-                // it stays centred. Raise it above same-column neighbours and lift its whole column above
+                // it stays centered. Raise it above same-column neighbours and lift its whole column above
                 // adjacent columns so the block + its red outline sit over neighbouring appointments.
                 b.RenderTransformOrigin = new Point(0, 0.5);
                 b.RenderTransform = new ScaleTransform { ScaleX = SelectionScale, ScaleY = SelectionScale };
@@ -498,12 +498,12 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
 
     private static readonly Color SelectionRed = SelectionFrame.SelectionRed;
 
-    // Selected blocks are left-pinned (grow rightward) and centre-scaled vertically by this modest
+    // Selected blocks are left-pinned (grow rightward) and center-scaled vertically by this modest
     // factor — just enough to lift them off the grid without growing off-screen.
     private const double SelectionScale = 1.06;
 
     // A red outline around the whole selected block (replaces the old drop shadow). Matches the block's
-    // bounds — left-pinned (X origin 0), centred Y, same scale — so it hugs the enlarged block; the
+    // bounds — left-pinned (X origin 0), centered Y, same scale — so it hugs the enlarged block; the
     // corner radius follows the Settings-driven appointment corner radius.
     private Border BuildSelectionBorder(FrameworkElement block)
     {

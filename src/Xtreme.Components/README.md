@@ -18,4 +18,4 @@ dotnet add package Xtreme.Components --prerelease
 Prefer the individual package when you need one family; this one is for apps that use them all.
 
 App-agnostic, primitive-only Uno Platform controls targeting `net10.0`; the consuming head
-supplies the renderer for Desktop, Android, iOS and WebAssembly. MIT licence.
+supplies the renderer for Desktop, Android, iOS and WebAssembly. MIT license.

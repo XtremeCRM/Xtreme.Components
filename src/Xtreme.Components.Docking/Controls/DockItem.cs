@@ -49,7 +49,7 @@ public enum DockBand
     Outer,
 
     /// <summary>
-    /// The edge's inner band: the pane hugs the centre document, sized to the document's extent —
+    /// The edge's inner band: the pane hugs the center document, sized to the document's extent —
     /// inside every outer band, whatever the edge priorities say.
     /// </summary>
     Inner,
@@ -147,7 +147,7 @@ public partial class DockItem : ContentControl
     /// <summary>
     /// Optional layer name. A region stacks LAYERS vertically; slots sharing a name on the same edge
     /// sit SIDE-BY-SIDE inside one layer (the compass's ←/→ drops). Null (the default) gives the
-    /// slot its own full-span layer — which is exactly the pre-layer behaviour, so existing layouts
+    /// slot its own full-span layer — which is exactly the pre-layer behavior, so existing layouts
     /// read unchanged. Same flat-list encoding idea as <see cref="TabGroup"/>, one level up.
     /// </summary>
     public string? LayerGroup
@@ -309,7 +309,7 @@ public partial class DockItem : ContentControl
     // ---- Floating -------------------------------------------------------------------------------
 
     /// <summary>
-    /// CAPABILITY: may the user tear this pane out into its own OS window? Honoured only where
+    /// CAPABILITY: may the user tear this pane out into its own OS window? Honored only where
     /// <see cref="IDockPlatformServices.SupportsFloatingWindows"/> is true — on WASM and mobile this is
     /// ignored and no float affordance appears.
     /// </summary>
@@ -348,7 +348,7 @@ public partial class DockItem : ContentControl
     /// </summary>
     public event EventHandler<DockItemCloseRequestedEventArgs>? CloseRequested;
 
-    /// <returns>True when no handler cancelled the close.</returns>
+    /// <returns>True when no handler canceled the close.</returns>
     internal bool RaiseCloseRequested(bool fromFloatingWindow = false)
     {
         var args = new DockItemCloseRequestedEventArgs(this, fromFloatingWindow);

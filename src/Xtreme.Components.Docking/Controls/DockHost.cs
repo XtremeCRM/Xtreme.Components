@@ -9,10 +9,10 @@ using Xtreme.Components.Core;
 namespace Xtreme.Components.Docking.Controls;
 
 /// <summary>
-/// A dock layout container: one fixed centre document with <see cref="DockItem"/>s docked around it.
+/// A dock layout container: one fixed center document with <see cref="DockItem"/>s docked around it.
 /// </summary>
 /// <remarks>
-/// <para><b>Why a centre document.</b> The arrangement this replaces was built by NESTING two-pane
+/// <para><b>Why a center document.</b> The arrangement this replaces was built by NESTING two-pane
 /// splitters, which pushed the real content deeper with every pane added — in the scheduler the grid
 /// ended up three levels down as the innermost pane, so its position in the tree was an accident of
 /// which panes happened to exist. Here the document's slot is fixed and panes attach to edges
@@ -101,7 +101,7 @@ public partial class DockHost : ContentControl
     // ---- Public surface -------------------------------------------------------------------------
 
     /// <summary>
-    /// The centre content — the thing the panes are arranged around. Its slot never moves.
+    /// The center content — the thing the panes are arranged around. Its slot never moves.
     /// </summary>
     public object? Document
     {
@@ -244,7 +244,7 @@ public partial class DockHost : ContentControl
     /// </summary>
     private void OnItemIsOpenChanged(object? sender, EventArgs e)
     {
-        // A floating pane closed from code (typically after a cancelled close request) must leave its
+        // A floating pane closed from code (typically after a canceled close request) must leave its
         // window too; otherwise the window keeps showing a pane the model says is closed.
         if (sender is DockItem { IsOpen: false, IsFloating: true } item)
             DockItemBack(item, reopen: false);
@@ -284,7 +284,7 @@ public partial class DockHost : ContentControl
         _deferredCloses.Clear();
 
         // Stop watching still-floating windows for redock drags — their guides can only render in a
-        // host that is leaving the tree. The windows themselves stay up (existing behaviour).
+        // host that is leaving the tree. The windows themselves stay up (existing behavior).
         foreach (var entry in _floatingWindows.Values)
             entry.DragTracker?.Dispose();
     }
@@ -732,7 +732,7 @@ public partial class DockHost : ContentControl
 
         // Level 2: partition slots into LAYERS. Slots sharing a LayerGroup sit SIDE-BY-SIDE in one
         // layer (the compass's ←/→ drops); a null LayerGroup gives the slot its own full-span layer,
-        // which is exactly the pre-layer behaviour, so existing layouts read unchanged.
+        // which is exactly the pre-layer behavior, so existing layouts read unchanged.
         var layers = new List<List<int>>();
         var layerByName = new Dictionary<string, int>();
         for (var s = 0; s < slots.Count; s++)
@@ -1240,7 +1240,7 @@ public partial class DockHost : ContentControl
 
     /// <summary>
     /// The user's close gesture on a docked pane (header, tab strip, header menu): ask the item's
-    /// <see cref="DockItem.CloseRequested"/> handlers first, close only if none cancelled. The
+    /// <see cref="DockItem.CloseRequested"/> handlers first, close only if none canceled. The
     /// IsOpen change itself saves the layout.
     /// </summary>
     private static void RequestClose(DockItem item)
@@ -1871,7 +1871,7 @@ public partial class DockHost : ContentControl
 
     private DockItem? _dragItem;
     // Handle top-left in overlay coords — now only the basis for _dragPointer below. It is NOT the
-    // ghost's anchor any more: the ghost centres on the pointer (see CenterGhostOn).
+    // ghost's anchor any more: the ghost centers on the pointer (see CenterGhostOn).
     private Windows.Foundation.Point _dragOrigin;
     private Windows.Foundation.Point _dragPointer; // actual pointer in overlay coords (hit testing)
     private Windows.Foundation.Point _dragLastPointer; // last tracked pointer — the release lands here
@@ -1886,12 +1886,12 @@ public partial class DockHost : ContentControl
     private bool _redockActive;
 
     // The document compass (after the DevExpress dock manager): anchored at the document's center,
-    // no centre button, and DOUBLED arrows per direction distinguished by DISTANCE — the INNER
+    // no center button, and DOUBLED arrows per direction distinguished by DISTANCE — the INNER
     // arrow docks only the document's extent (DockBand.Inner), the OUTER docks against the entire
     // host border (DockBand.Outer). Built once per drag alongside the edge markers.
     private readonly List<(Border Guide, DockEdge Edge, DockBand Band, Windows.Foundation.Rect Hit)> _documentGuides = new();
 
-    // Per-slot drop targets: hovering a docked pane raises a small guide cluster over it — centre
+    // Per-slot drop targets: hovering a docked pane raises a small guide cluster over it — center
     // square = join it as a tab group, directional squares = dock adjacently before/after it in its
     // region's stack.
     private DropKind _dropKind = DropKind.None;
@@ -1964,7 +1964,7 @@ public partial class DockHost : ContentControl
         };
         _overlayLayer.Children.Add(_dragGhost);
 
-        // Measure now so the ghost can be centred on the very first frame: it has no ActualWidth until
+        // Measure now so the ghost can be centered on the very first frame: it has no ActualWidth until
         // a layout pass runs, and without this it would appear corner-anchored for one frame and then
         // snap across to the cursor.
         _dragGhost.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -2048,7 +2048,7 @@ public partial class DockHost : ContentControl
     }
 
     /// <summary>
-    /// Places the drag ghost horizontally centred on the pointer and sitting just BELOW it (overlay
+    /// Places the drag ghost horizontally centered on the pointer and sitting just BELOW it (overlay
     /// coords) — the cursor stays clear of the label rather than sitting on top of it.
     /// </summary>
     /// <remarks>
@@ -2120,7 +2120,7 @@ public partial class DockHost : ContentControl
         var hoverEdge = DockEdge.None;
         var hoverBand = DockBand.Outer;
 
-        // 1) Slot-cluster guides (visible only while a slot is hovered): the join-as-group centre
+        // 1) Slot-cluster guides (visible only while a slot is hovered): the join-as-group center
         // and the insert-before/after arrows.
         foreach (var (_, kind, edge, hit) in _clusterGuides)
         {
@@ -2318,7 +2318,7 @@ public partial class DockHost : ContentControl
     /// Builds (or clears) the guide cluster over the hovered slot, in the DevExpress compass shape:
     /// a cross of arrow squares around a center square. Along the region's stacking
     /// axis the arrows INSERT adjacently before/after the slot; across it they dock to the FULL edge
-    /// they point at; the centre joins the slot as a tab group.
+    /// they point at; the center joins the slot as a tab group.
     /// </summary>
     private void RebuildSlotCluster(int slotIndex)
     {
@@ -2339,7 +2339,7 @@ public partial class DockHost : ContentControl
 
         // The full per-pane compass, four buttons around a center one (regions are two-level:
         // layers of side-by-side slots):
-        //   centre = join this slot as a tab group — drawn as a mini TABBED PANE, the DevExpress
+        //   center = join this slot as a tab group — drawn as a mini TABBED PANE, the DevExpress
         //            folder-tab silhouette for targets whose landing zone produces tabs
         //   ↑ / ↓  = a new full-span layer above/below this slot's layer
         //   ← / →  = side-by-side with this slot, inside its layer
@@ -2405,7 +2405,7 @@ public partial class DockHost : ContentControl
     }
 
     /// <summary>
-    /// The document compass (from the DevExpress demo): anchored at the document's centre, no centre
+    /// The document compass (from the DevExpress demo): anchored at the document's center, no center
     /// button, DOUBLED arrows per direction distinguished by distance — INNER docks only the
     /// document's extent (<see cref="DockBand.Inner"/>), OUTER against the entire host border
     /// (<see cref="DockBand.Outer"/>). Same glyph both distances, exactly like the reference.
@@ -2661,7 +2661,7 @@ public partial class DockHost : ContentControl
             // Released over no guide at all. DevExpress/VS semantics: dropping a
             // floatable pane in open space means "float it right here", not "snap back". Snap-back
             // remains for panes that cannot float, for platforms without windows, and for a release
-            // still over the pane's own slot — that reads as a cancelled drag, not a float request.
+            // still over the pane's own slot — that reads as a canceled drag, not a float request.
             if (item.AllowFloat && PlatformServices.SupportsFloatingWindows && !IsOverOwnSlot(item, releasePoint))
             {
                 FloatAtPointer(item, releasePoint);
@@ -2983,7 +2983,7 @@ public partial class DockHost : ContentControl
         {
             Padding = new Thickness(0),
             Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x18, 0x80, 0x80, 0x80)),
-            // Darker than the first pass (0x30-alpha grey was near-invisible against the rail).
+            // Darker than the first pass (0x30-alpha gray was near-invisible against the rail).
             BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x90, 0x55, 0x55, 0x55)),
             BorderThickness = edge switch
             {
@@ -3035,8 +3035,8 @@ public partial class DockHost : ContentControl
                 canvas.Width = Math.Max(h + 10, 26);
                 canvas.Height = w + 28;
 
-                // Centre the unrotated box, then spin it about its centre — net effect: vertical text
-                // centred in the tab, reading bottom-up like a VS auto-hide rail.
+                // Center the unrotated box, then spin it about its center — net effect: vertical text
+                // centered in the tab, reading bottom-up like a VS auto-hide rail.
                 Microsoft.UI.Xaml.Controls.Canvas.SetLeft(text, (canvas.Width - w) / 2);
                 Microsoft.UI.Xaml.Controls.Canvas.SetTop(text, (canvas.Height - h) / 2);
                 text.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5);
@@ -3290,7 +3290,7 @@ public partial class DockHost : ContentControl
     /// animation would still be parented when that happens. The ghost lives on the transient layer,
     /// which rebuilds don't clear. Where the snapshot can't be taken (platform limitation, or a
     /// header living in a floating window whose visual tree this host can't transform against), the
-    /// unpin still happens — it just collapses instantly, which is exactly the old behaviour.
+    /// unpin still happens — it just collapses instantly, which is exactly the old behavior.
     /// </remarks>
     private async void AnimateUnpinSlideOut(DockItem item, FrameworkElement chrome)
     {

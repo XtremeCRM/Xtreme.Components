@@ -442,7 +442,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     /// being dragged", and the button releasing afterwards is the drop.
     /// </summary>
     /// <remarks>
-    /// The interface's one behavioural rule is enforced by <c>sawIdle</c>: a tear-out spawns the window
+    /// The interface's one behavioral rule is enforced by <c>sawIdle</c>: a tear-out spawns the window
     /// UNDER a still-held button, and reporting that in-flight gesture would re-dock the pane the
     /// instant it floated. The tracker therefore refuses to arm until it has seen the button fully
     /// released once. Polling at 33ms keeps guide tracking at drag frame rates for negligible cost

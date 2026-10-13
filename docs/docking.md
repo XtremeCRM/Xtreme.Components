@@ -1,14 +1,14 @@
 # Docking
 
 `Xtreme.Components.Docking` is an IDE-style dock manager for Uno Platform, built from WinUI
-primitives. A `DockHost` holds one centre document; `DockItem` panes dock around it, group into
+primitives. A `DockHost` holds one center document; `DockItem` panes dock around it, group into
 tabs, sit side by side, collapse to auto-hide rails, and (on desktop) tear out into OS windows.
 The layout can be saved and restored through an interface the app implements.
 
 - Live gallery: <https://xtremecrm.github.io/Xtreme.Components/> (Docking page)
 - Sample source: [DockingPage.cs](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/Pages/DockingPage.cs)
 - Packaging and design rules: [architecture.md](architecture.md)
-- Colours and high-contrast overrides: [theming.md](theming.md)
+- Colors and high-contrast overrides: [theming.md](theming.md)
 
 The package targets `net10.0` only; the consuming Uno head supplies the renderer.
 
@@ -55,7 +55,7 @@ Namespaces:
 +-------------------------------------------------------------+
 ```
 
-- **Document.** `DockHost.Document` is the centre content. Its slot never moves; panes are arranged
+- **Document.** `DockHost.Document` is the center content. Its slot never moves; panes are arranged
   around it.
 - **Items.** `DockHost.Items` is a flat list of `DockItem`s. Each item names one `Edge`
   (`Left`, `Right`, `Top`, `Bottom`). The structure is encoded on the items as plain properties, not
@@ -280,10 +280,10 @@ plain click on a header button is never a drag. While dragging:
 
 - A ghost of the header follows the pointer. The real pane does not move until release.
 - **Edge markers** appear at the host border for each edge in the item's `AllowedDockEdges`.
-- A **document compass** appears at the document's centre with doubled arrows per direction: the
+- A **document compass** appears at the document's center with doubled arrows per direction: the
   inner arrow docks to the document's extent (`DockBand.Inner`), the outer arrow docks against the
   whole border (`DockBand.Outer`).
-- Hovering a docked pane raises a **pane compass** over it: the centre button joins it as a tab
+- Hovering a docked pane raises a **pane compass** over it: the center button joins it as a tab
   group; up and down insert a new layer above or below; left and right place the pane side by side
   in that pane's layer.
 - Hovering any target shows a shaded landing preview.
@@ -294,7 +294,7 @@ On release:
 |---|---|
 | An edge marker or compass button | The item moves there (`Edge`, `Band`, `TabGroup`, `LayerGroup` and item order are updated) and the layout is saved. |
 | Open space, item has `AllowFloat` and the platform supports floating | The pane floats at the pointer. The ghost shows a "float" tag while this is the outcome. |
-| Open space otherwise, or the pane's own slot | Nothing changes (the drag is cancelled). |
+| Open space otherwise, or the pane's own slot | Nothing changes (the drag is canceled). |
 
 Dragging a header or tab more than 32 DIP past the host's bounds also floats a floatable pane.
 
@@ -366,11 +366,11 @@ Set `PlatformServices` before the host loads. The gallery sets it in the constru
 `Win32DockPlatformServices` is safe to construct on every head; the Win32 calls are guarded at
 runtime.
 
-| Runtime | `SupportsFloatingWindows` | Behaviour |
+| Runtime | `SupportsFloatingWindows` | Behavior |
 |---|---|---|
 | Windows desktop | true | Full support: pool, owned windows, drag-carried tear-out, drag-back-to-redock, drag translucency, saved window bounds. |
 | macOS / Linux desktop | false | In-surface only, like WebAssembly. Windows could open there, but without drag tracking a floating pane could only come back by closing its window, so floating is not offered. |
-| WebAssembly, Android, iOS | false | Docked only. `AllowFloat` is ignored, no Float menu item appears, and a drag released in open space is cancelled. Docking, tabs, layers, pinning, flyouts, responsive behavior and persistence all work. |
+| WebAssembly, Android, iOS | false | Docked only. `AllowFloat` is ignored, no Float menu item appears, and a drag released in open space is canceled. Docking, tabs, layers, pinning, flyouts, responsive behavior and persistence all work. |
 
 With no `PlatformServices` set, `DockedOnlyPlatformServices.Instance` is used: docked only on every
 platform.
@@ -418,7 +418,7 @@ In the narrow zone each pinned, open pane applies its `NarrowBehavior`:
 | `DockNarrowBehavior` | Narrow-zone result |
 |---|---|
 | `AutoHide` (default) | Collapses to its rail tab, as if unpinned, without changing `IsPinned`. Widening restores it docked, and nothing about the change is persisted. |
-| `Overlay` | Shown over the document, aligned to its edge, with a scrim. Tapping the scrim raises `FlyoutDismissRequested` once per overlaid pane (cancelable), then closes each pane that was not cancelled (`IsOpen = false`, saved). |
+| `Overlay` | Shown over the document, aligned to its edge, with a scrim. Tapping the scrim raises `FlyoutDismissRequested` once per overlaid pane (cancelable), then closes each pane that was not canceled (`IsOpen = false`, saved). |
 | `Hide` | Not shown. The restore pill lists it (as "Show *Title*") while the host is narrow; choosing it, or calling `OpenFlyout`, shows the pane over the document as a flyout. Widening docks it again. |
 | `Keep` | Stays docked and keeps taking space. |
 
@@ -650,8 +650,8 @@ Merge the Core dictionary (or Primitives, which includes it) as described in
   `SurfaceOutline`. A high-contrast palette overrides them through `XcHighContrast`,
   `XcSurfaceBrush` and `XcSurfaceOutlineBrush`; see
   [theming.md, Surface](theming.md#surface-code-painted-chrome-componenttheme).
-- Guide overlays, drag ghosts, scrims, rail tints and hover washes are translucent colours painted in
-  code and are not tokenised yet; see [theming.md, Still hard-coded](theming.md#4-still-hard-coded).
+- Guide overlays, drag ghosts, scrims, rail tints and hover washes are translucent colors painted in
+  code and are not tokenized yet; see [theming.md, Still hard-coded](theming.md#4-still-hard-coded).
 - Header and rail glyphs use `FontIcon` with the theme's symbol font.
 
 ## Member reference

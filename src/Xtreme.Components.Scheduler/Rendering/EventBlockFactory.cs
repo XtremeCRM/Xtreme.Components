@@ -10,7 +10,7 @@ namespace Xtreme.Components.Scheduler.Rendering;
 /// (Day/Week), a compact chip (all-day banner / Month cell) and a horizontal bar (Planner).
 /// Each shape resolves in the same order: a host code renderer, then a host <see cref="DataTemplate"/>,
 /// then the built-in default. Defaults show subject + time + an indicator strip (recurrence, locked,
-/// complete, cancelled and any custom <see cref="AppointmentIndicator"/>s); colors come from the
+/// complete, canceled and any custom <see cref="AppointmentIndicator"/>s); colors come from the
 /// appointment with palette fallbacks and the text color auto-contrasts the fill.
 /// </summary>
 internal static class EventBlockFactory
@@ -21,11 +21,11 @@ internal static class EventBlockFactory
     private static readonly string LockedGlyph = ((char)0xE72E).ToString();     // Lock
     private static readonly string CompleteGlyph = ((char)0xE73E).ToString();   // CheckMark
     private static readonly string ConfirmedGlyph = ((char)0xEC61).ToString();  // CompletedSolid (circle-check)
-    private static readonly string CancelledGlyph = ((char)0xE711).ToString();  // Cancel
+    private static readonly string CanceledGlyph = ((char)0xE711).ToString();  // Cancel
     private static readonly string TentativeGlyph = ((char)0xE897).ToString();  // Help (question mark)
 
-    // Status-glyph colours, all read against the grey chip: Complete = green, Confirmed = blue, and a
-    // fixed near-black for the neutral statuses (never grey, so they don't blend into the chip).
+    // Status-glyph colors, all read against the gray chip: Complete = green, Confirmed = blue, and a
+    // fixed near-black for the neutral statuses (never gray, so they don't blend into the chip).
     private static readonly SolidColorBrush CompleteGreen = new(Color.FromArgb(0xFF, 0x2E, 0x7D, 0x32));
     private static readonly SolidColorBrush ConfirmedBlue = new(Color.FromArgb(0xFF, 0x15, 0x65, 0xC0));
     private static readonly SolidColorBrush GlyphDark = new(Color.FromArgb(0xFF, 0x2B, 0x2B, 0x2B));
@@ -137,13 +137,13 @@ internal static class EventBlockFactory
         return DecorationFactory.Apply(border, ctx);
     }
 
-    // The time pill's background: a light, mostly-opaque grey so the time stays legible over an
-    // overlapping note while reading as a neutral chip (not tied to the block's own colour).
+    // The time pill's background: a light, mostly-opaque gray so the time stays legible over an
+    // overlapping note while reading as a neutral chip (not tied to the block's own color).
     // Internal so drag/resize previews can reuse the exact same pill look (see TimeGridInteraction).
     internal static readonly SolidColorBrush TimePillBackBrush =
         new(Color.FromArgb(0xE6, 0xDD, 0xDD, 0xDD));
 
-    // Dark text for the time, since the pill is a fixed light grey (not the block's contrast colour).
+    // Dark text for the time, since the pill is a fixed light gray (not the block's contrast color).
     internal static readonly SolidColorBrush TimePillForegroundBrush =
         new(Color.FromArgb(0xFF, 0x33, 0x33, 0x33));
 
@@ -168,13 +168,13 @@ internal static class EventBlockFactory
         {
             Text = ctx.CompactTimeRange,
             FontSize = 10,
-            Foreground = TimePillForegroundBrush, // dark text — the pill is a fixed light grey, not the block colour
+            Foreground = TimePillForegroundBrush, // dark text — the pill is a fixed light gray, not the block color
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap,
         };
 
         // A translucent pill behind the time so it stays legible when a long note wraps down behind it.
-        // The fill is the block's own colour at 50% alpha: invisible against the clean block background,
+        // The fill is the block's own color at 50% alpha: invisible against the clean block background,
         // but it mutes any overlapping note text enough for the time (full-contrast) to read on top.
         var timePill = new Border
         {
@@ -446,7 +446,7 @@ internal static class EventBlockFactory
     private static readonly SolidColorBrush LockedGlyphForeground = new(Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
 
     // Chrome for a LOCKED timed block: the normal block with a red strip docked along the bottom (a
-    // centred white lock glyph) and a red bottom edge. The strip + red border flag — at a glance — that
+    // centered white lock glyph) and a red bottom edge. The strip + red border flag — at a glance — that
     // the appointment can't be moved, resized or edited (the interaction layer enforces it).
     private static FrameworkElement LockedShell(AppointmentContext ctx, FrameworkElement content)
     {
@@ -496,7 +496,7 @@ internal static class EventBlockFactory
 
     // ---- Default hover popup -------------------------------------------------------------------
 
-    // The built-in popup, styled to echo the event tile: a colour accent + name with the same
+    // The built-in popup, styled to echo the event tile: a color accent + name with the same
     // status-icon strip the block shows, the date, the full time range + duration, the participant
     // roles, then the public note and the internal memo. ToolTip / the hover card supply the themed
     // background + padding, so this is just the content.
@@ -529,9 +529,9 @@ internal static class EventBlockFactory
             titleRow.Children.Add(indicators);
         }
 
-        // Title band: appointment fill + contrast text, with the accent colour as the left bar. Both
-        // layers share the SAME corner radius as the tile, so the colour box's rounded corners match the
-        // event block (the outer bar-coloured layer shows a 4px strip on the left = the bar).
+        // Title band: appointment fill + contrast text, with the accent color as the left bar. Both
+        // layers share the SAME corner radius as the tile, so the color box's rounded corners match the
+        // event block (the outer bar-colored layer shows a 4px strip on the left = the bar).
         var titleCorner = new CornerRadius(ctx.CornerRadius);
         panel.Children.Add(new Border
         {
@@ -826,7 +826,7 @@ internal static class EventBlockFactory
             });
         }
 
-        // The tile's own fill/border when set; otherwise a neutral pill (the same grey as the time/icon
+        // The tile's own fill/border when set; otherwise a neutral pill (the same gray as the time/icon
         // chips) so colored text stays legible on any block fill.
         return new Border
         {
@@ -867,14 +867,14 @@ internal static class EventBlockFactory
     {
         var strip = new StackPanel { Orientation = orientation, Spacing = 3 };
 
-        // Neutral statuses use a fixed dark glyph (so they read on the grey chip on any fill); Complete
-        // and Confirmed keep their accent colours. The timed block draws lock as a red bottom strip, so
+        // Neutral statuses use a fixed dark glyph (so they read on the gray chip on any fill); Complete
+        // and Confirmed keep their accent colors. The timed block draws lock as a red bottom strip, so
         // it suppresses the gutter glyph (includeLock:false); chips/bars still show it here.
         if (ctx.IsRecurring) strip.Children.Add(Glyph(RecurrenceGlyph, GlyphDark, size, "Recurring"));
         if (includeLock && ctx.IsLocked) strip.Children.Add(Glyph(LockedGlyph, GlyphDark, size, "Locked"));
         if (ctx.IsComplete) strip.Children.Add(Glyph(CompleteGlyph, CompleteGreen, size, "Complete"));
         if (ctx.IsConfirmed) strip.Children.Add(Glyph(ConfirmedGlyph, ConfirmedBlue, size, "Confirmed"));
-        if (ctx.IsCancelled) strip.Children.Add(Glyph(CancelledGlyph, GlyphDark, size, "Cancelled"));
+        if (ctx.IsCancelled) strip.Children.Add(Glyph(CanceledGlyph, GlyphDark, size, "Canceled"));
         if (ctx.IsTentative) strip.Children.Add(Glyph(TentativeGlyph, GlyphDark, size, "Tentative"));
 
         foreach (var ind in ctx.Indicators)
@@ -887,9 +887,9 @@ internal static class EventBlockFactory
         return strip.Children.Count > 0 ? strip : null;
     }
 
-    // Grey disc behind each status glyph (the same grey as the time pill). It needn't contrast every
-    // fill — if a fill happens to match the grey, the coloured glyph still has enough contrast on its
-    // own. The glyph colour is never grey (accent colours, or a fixed dark for the neutral statuses).
+    // Gray disc behind each status glyph (the same gray as the time pill). It needn't contrast every
+    // fill — if a fill happens to match the gray, the colored glyph still has enough contrast on its
+    // own. The glyph color is never gray (accent colors, or a fixed dark for the neutral statuses).
     private static FrameworkElement Glyph(string glyph, Brush brush, double size, string? tooltip = null, FontFamily? font = null)
     {
         var icon = new FontIcon

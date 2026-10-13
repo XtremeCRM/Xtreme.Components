@@ -1,6 +1,6 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <Description>Dock manager for Uno Platform: a centre document with edge-docked panes, tab groups and side-by-side layers, drag with docking guides, pushpin auto-hide rails with slide-in flyouts, float to a real OS window and drag back to re-dock, and whole-layout persistence through IDockPersistence. Host behaviour enters through interfaces the app implements.</Description>
+    <Description>Dock manager for Uno Platform: a center document with edge-docked panes, tab groups and side-by-side layers, drag with docking guides, pushpin auto-hide rails with slide-in flyouts, float to a real OS window and drag back to re-dock, and whole-layout persistence through IDockPersistence. Host behavior enters through interfaces the app implements.</Description>
     <PackageTags>uno;uno-platform;winui;docking;dock;tool-windows;layout;workspace;cross-platform;skia</PackageTags>
   </PropertyGroup>
   <ItemGroup>

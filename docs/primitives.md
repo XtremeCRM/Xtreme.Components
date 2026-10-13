@@ -113,7 +113,7 @@ Behavior:
 - The full template is shown up front with `_` in each empty slot, e.g. `(___) ___-____`,
   and the caret sits at the first empty slot.
 - A keystroke that fits no slot (a letter where a digit is due, for example), and any keystroke
-  once every slot is full, is cancelled in `BeforeTextChanging`, so it never renders.
+  once every slot is full, is canceled in `BeforeTextChanging`, so it never renders.
 - Backspace over a literal or placeholder removes the previous character, so deletion never stalls
   on a separator.
 - Pasting formatted or raw text works: input is read against the mask again (see

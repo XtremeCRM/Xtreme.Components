@@ -90,11 +90,11 @@ public sealed partial class SchedulerPage : Grid
             Appt(16, "Office hours",      monday.AddDays(5).AddHours(9),               3,    2),
             Appt(17, "Emergency: no heat", monday.AddDays(5).AddHours(16),             1.5,  1),
         ];
-        // Appointment types carry their own colours (BarColor = the left bar, BackColor = the fill);
-        // an appointment without them falls back to its resource's colour.
+        // Appointment types carry their own colors (BarColor = the left bar, BackColor = the fill);
+        // an appointment without them falls back to its resource's color.
         foreach (var a in _appointments)
         {
-            var (bar, back) = TypeColours(a.Subject);
+            var (bar, back) = TypeColors(a.Subject);
             a.BarColor = bar;
             a.BackColor = back;
         }
@@ -532,7 +532,7 @@ public sealed partial class SchedulerPage : Grid
     }
 
     /// <summary>Six appointment types, each a (bar, fill) pair that reads in light and dark.</summary>
-    private static (Color Bar, Color Back) TypeColours(string subject)
+    private static (Color Bar, Color Back) TypeColors(string subject)
     {
         var s = subject.ToLowerInvariant();
         if (s.StartsWith("install"))                                   return (C(0x1F, 0x6F, 0xC9), C(0xDC, 0xE9, 0xF9)); // install: blue
@@ -542,7 +542,7 @@ public sealed partial class SchedulerPage : Grid
         if (s.StartsWith("emergency") || s.Contains("callback") || s.Contains("no heat"))
                                                                        return (C(0xC0, 0x39, 0x2B), C(0xF8, 0xDC, 0xD8)); // emergency: red
         if (s.Contains("meeting") || s.Contains("stand-up") || s.Contains("training") || s.Contains("office"))
-                                                                       return (C(0x6C, 0x75, 0x7D), C(0xE6, 0xE9, 0xEC)); // internal: grey
+                                                                       return (C(0x6C, 0x75, 0x7D), C(0xE6, 0xE9, 0xEC)); // internal: gray
         return (C(0x7B, 0x4F, 0xB5), C(0xEC, 0xE3, 0xF6));                                                              // other: purple
     }
 

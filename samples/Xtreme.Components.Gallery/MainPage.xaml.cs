@@ -13,7 +13,7 @@ public sealed partial class MainPage : Page
          Repo + "docs/scheduler.md",
          () => new SchedulerPage()),
         ("docking", "Docking",
-         "Xtreme.Components.Docking. A centre document with panes on all four edges, two stacked on the left and two tabbed. Drag a header or tab onto the guides, pin a pane to its rail, narrow the window below ~580px to see the overlay mode.",
+         "Xtreme.Components.Docking. A center document with panes on all four edges, two stacked on the left and two tabbed. Drag a header or tab onto the guides, pin a pane to its rail, narrow the window below ~580px to see the overlay mode.",
          Repo + "docs/docking.md",
          () => new DockingPage()),
         ("cards", "Cards",

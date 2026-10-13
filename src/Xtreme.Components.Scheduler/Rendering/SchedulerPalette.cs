@@ -34,7 +34,7 @@ internal sealed record SchedulerPalette
     /// <summary>Muted red for Saturday/Sunday day numbers in the date navigator (Legacy DateNavigator parity).</summary>
     public required Brush WeekendForeground { get; init; }
 
-    /// <summary>Fill behind a SELECTED day in the date navigator, with the text colour that reads on
+    /// <summary>Fill behind a SELECTED day in the date navigator, with the text color that reads on
     /// it. XU-413: these replace AccentFillColorDefaultBrush / TextOnAccentFillColorPrimaryBrush read
     /// from Application.Current.Resources, which resolve against the APPLICATION theme and so stayed
     /// Light while the navigator rendered Dark.</summary>
@@ -42,7 +42,7 @@ internal sealed record SchedulerPalette
     public required Brush SelectionForeground { get; init; }
 
     /// <summary>Faint fill behind adjacent-month days, so the current month still reads as a block
-    /// while the neighbours stay obviously live rather than greyed-out-disabled.</summary>
+    /// while the neighbours stay obviously live rather than grayed-out-disabled.</summary>
     public required Brush OutsideMonthFill { get; init; }
 
     /// <summary>
@@ -155,7 +155,7 @@ internal sealed record SchedulerPalette
     /// <summary>Choose readable text (near-black or near-white) for a given fill color.</summary>
     public static Brush ContrastForeground(Color back)
     {
-        // W3C "colour brightness" (perceived-brightness luma) with the standard 125/255 crossover — NOT WCAG
+        // W3C "color brightness" (perceived-brightness luma) with the standard 125/255 crossover — NOT WCAG
         // relative luminance. For the black/white *decision* on saturated fills, luma matches convention:
         // white-on-red, black-on-green/yellow. (Maximising WCAG contrast ratio instead picks black-on-red,
         // because pure red's luminance edges just over its crossover — technically higher contrast but reads

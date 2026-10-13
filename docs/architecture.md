@@ -12,7 +12,7 @@ Originally the XU-880 decision record in XtremeCRM.Uno (`docs/reusable-controls-
 | Feed | **nuget.org**, Trusted Publishing (OIDC) on a `v*` tag, `0.x-preview` until the API settles |
 | Consumption by XtremeCRM | `PackageReference` pinned in `Directory.Packages.props`; one MSBuild property flips to a `ProjectReference` into a sibling checkout for same-day edits |
 | Gallery | New Components-only gallery app (desktop + WASM) on GitHub Pages; `Xtreme.Harness` stays the internal workshop |
-| Hard rule | No `ProjectReference` to any XtremeCRM assembly, no `ServiceLocator`, no app DTOs, no `IUiPreferenceService`. App behaviour enters through interfaces the consumer implements |
+| Hard rule | No `ProjectReference` to any XtremeCRM assembly, no `ServiceLocator`, no app DTOs, no `IUiPreferenceService`. App behavior enters through interfaces the consumer implements |
 
 ## Why these choices
 
@@ -97,7 +97,7 @@ Xtreme.Components (meta)
 | `Xtreme.Components.Core` | `Xc*` theme token dictionary (`Themes/Generic.xaml`) and the `ActualTheme`-driven surface-brush helper that is today's internal `DockTheme` | Justified by the census: CardDocking already calls `DockTheme`, and every family consumes the tokens. No controls live here |
 | `Xtreme.Components.Primitives` | Input, layout and list helpers: masked text, time and date pickers, the multi-month date navigator (moved out of Scheduler), paging, panels, toast, action bar, chip picker, copy button, overlay glyph | Sits under Scheduler because the date navigator is a primitive the Scheduler uses |
 | `Xtreme.Components.Scheduler` | Day / Week / Month / Agenda / Planner views, drag-move/resize, click-to-create, external drag-drop, per-resource time zones, recurrence indicators | Namespace `Xtreme.Components.Scheduler.*` already in place |
-| `Xtreme.Components.Docking` | `DockHost`, `DockItem`, `DockItemHeader`, `DockSplitter`, auto-hide, layout document v5 serializer, `IDockPersistence`, `IDockPlatformServices` | OS-window tear-out ships as the interface plus a desktop reference implementation; consumers on WASM/mobile get in-surface behaviour |
+| `Xtreme.Components.Docking` | `DockHost`, `DockItem`, `DockItemHeader`, `DockSplitter`, auto-hide, layout document v5 serializer, `IDockPersistence`, `IDockPlatformServices` | OS-window tear-out ships as the interface plus a desktop reference implementation; consumers on WASM/mobile get in-surface behavior |
 | `Xtreme.Components.Cards` | `CardDockerControl` + models, `SectionCard` / `SectionCardTab` | `SectionCard` moves out of Shell; `GeneralInfoControl` and all card bodies stay in the app |
 | `Xtreme.Components.TableView` | `RowFlagDecorator` + `RowFlag` | Separate because it depends on the third-party `WinUI.TableView` package; Primitives stays dependency-free |
 | `Xtreme.Components` | No code; `PackageReference` to all of the above | The "give me everything" entry point |
@@ -121,7 +121,7 @@ Adopted from Uno.Toolkit, CommunityToolkit and UnoDock, trimmed to what we need:
   `IDockPlatformServices`).
 - **No app types.** No DTOs, no `IUiPreferenceService`, no `IXtremeClient`. If a
   control needs data it takes a model the library defines.
-- **Templated controls use lightweight styling.** Every colour, brush and font token is
+- **Templated controls use lightweight styling.** Every color, brush and font token is
   a `ThemeResource` key the consumer can override in `App.xaml`; defaults ship in each
   package's `Themes/Generic.xaml`. Code-only palettes (`SchedulerPalette`, `DockTheme`)
   are migrated per family as follow-up work and do not gate packaging.

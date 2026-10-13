@@ -1,7 +1,7 @@
 # Xtreme.Components
 
 App-agnostic, cross-platform [Uno Platform](https://platform.uno) controls, built from WinUI
-primitives only: no WebView, no third-party control licences. One `net10.0` assembly per
+primitives only: no WebView, no third-party control licenses. One `net10.0` assembly per
 package runs on Desktop, Android, iOS and WebAssembly through the Uno Skia renderer.
 
 They grew up inside [XtremeCRM](https://github.com/XtremeCRM/XtremeCRM.Uno) and were
@@ -41,7 +41,7 @@ and the Scheduler item model stop changing shape.
 </Page>
 ```
 
-Each package README has its own quick start. Host behaviour (where a layout is saved, how a
+Each package README has its own quick start. Host behavior (where a layout is saved, how a
 pane floats to an OS window) enters through small interfaces with no-op defaults, so nothing
 is required to get going:
 
@@ -111,6 +111,6 @@ consumer, clone this repo as a sibling of `XtremeCRM.Uno`
 `ProjectReference` automatically, so Hot Reload keeps working. CI never has the sibling, so it
 always restores the pinned package.
 
-## Licence
+## License
 
 MIT. See [LICENSE](LICENSE).

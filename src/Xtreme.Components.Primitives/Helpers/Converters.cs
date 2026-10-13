@@ -35,7 +35,7 @@ public sealed class BoolToBrushConverter : IValueConverter
 }
 
 /// <summary>
-/// A <see cref="Color"/> becomes a <see cref="SolidColorBrush"/>. A null colour falls back to the
+/// A <see cref="Color"/> becomes a <see cref="SolidColorBrush"/>. A null color falls back to the
 /// brush resource named by ConverterParameter, resolved for the app's effective theme through
 /// <see cref="ComponentHost.TryGetBrush"/>; a missing resource paints hot pink so the gap is visible.
 /// </summary>

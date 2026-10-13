@@ -1,7 +1,7 @@
 namespace Xtreme.Components.Primitives;
 
 /// <summary>
-/// Theme-keyed colours for the calendar-style pickers (<see cref="MultiMonthDateNavigator"/>).
+/// Theme-keyed colors for the calendar-style pickers (<see cref="MultiMonthDateNavigator"/>).
 /// </summary>
 /// <remarks>
 /// Keyed off the element's <c>ActualTheme</c> rather than read from <c>Application.Current.Resources</c>:

@@ -11,7 +11,7 @@ public sealed record ChipItem
 
     /// <summary>
     /// XU-517: the selection is a NOT — "everything except this". Only meaningful while
-    /// <see cref="IsSelected"/> is true, and only honoured by hosts that opt in via
+    /// <see cref="IsSelected"/> is true, and only honored by hosts that opt in via
     /// <c>ChipPickerControl.AllowExclude</c> (an EntityFilter's rules carry an IsNot flag, so
     /// the Entity Type/Tag/Group pickers need to both show and edit exclusions). Every other
     /// consumer leaves this false and behaves exactly as before.

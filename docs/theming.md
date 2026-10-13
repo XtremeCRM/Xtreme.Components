@@ -1,6 +1,6 @@
 # Theming
 
-Every colour, brush and font size a control uses is either a `ThemeResource` in its XAML or a
+Every color, brush and font size a control uses is either a `ThemeResource` in its XAML or a
 named token the app can override. Nothing is reachable only by editing library code.
 
 ## 1. Merge the dictionaries
@@ -41,6 +41,16 @@ merge is explicit.
 | `XcFieldLabelStyle` | TextBlock style | secondary caption, 4px bottom margin | `DateTimePicker` |
 | `XcListSectionHeaderTextStyle` | TextBlock style | semibold secondary caption | `ChipPickerDialog` |
 | `XcListViewItemStyle` | ListViewItem style | 32px min height, 8/4 padding; selection colors stay the platform default (override the `ListViewItemBackground*` theme resources, or redefine this style) | `DateTimePicker` time list |
+
+### Primitives (`Xtreme.Components.Primitives/Themes/Generic.xaml`)
+
+Theme-keyed brushes (Light, Dark and HighContrast). Override any of them after the merge.
+
+| Key | Light / Dark | Used by |
+|---|---|---|
+| `XcExcludedBrush` | `#D13438` / `#FF6B6B` | `ChipPickerControl` / `ChipPickerDialog` exclude (NOT) marks |
+| `XcChipBackgroundBrush` | `#E1E1E1` | pill fill for a `ChipItem` with no `BackgroundColor` |
+| `XcChipForegroundBrush` | `#000000` | pill text for a `ChipItem` with no `ForegroundColor` |
 
 ### Surface (code-painted chrome, `ComponentTheme`)
 
@@ -105,7 +115,7 @@ it. See [tableview.md](tableview.md#custom-look).
 ## 4. Still hard-coded
 
 The dock manager's chrome washes (guide overlays, drag ghosts, scrims, hover tints in
-`DockHost`, `DockItemHeader`, `DockSplitter`) are translucent greys and blues painted from code.
+`DockHost`, `DockItemHeader`, `DockSplitter`) are translucent grays and blues painted from code.
 They read correctly in both themes and under the surface overrides above, so they have not been
-tokenised; a `XcDock<Role>Brush` set following the scheduler pattern is the next step when a
+tokenized; a `XcDock<Role>Brush` set following the scheduler pattern is the next step when a
 consumer needs it.

@@ -60,7 +60,7 @@ internal static class DecorationFactory
         // Grid (sized to the block) so a badge can extend PAST the appointment border instead of being
         // clipped. The block keeps clipping its own content; only the adornment layer is free to overhang.
         // Carry the block's identity onto the wrapper so the view's selection (which matches blocks by Tag)
-        // still recognises an adorned block — otherwise its red selection outline never appears.
+        // still recognizes an adorned block — otherwise its red selection outline never appears.
         var root = new Grid { Tag = block.Tag, DataContext = block.DataContext };
         root.Children.Add(block);
         root.Children.Add(overlay);
@@ -141,8 +141,8 @@ internal static class DecorationFactory
 
     // A brush that holds full opacity over the pill's INNER side (the part above its OWNING appointment) and
     // fades to ~30% across the OUTER side — the part that overhangs the neighbouring appointment, since the
-    // pill is centred on its anchor point. A corner anchor (e.g. FloatRight+Far, or a top/bottom-edge pill)
-    // fades DIAGONALLY toward that corner; a pure edge fades straight out; a centred decoration doesn't
+    // pill is centered on its anchor point. A corner anchor (e.g. FloatRight+Far, or a top/bottom-edge pill)
+    // fades DIAGONALLY toward that corner; a pure edge fades straight out; a centered decoration doesn't
     // overhang so it stays solid. (Uno Skia has no OpacityMask; LinearGradientBrush IS supported, so we tint
     // the fill/border — the text keeps a solid brush so it's always legible.)
     private static Brush FadeBrush(Color color, HorizontalAlignment h, VerticalAlignment v)
@@ -152,7 +152,7 @@ internal static class DecorationFactory
             return new SolidColorBrush(color); // no overhang (e.g. FloatCenter) — solid
         }
 
-        // Outer point = the overhanging edge/corner (faded); inner = toward the appointment centre (opaque).
+        // Outer point = the overhanging edge/corner (faded); inner = toward the appointment center (opaque).
         double outerX = h == HorizontalAlignment.Left ? 0 : h == HorizontalAlignment.Right ? 1 : 0.5;
         double outerY = v == VerticalAlignment.Top ? 0 : v == VerticalAlignment.Bottom ? 1 : 0.5;
         double innerX = h == HorizontalAlignment.Left ? 1 : h == HorizontalAlignment.Right ? 0 : 0.5;
@@ -193,7 +193,7 @@ internal static class DecorationFactory
     }
 
     // Place the CENTER of the decoration at the anchor point (Legacy parity): e.g. bottom-right puts the
-    // image's centre on the block's bottom-right corner, so it overhangs by half its size. The half-size
+    // image's center on the block's bottom-right corner, so it overhangs by half its size. The half-size
     // shift is a RenderTransform (post-layout — doesn't disturb siblings), reapplied when the element's
     // size is known, plus the template's pixel offset.
     private static void Position(FrameworkElement el, AppointmentDecoration d, HorizontalAlignment h, VerticalAlignment v)
@@ -221,10 +221,10 @@ internal static class DecorationFactory
         {
             DecorationPosition.Left or DecorationPosition.FloatLeft => (HorizontalAlignment.Left, AlongVertical(align)),
             DecorationPosition.Right or DecorationPosition.FloatRight => (HorizontalAlignment.Right, AlongVertical(align)),
-            // Legacy centres a FloatCenter tile on the block BOTH ways, ignoring Near/Far (its
-            // CenterFloatTileLayoutProfile re-centres the area on the block's vertical centre unconditionally).
-            // Honouring the alignment here anchored it to the top edge, so a centred "SOLD!"/"CANCELLED" stamp
-            // (stored as C|N) overhung upward by half and looked shifted-up/clipped. Always centre vertically.
+            // Legacy centers a FloatCenter tile on the block BOTH ways, ignoring Near/Far (its
+            // CenterFloatTileLayoutProfile re-centers the area on the block's vertical center unconditionally).
+            // Honoring the alignment here anchored it to the top edge, so a centered "SOLD!"/"CANCELED" stamp
+            // (stored as C|N) overhung upward by half and looked shifted-up/clipped. Always center vertically.
             DecorationPosition.FloatCenter => (HorizontalAlignment.Center, VerticalAlignment.Center),
             DecorationPosition.Top => (AlongHorizontal(align), VerticalAlignment.Top),
             DecorationPosition.Bottom => (AlongHorizontal(align), VerticalAlignment.Bottom),
