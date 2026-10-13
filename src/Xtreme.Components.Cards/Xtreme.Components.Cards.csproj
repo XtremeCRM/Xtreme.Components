@@ -1,0 +1,9 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <Description>Card controls for Uno Platform: SectionCard, a boxed card frame with a top-pane tab strip, and CardDockerControl, which arranges cards into panels across a column grid by dragging. Cards are ids plus a title and icon factory, so the library carries no app model.</Description>
+    <PackageTags>uno;uno-platform;winui;cards;card-docking;layout;cross-platform;skia</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
+  </ItemGroup>
+</Project>

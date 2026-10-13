@@ -1,0 +1,64 @@
+<UserControl
+    x:Class="Xtreme.Components.Cards.SectionCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Xtreme.Components.Cards"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    HorizontalAlignment="Stretch">
+
+    <!-- A boxed section "card". Two modes:
+           * Tabbed  — add SectionCardTab children; the header is a top-pane NavigationView tab
+                       strip (always shown, even for a single tab) and the body swaps to the
+                       selected tab. NavigationView (vs SelectorBar) is deliberate: it gives
+                       automatic top-overflow, hierarchy, and per-tab icons — needed once a card
+                       can hold many user-grouped controls — and matches GeneralInfo's cards so
+                       the two converge.
+           * Headerless — set Body directly (no tabs); the tab strip collapses.
+         Per-list actions (Add) live at the bottom of each tab's own content, not in this header
+         (header chrome such as Expand is added when GeneralInfo migrates onto this control).
+         The right/bottom edge is drawn one shade darker than the top/left (a 1.5px darker layer
+         peeking out under the card) for a subtle raised look. Single-sourced here so every card
+         matches. -->
+    <Border CornerRadius="7"
+            Background="{ThemeResource ControlStrokeColorSecondaryBrush}"
+            Padding="0,0,1.5,1.5">
+        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,12">
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Plain header label (Title mode): a card with a heading but no
+                     tab strip, so it adds no NavigationView tab stops. Collapsed
+                     unless Title is set with no tabs. -->
+                <TextBlock x:Name="TitleText"
+                           Grid.Row="0"
+                           FontWeight="SemiBold"
+                           Visibility="Collapsed" />
+
+                <!-- Tab strip (collapsed in headerless / Body-only / Title mode). -->
+                <NavigationView x:Name="TabNav"
+                                Grid.Row="0"
+                                PaneDisplayMode="Top"
+                                IsBackButtonVisible="Collapsed"
+                                IsSettingsVisible="False"
+                                IsPaneToggleButtonVisible="False"
+                                Background="Transparent"
+                                SelectionChanged="TabNav_SelectionChanged" />
+
+                <ContentControl x:Name="BodyHost"
+                                Grid.Row="1"
+                                IsTabStop="False"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch" />
+            </Grid>
+        </Border>
+    </Border>
+</UserControl>

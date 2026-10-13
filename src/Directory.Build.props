@@ -1,0 +1,44 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Shared settings for every control library under src/. A library csproj only needs
+    Sdk="Uno.Sdk", its PackageId / Description / PackageTags and its ProjectReferences.
+
+    Single net10.0 target: per Uno guidance a Skia-renderer-compatible control library targets
+    only net10.0. The consuming head (Desktop / Android / iOS / WASM) consumes this one assembly
+    through the renderer's bait-and-switch. Adding platform TFMs pulls a platform runtime into
+    the library and conflicts with the head's Skia runtime (UNOB0017). Revisit only if a
+    native-WinUI consumer appears.
+
+    UnoFeatures is intentionally empty: only an app head sets features. Uno.Sdk references the
+    base Uno.WinUI reference assemblies; the head supplies the renderer and runtime.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <UnoSingleProject>true</UnoSingleProject>
+    <OutputType>Library</OutputType>
+    <GenerateLibraryLayout>true</GenerateLibraryLayout>
+    <UnoFeatures></UnoFeatures>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <PackageId>$(MSBuildProjectName)</PackageId>
+
+    <!-- Uno.Sdk display metadata (required by the single-project targets even for a library). -->
+    <ApplicationTitle>$(MSBuildProjectName)</ApplicationTitle>
+    <ApplicationId>com.xtremecrm.components</ApplicationId>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationPublisher>Xtreme.Components</ApplicationPublisher>
+
+    <!--
+      NU1507: multiple package sources with central package management (harmless)
+      NETSDK1201: RID won't self-contain (library, expected)
+      PRI257: default language (en) not in included resources
+    -->
+    <NoWarn>$(NoWarn);NU1507;NETSDK1201;PRI257</NoWarn>
+  </PropertyGroup>
+</Project>

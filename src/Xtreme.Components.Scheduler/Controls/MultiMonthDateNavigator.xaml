@@ -1,0 +1,59 @@
+<UserControl
+    x:Class="Xtreme.Components.Scheduler.Controls.MultiMonthDateNavigator"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header: paging arrows, the visible month-range label, a "Today" jump, and the
+             Days/Range mode switch (so touch users without modifier keys can still build ranges). -->
+        <Grid Grid.Row="0" ColumnSpacing="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="PrevMonthButton" Grid.Column="0" Content="&#x2039;" Width="32"
+                    ToolTipService.ToolTip="Earlier months" Click="OnPrevMonths" />
+            <TextBlock x:Name="MonthRangeLabel" Grid.Column="1"
+                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                       FontWeight="SemiBold" />
+            <Button x:Name="NextMonthButton" Grid.Column="2" Content="&#x203A;" Width="32"
+                    ToolTipService.ToolTip="Later months" Click="OnNextMonths" />
+            <Button x:Name="TodayLink" Grid.Column="3" Content="Today" Click="OnTodayJump" />
+
+            <!-- Collapsed in SingleDateMode: a date FIELD holds one value, so there is no
+                 range to build — and dropping the switch is what frees the width for a
+                 snug single-month tile. -->
+            <Border x:Name="ModeSwitch"
+                    Grid.Column="4"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="6"
+                    Background="{ThemeResource ControlFillColorDefaultBrush}">
+                <StackPanel Orientation="Horizontal" Spacing="0">
+                    <ToggleButton x:Name="DaysModeToggle" Content="Days" Tag="Days"
+                                  BorderThickness="0" CornerRadius="5,0,0,5" Padding="10,4"
+                                  ToolTipService.ToolTip="Tap toggles individual days" Click="OnModeToggle" />
+                    <ToggleButton x:Name="RangeModeToggle" Content="Range" Tag="Range"
+                                  BorderThickness="1,0,0,0"
+                                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                  CornerRadius="0,5,5,0" Padding="10,4"
+                                  ToolTipService.ToolTip="Tap a start day, then an end day" Click="OnModeToggle" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Month grid: reflows to show as many month tiles as fit the (resizable) surface. -->
+        <Grid x:Name="MonthsHost" Grid.Row="1" SizeChanged="OnMonthsHostSizeChanged" />
+    </Grid>
+</UserControl>

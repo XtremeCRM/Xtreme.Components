@@ -1,0 +1,49 @@
+# Xtreme.Components.Docking
+
+An IDE-style dock manager for [Uno Platform](https://platform.uno), built from WinUI
+primitives only. Part of [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components).
+
+## Features
+
+- **Centre document + edge panes.** `DockItem`s dock to any edge; each edge holds layers
+  stacked outward and slots side by side within a layer, with tab groups anywhere.
+- **Drag with guides.** Header and tab drags show edge markers and a document compass
+  (inner and outer bands, insert before/after, tab into), with a shaded landing preview.
+- **Auto-hide.** Pushpin collapses a pane to its edge rail; the flyout slides fully in and out.
+  Below a configurable width panes auto-unpin (`DockNarrowBehavior.AutoHide`).
+- **Float to an OS window.** On desktop a pane tears out into a real window and drags back to
+  re-dock; on WASM and mobile it stays in-surface. All of it goes through
+  `IDockPlatformServices`, so the library owns no Win32.
+- **Persistence.** The whole layout (edges, layers, tab groups, ratios, pinned/open state) is a
+  versioned document saved through `IDockPersistence`.
+- **Theme-aware.** Follows `ActualTheme` live; high-contrast palettes override through the
+  `Xc*` keys in `Xtreme.Components.Core`.
+
+## Quick start
+
+```xml
+<Page xmlns:dock="using:Xtreme.Components.Docking.Controls">
+  <dock:DockHost PersistenceKey="Main">
+    <dock:DockHost.Document>
+      <TextBox AcceptsReturn="True" />
+    </dock:DockHost.Document>
+    <dock:DockItem Title="Explorer" Edge="Left" AllowFloat="True">
+      <TreeView />
+    </dock:DockItem>
+    <dock:DockItem Title="Properties" Edge="Right">
+      <ListView />
+    </dock:DockItem>
+  </dock:DockHost>
+</Page>
+```
+
+Optional seams, each with a no-op default:
+
+| Seam | Interface | What the app supplies |
+|---|---|---|
+| Layout persistence | `IDockPersistence` | Load/save the layout document (local settings, a server, nothing) |
+| OS windows | `IDockPlatformServices` | Create and track floating windows, window pool, drag tracking |
+
+Set them on the host: `DockHost.Persistence` and `DockHost.PlatformServices`.
+
+Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.

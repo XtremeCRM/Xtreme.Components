@@ -1,0 +1,337 @@
+<UserControl
+    x:Class="Xtreme.Components.Scheduler.Controls.SchedulerToolbar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Xtreme.Components.Scheduler.Controls"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!-- A segment within the joined view switcher: square inner corners and a flat (transparent)
+             fill so the unselected strip reads as one continuous pill over the track; the checked
+             state inherits the accent fill from the default ToggleButton template. The 1px left edge
+             draws the hairline divider between adjacent segments (the first segment clears it). First
+             and last segments round their outer corners to match the track. -->
+        <Style x:Key="ViewSegmentStyle" TargetType="ToggleButton">
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderThickness" Value="1,0,0,0" />
+            <Setter Property="BorderBrush" Value="{ThemeResource DividerStrokeColorDefaultBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="14,5,14,6" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Padding="8,6,8,8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Navigation + date-range picker. -->
+        <StackPanel x:Name="NavPanel"
+                    Grid.Column="0"
+                    Orientation="Horizontal"
+                    Spacing="4"
+                    VerticalAlignment="Center">
+            <Button x:Name="PrevButton" Content="&#x2039;" Width="36" Click="OnPrev" />
+
+            <DropDownButton x:Name="PeriodButton"
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            MinWidth="120"
+                            HorizontalContentAlignment="Center">
+                <DropDownButton.Flyout>
+                    <Flyout Opening="OnPeriodFlyoutOpening">
+                        <!-- Lift the FlyoutPresenter's default ~456px MaxWidth / MaxHeight caps (they clip
+                             the multi-month grid + Apply/resize grip) and disable its scrollbars so the
+                             resizable panel sizes to its own content. -->
+                        <Flyout.FlyoutPresenterStyle>
+                            <Style TargetType="FlyoutPresenter">
+                                <Setter Property="MaxWidth" Value="2000" />
+                                <Setter Property="MaxHeight" Value="1400" />
+                                <Setter Property="Padding" Value="12" />
+                                <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                                <Setter Property="ScrollViewer.VerticalScrollMode" Value="Disabled" />
+                                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+                            </Style>
+                        </Flyout.FlyoutPresenterStyle>
+                        <!-- Our own multi-month date navigator (Legacy's DateNavigator): a resizable grid
+                             of months that reflows to show as many as fit, with click / Ctrl+click (toggle)
+                             / Shift+click (range) selection plus a Days/Range mode for touch. Apply commits;
+                             a single day or a solid contiguous run folds back to the ordinary day/range view.
+                             The corner grip resizes the panel; the size persists to local user cache. -->
+                        <Grid x:Name="PickerContainer"
+                              Width="560"
+                              Height="460"
+                              MinWidth="280"
+                              MinHeight="300"
+                              RowSpacing="6">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <controls:MultiMonthDateNavigator x:Name="RangeCalendar"
+                                                              Grid.Row="0"
+                                                              SelectionChanged="OnNavigatorSelectionChanged" />
+
+                            <TextBlock Grid.Row="1"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Text="Click a day to select it. Ctrl-click adds or removes days. Shift-click selects a range — or switch to Range mode and tap the start day, then the end day." />
+
+                            <TextBlock x:Name="RangeSummary"
+                                       Grid.Row="2"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
+
+                            <Grid Grid.Row="3" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ClearDatesButton"
+                                        Grid.Column="0"
+                                        Content="Clear"
+                                        Click="OnClearDates" />
+                                <Button x:Name="ApplyDatesButton"
+                                        Grid.Column="2"
+                                        Content="Apply"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Click="OnApplyDates" />
+                                <!-- Resize grip: a hit-testable panel that shows the resize cursor + drives
+                                     the drag via manipulation events; the native vector "resize" icon (SVG
+                                     path geometry, no image loader) is a non-hit-testable child so the panel
+                                     receives the pointer. -->
+                                <controls:ResizeGrip x:Name="ResizeGrip"
+                                                     Grid.Column="3"
+                                                     Width="24"
+                                                     Height="24"
+                                                     Margin="6,0,0,0"
+                                                     VerticalAlignment="Bottom"
+                                                     ToolTipService.ToolTip="Drag to resize"
+                                                     ResizeStarted="OnResizeStarted"
+                                                     Resized="OnResizeDrag"
+                                                     ResizeCompleted="OnResizeCompleted">
+                                    <Viewbox Width="18" Height="18"
+                                             IsHitTestVisible="False"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center">
+                                        <Path Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                                              RenderTransformOrigin="0.5,0.5"
+                                              Data="M4,14.5 L4,18.5 C4,19.3284271 4.67157288,20 5.5,20 L9.5,20 C10.3284271,20 11,19.3284271 11,18.5 L11,14.5 C11,13.6715729 10.3284271,13 9.5,13 L5.5,13 C4.67157288,13 4,13.6715729 4,14.5 Z M16.2928932,16 L15.1464466,14.8535534 C14.9511845,14.6582912 14.9511845,14.3417088 15.1464466,14.1464466 C15.3417088,13.9511845 15.6582912,13.9511845 15.8535534,14.1464466 L17.8535534,16.1464466 C18.0488155,16.3417088 18.0488155,16.6582912 17.8535534,16.8535534 L15.8535534,18.8535534 C15.6582912,19.0488155 15.3417088,19.0488155 15.1464466,18.8535534 C14.9511845,18.6582912 14.9511845,18.3417088 15.1464466,18.1464466 L16.2928932,17 L13.5,17 C13.2238576,17 13,16.7761424 13,16.5 C13,16.2238576 13.2238576,16 13.5,16 L16.2928932,16 L16.2928932,16 Z M8,7.70710678 L8,10.5 C8,10.7761424 7.77614237,11 7.5,11 C7.22385763,11 7,10.7761424 7,10.5 L7,7.70710678 L5.85355339,8.85355339 C5.65829124,9.04881554 5.34170876,9.04881554 5.14644661,8.85355339 C4.95118446,8.65829124 4.95118446,8.34170876 5.14644661,8.14644661 L7.14644661,6.14644661 C7.34170876,5.95118446 7.65829124,5.95118446 7.85355339,6.14644661 L9.85355339,8.14644661 C10.0488155,8.34170876 10.0488155,8.65829124 9.85355339,8.85355339 C9.65829124,9.04881554 9.34170876,9.04881554 9.14644661,8.85355339 L8,7.70710678 Z M3,14.5 C3,13.1192881 4.11928813,12 5.5,12 L9.5,12 C10.8807119,12 12,13.1192881 12,14.5 L12,18.5 C12,19.8807119 10.8807119,21 9.5,21 L5.5,21 C4.11928813,21 3,19.8807119 3,18.5 L3,14.5 Z M4,5.5 C4,5.77614237 3.77614237,6 3.5,6 C3.22385763,6 3,5.77614237 3,5.5 C3,4.11928813 4.11928813,3 5.5,3 C5.77614237,3 6,3.22385763 6,3.5 C6,3.77614237 5.77614237,4 5.5,4 C4.67157288,4 4,4.67157288 4,5.5 Z M8.5,4 C8.22385763,4 8,3.77614237 8,3.5 C8,3.22385763 8.22385763,3 8.5,3 L10.5,3 C10.7761424,3 11,3.22385763 11,3.5 C11,3.77614237 10.7761424,4 10.5,4 L8.5,4 Z M13.5,4 C13.2238576,4 13,3.77614237 13,3.5 C13,3.22385763 13.2238576,3 13.5,3 L15.5,3 C15.7761424,3 16,3.22385763 16,3.5 C16,3.77614237 15.7761424,4 15.5,4 L13.5,4 Z M18.5,4 C18.2238576,4 18,3.77614237 18,3.5 C18,3.22385763 18.2238576,3 18.5,3 C19.8807119,3 21,4.11928813 21,5.5 C21,5.77614237 20.7761424,6 20.5,6 C20.2238576,6 20,5.77614237 20,5.5 C20,4.67157288 19.3284271,4 18.5,4 Z M20,8.5 C20,8.22385763 20.2238576,8 20.5,8 C20.7761424,8 21,8.22385763 21,8.5 L21,10.5 C21,10.7761424 20.7761424,11 20.5,11 C20.2238576,11 20,10.7761424 20,10.5 L20,8.5 Z M20,13.5 C20,13.2238576 20.2238576,13 20.5,13 C20.7761424,13 21,13.2238576 21,13.5 L21,15.5 C21,15.7761424 20.7761424,16 20.5,16 C20.2238576,16 20,15.7761424 20,15.5 L20,13.5 Z M20,18.5 C20,18.2238576 20.2238576,18 20.5,18 C20.7761424,18 21,18.2238576 21,18.5 C21,19.8807119 19.8807119,21 18.5,21 C18.2238576,21 18,20.7761424 18,20.5 C18,20.2238576 18.2238576,20 18.5,20 C19.3284271,20 20,19.3284271 20,18.5 Z M15.5,20 C15.7761424,20 16,20.2238576 16,20.5 C16,20.7761424 15.7761424,21 15.5,21 L13.5,21 C13.2238576,21 13,20.7761424 13,20.5 C13,20.2238576 13.2238576,20 13.5,20 L15.5,20 Z M3,8.5 C3,8.22385763 3.22385763,8 3.5,8 C3.77614237,8 4,8.22385763 4,8.5 L4,10.5 C4,10.7761424 3.77614237,11 3.5,11 C3.22385763,11 3,10.7761424 3,10.5 L3,8.5 Z">
+                                            <Path.RenderTransform>
+                                                <RotateTransform Angle="270" />
+                                            </Path.RenderTransform>
+                                        </Path>
+                                    </Viewbox>
+                                </controls:ResizeGrip>
+                            </Grid>
+                        </Grid>
+                    </Flyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+
+            <Button x:Name="NextButton" Content="&#x203A;" Width="36" Click="OnNext" />
+            <Button x:Name="TodayButton" Content="Today" Margin="12,0,0,0" Click="OnToday" />
+        </StackPanel>
+
+        <!-- View switcher + settings. -->
+        <StackPanel x:Name="RightPanel"
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center">
+            <!-- Wide layout: a single-select segmented control (joined toggles on one track).
+                 First segment clears its left divider; first/last round their outer corners.
+                 Add a view = add one styled ToggleButton here — the dropdown below mirrors it. -->
+            <Border x:Name="ViewSegmented"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="{ThemeResource ControlFillColorDefaultBrush}">
+                <StackPanel x:Name="ViewSegmentPanel" Orientation="Horizontal" Spacing="0">
+                    <ToggleButton x:Name="DayToggle" Content="Day" Tag="Day" BorderThickness="0" CornerRadius="5,0,0,5" Style="{StaticResource ViewSegmentStyle}" Click="OnViewClick" />
+                    <ToggleButton x:Name="WeekToggle" Content="Week" Tag="Week" Style="{StaticResource ViewSegmentStyle}" Click="OnViewClick" />
+                    <ToggleButton x:Name="MonthToggle" Content="Month" Tag="Month" Style="{StaticResource ViewSegmentStyle}" Click="OnViewClick" />
+                    <ToggleButton x:Name="AgendaToggle" Content="Agenda" Tag="Agenda" Style="{StaticResource ViewSegmentStyle}" Click="OnViewClick" />
+                    <ToggleButton x:Name="PlannerToggle" Content="Planner" Tag="Planner" CornerRadius="0,5,5,0" Style="{StaticResource ViewSegmentStyle}" Click="OnViewClick" />
+                </StackPanel>
+            </Border>
+
+            <!-- Narrow layout: the same single choice as a dropdown picker. Items are built in
+                 code-behind from the segments above, so the two switchers never drift. -->
+            <ComboBox x:Name="ViewCombo"
+                      Visibility="Collapsed"
+                      MinWidth="118"
+                      VerticalAlignment="Center"
+                      SelectionChanged="OnViewComboChanged" />
+
+            <!-- Adornment toggle group: a button row when wide, an "Adornments" dropdown when narrow
+                 (mirrors the view switcher's segmented/dropdown swap). Populated in code-behind from
+                 SchedulerControl.ToolbarAdornments; both hidden when there are no adornments. -->
+            <StackPanel x:Name="AdornmentGroupPanel"
+                        Orientation="Horizontal"
+                        Spacing="0"
+                        VerticalAlignment="Stretch"
+                        Visibility="Collapsed" />
+            <DropDownButton x:Name="AdornmentDropdown"
+                            Content="Adornments"
+                            VerticalAlignment="Stretch"
+                            Visibility="Collapsed">
+                <DropDownButton.Flyout>
+                    <MenuFlyout x:Name="AdornmentMenu" />
+                </DropDownButton.Flyout>
+            </DropDownButton>
+
+            <!-- Host-supplied custom buttons (e.g. "open the map"). Populated in code-behind from
+                 SchedulerControl.ToolbarButtons; empty by default so the generic control shows nothing
+                 here. Sits between the view switcher and the Settings gear. -->
+            <StackPanel x:Name="CustomButtonPanel"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        VerticalAlignment="Stretch" />
+
+            <!-- Overflow: revealed in code-behind when the toolbar is too narrow to fit everything;
+                 the lowest-priority items (custom buttons, then Today) move into this menu. -->
+            <Button x:Name="OverflowButton"
+                    Visibility="Collapsed"
+                    ToolTipService.ToolTip="More">
+                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE700;" />
+                <Button.Flyout>
+                    <MenuFlyout x:Name="OverflowMenu" />
+                </Button.Flyout>
+            </Button>
+
+            <!-- Visible-tiles picker: which of the calendar's offered tiles the user shows. Hidden
+                 until the host supplies options via SetTileOptions (calendars with no tiles show no
+                 button). One ToggleMenuFlyoutItem per tile, built in code-behind. -->
+            <Button x:Name="TilesButton"
+                    Visibility="Collapsed"
+                    ToolTipService.ToolTip="Visible tiles">
+                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE71D;" />
+                <Button.Flyout>
+                    <MenuFlyout x:Name="TileOptionsMenu" />
+                </Button.Flyout>
+            </Button>
+
+            <Button x:Name="SettingsButton" ToolTipService.ToolTip="Settings">
+                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE713;" />
+                <Button.Flyout>
+                    <Flyout>
+                        <StackPanel Spacing="10" Width="260">
+                            <TextBlock Text="Time scale" FontWeight="SemiBold" />
+                            <ComboBox x:Name="MajorTickCombo"
+                                      Header="Hour labels every"
+                                      HorizontalAlignment="Stretch"
+                                      SelectionChanged="OnTickChanged">
+                                <ComboBoxItem Content="30 minutes" Tag="30" />
+                                <ComboBoxItem Content="1 hour" Tag="60" />
+                                <ComboBoxItem Content="2 hours" Tag="120" />
+                            </ComboBox>
+                            <ComboBox x:Name="MinorTickCombo"
+                                      Header="Snap / gridlines"
+                                      HorizontalAlignment="Stretch"
+                                      SelectionChanged="OnTickChanged">
+                                <ComboBoxItem Content="5 minutes" Tag="5" />
+                                <ComboBoxItem Content="10 minutes" Tag="10" />
+                                <ComboBoxItem Content="15 minutes" Tag="15" />
+                                <ComboBoxItem Content="30 minutes" Tag="30" />
+                            </ComboBox>
+                            <Slider x:Name="ZoomSlider"
+                                    Header="Density (row height)"
+                                    Minimum="0.4"
+                                    Maximum="1.6"
+                                    StepFrequency="0.1"
+                                    ValueChanged="OnZoomChanged" />
+                            <Slider x:Name="ColumnWidthSlider"
+                                    Header="Min column width"
+                                    Minimum="30"
+                                    Maximum="320"
+                                    StepFrequency="10"
+                                    ValueChanged="OnColumnWidthChanged" />
+                            <Slider x:Name="CornerRadiusSlider"
+                                    Header="Corner radius"
+                                    Minimum="0"
+                                    Maximum="16"
+                                    StepFrequency="1"
+                                    ValueChanged="OnCornerRadiusChanged" />
+
+                            <TextBlock Text="Work hours" FontWeight="SemiBold" Margin="0,6,0,0" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="WorkStartCombo"
+                                          Grid.Column="0"
+                                          Header="Start"
+                                          HorizontalAlignment="Stretch"
+                                          SelectionChanged="OnWorkHoursChanged">
+                                    <ComboBoxItem Content="6 AM" Tag="360" />
+                                    <ComboBoxItem Content="7 AM" Tag="420" />
+                                    <ComboBoxItem Content="8 AM" Tag="480" />
+                                    <ComboBoxItem Content="9 AM" Tag="540" />
+                                    <ComboBoxItem Content="10 AM" Tag="600" />
+                                </ComboBox>
+                                <ComboBox x:Name="WorkEndCombo"
+                                          Grid.Column="1"
+                                          Header="End"
+                                          HorizontalAlignment="Stretch"
+                                          SelectionChanged="OnWorkHoursChanged">
+                                    <ComboBoxItem Content="3 PM" Tag="900" />
+                                    <ComboBoxItem Content="4 PM" Tag="960" />
+                                    <ComboBoxItem Content="5 PM" Tag="1020" />
+                                    <ComboBoxItem Content="6 PM" Tag="1080" />
+                                    <ComboBoxItem Content="7 PM" Tag="1140" />
+                                    <ComboBoxItem Content="8 PM" Tag="1200" />
+                                </ComboBox>
+                            </Grid>
+
+                            <TextBlock Text="Week" FontWeight="SemiBold" Margin="0,6,0,0" />
+                            <ComboBox x:Name="FirstDayCombo"
+                                      Header="First day of week"
+                                      HorizontalAlignment="Stretch"
+                                      SelectionChanged="OnFirstDayChanged">
+                                <ComboBoxItem Content="Sunday" Tag="0" />
+                                <ComboBoxItem Content="Monday" Tag="1" />
+                            </ComboBox>
+
+                            <StackPanel x:Name="GroupingSection" Spacing="6">
+                                <TextBlock Text="Grouping" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                <RadioButton x:Name="GroupResDateRadio"
+                                             Content="Resource / Date"
+                                             GroupName="schSettingsGroup"
+                                             Checked="OnGroupRadioChanged" />
+                                <RadioButton x:Name="GroupDateResRadio"
+                                             Content="Date / Resource"
+                                             GroupName="schSettingsGroup"
+                                             Checked="OnGroupRadioChanged" />
+                                <ToggleSwitch x:Name="HideIdleSwitch"
+                                              Header="Hide idle resources"
+                                              Toggled="OnHideIdleToggled" />
+                            </StackPanel>
+
+                            <ToggleSwitch x:Name="ShowTilesSwitch"
+                                          Header="Show tiles"
+                                          IsOn="True"
+                                          Toggled="OnShowTilesToggled" />
+                        </StackPanel>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

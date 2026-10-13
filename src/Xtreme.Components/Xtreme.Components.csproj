@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Meta-package: no code, no assembly. `dotnet add package Xtreme.Components` pulls every
+    family at the same version. The ProjectReferences become package dependencies on pack.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <Description>Every Xtreme.Components family in one reference: Core, Scheduler, Docking and Cards. App-agnostic, primitive-only Uno Platform controls for Desktop, Android, iOS and WebAssembly.</Description>
+    <PackageTags>uno;uno-platform;winui;controls;scheduler;docking;cards;cross-platform;skia</PackageTags>
+    <!-- NU5128: a dependency-only package has no lib/ folder by design. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
+    <ProjectReference Include="../Xtreme.Components.Scheduler/Xtreme.Components.Scheduler.csproj" />
+    <ProjectReference Include="../Xtreme.Components.Docking/Xtreme.Components.Docking.csproj" />
+    <ProjectReference Include="../Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
+  </ItemGroup>
+</Project>

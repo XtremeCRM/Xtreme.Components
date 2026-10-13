@@ -1,0 +1,23 @@
+<UserControl
+    x:Class="Xtreme.Components.Scheduler.Controls.SchedulerControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Xtreme.Components.Scheduler.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <!-- Background is painted opaquely from SchedulerPalette.SurfaceBackground in code-behind
+         (ApplicationPageBackgroundThemeBrush is transparent, which let a host's watermark bleed). -->
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <local:SchedulerToolbar x:Name="Toolbar" Grid.Row="0" />
+
+        <!-- The active view (Day/Week/Month/Agenda/Planner) is mounted here in code-behind. -->
+        <Border x:Name="ViewHost" Grid.Row="1" />
+    </Grid>
+</UserControl>
