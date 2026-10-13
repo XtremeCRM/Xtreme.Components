@@ -114,12 +114,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-      - name: Restore and build
-        run: |
-          dotnet restore Xtreme.Components.slnx
-          dotnet build Xtreme.Components.slnx -c Release --no-restore
+      - name: Restore
+        run: dotnet restore Xtreme.Components.slnx
+      # No --no-build: Uno.Sdk's pack invokes Build for its library layout (NETSDK1085 otherwise).
       - name: Pack every packable project
-        run: dotnet pack Xtreme.Components.slnx -c Release --no-build -o artifacts/packages
+        run: dotnet pack Xtreme.Components.slnx -c Release --no-restore -o artifacts/packages
       - name: List packages
         run: ls -l artifacts/packages
       - uses: actions/upload-artifact@v4

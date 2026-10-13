@@ -54,8 +54,9 @@ jobs:
           fi
 
       # Every PR packs a throwaway version so a consumer can try the build before it is tagged.
+      # No --no-build: Uno.Sdk's pack invokes Build for its library layout (NETSDK1085 otherwise).
       - name: Pack (0.0.0-ci)
-        run: dotnet pack Xtreme.Components.slnx -c Release --no-build -p:Version=0.0.0-ci.${{ github.run_number }} -o artifacts/packages
+        run: dotnet pack Xtreme.Components.slnx -c Release --no-restore -p:Version=0.0.0-ci.${{ github.run_number }} -o artifacts/packages
 
       - uses: actions/upload-artifact@v4
         if: always()
