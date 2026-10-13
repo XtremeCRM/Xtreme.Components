@@ -74,6 +74,14 @@ public sealed partial class SchedulerPage : Grid
             Appt(16, "Office hours",      monday.AddDays(5).AddHours(9),               3,    2),
             Appt(17, "Emergency: no heat", monday.AddDays(5).AddHours(16),             1.5,  1),
         ];
+        // Appointment types carry their own colours (BarColor = the left bar, BackColor = the fill);
+        // an appointment without them falls back to its resource's colour.
+        foreach (var a in _appointments)
+        {
+            var (bar, back) = TypeColours(a.Subject);
+            a.BarColor = bar;
+            a.BackColor = back;
+        }
         // Flags the renderer draws: a recurring marker, a tentative hatch, a locked item.
         _appointments.First(a => a.Id is 8).RecurrenceRule = "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR";
         _appointments.First(a => a.Id is 14).IsTentative = true;
@@ -397,6 +405,23 @@ public sealed partial class SchedulerPage : Grid
     }
 
     private static AppointmentIndicator Icon(string glyph, string tip, Color? color) => new() { Glyph = glyph, Tooltip = tip, Color = color };
+
+    /// <summary>Six appointment types, each a (bar, fill) pair that reads in light and dark.</summary>
+    private static (Color Bar, Color Back) TypeColours(string subject)
+    {
+        var s = subject.ToLowerInvariant();
+        if (s.StartsWith("install"))                                   return (C(0x1F, 0x6F, 0xC9), C(0xDC, 0xE9, 0xF9)); // install: blue
+        if (s.Contains("service") || s.Contains("swap") || s.Contains("warranty") || s.Contains("survey"))
+                                                                       return (C(0x2E, 0x8B, 0x57), C(0xDD, 0xF3, 0xE4)); // service: green
+        if (s.StartsWith("quote") || s.StartsWith("estimate"))        return (C(0xD9, 0x8E, 0x04), C(0xFB, 0xEF, 0xD3)); // quote: amber
+        if (s.StartsWith("emergency") || s.Contains("callback") || s.Contains("no heat"))
+                                                                       return (C(0xC0, 0x39, 0x2B), C(0xF8, 0xDC, 0xD8)); // emergency: red
+        if (s.Contains("meeting") || s.Contains("stand-up") || s.Contains("training") || s.Contains("office"))
+                                                                       return (C(0x6C, 0x75, 0x7D), C(0xE6, 0xE9, 0xEC)); // internal: grey
+        return (C(0x7B, 0x4F, 0xB5), C(0xEC, 0xE3, 0xF6));                                                              // other: purple
+    }
+
+    private static Color C(byte r, byte g, byte b) => Color.FromArgb(0xFF, r, g, b);
 
     /// <summary>
     /// The tooltip override seam: return an element to replace the built-in tooltip for this
