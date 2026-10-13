@@ -18,5 +18,6 @@
     <ProjectReference Include="../Xtreme.Components.Scheduler/Xtreme.Components.Scheduler.csproj" />
     <ProjectReference Include="../Xtreme.Components.Docking/Xtreme.Components.Docking.csproj" />
     <ProjectReference Include="../Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
+    <ProjectReference Include="../Xtreme.Components.TableView/Xtreme.Components.TableView.csproj" />
   </ItemGroup>
 </Project>

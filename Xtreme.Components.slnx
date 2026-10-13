@@ -5,6 +5,7 @@
     <Project Path="src/Xtreme.Components.Scheduler/Xtreme.Components.Scheduler.csproj" />
     <Project Path="src/Xtreme.Components.Docking/Xtreme.Components.Docking.csproj" />
     <Project Path="src/Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
+    <Project Path="src/Xtreme.Components.TableView/Xtreme.Components.TableView.csproj" />
     <Project Path="src/Xtreme.Components/Xtreme.Components.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">

@@ -42,7 +42,14 @@ public static class ComponentHost
     /// app's <c>ThemeDictionaries</c> ("Light" / "Dark") when one exists, else the plain
     /// application-scope lookup. Null when the key is not defined anywhere.
     /// </summary>
-    public static Brush? TryGetBrush(string key)
+    public static Brush? TryGetBrush(string key) => TryGetBrush(key, EffectiveTheme());
+
+    /// <summary>
+    /// Resolves a brush resource for an explicit theme (typically an element's <c>ActualTheme</c>):
+    /// the matching entry in the app's <c>ThemeDictionaries</c> when one exists, else the plain
+    /// application-scope lookup. Null when the key is not defined anywhere.
+    /// </summary>
+    public static Brush? TryGetBrush(string key, ElementTheme theme)
     {
         try
         {
@@ -50,7 +57,9 @@ public static class ComponentHost
             if (res is null)
                 return null;
 
-            var themeKey = EffectiveTheme() == ElementTheme.Dark ? "Dark" : "Light";
+            if (theme == ElementTheme.Default)
+                theme = EffectiveTheme();
+            var themeKey = theme == ElementTheme.Dark ? "Dark" : "Light";
             if (res.ThemeDictionaries.TryGetValue(themeKey, out var dictObj) && dictObj is ResourceDictionary dict
                 && dict.TryGetValue(key, out var themed) && themed is Brush tb)
                 return tb;

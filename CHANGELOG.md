@@ -28,6 +28,8 @@ family on a shared version.
   `XcListViewItemStyle` / `XcListSectionHeaderTextStyle` resources.
 - `Xtreme.Components.Core`: `ComponentHost` with the optional `CurrentTheme` and
   `ResolveGeometry` hooks, `TryGetBrush` and `PrepareDialog`.
+- `Xtreme.Components.TableView`: `RowFlagDecorator` + `RowFlag` for `WinUI.TableView` rows,
+  with a `BrushResolver` seam (default: the row's `ActualTheme` through `ComponentHost`).
 - `Xtreme.Components.Scheduler`: `SchedulerControl` with Day, Week, Month, Agenda and
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event

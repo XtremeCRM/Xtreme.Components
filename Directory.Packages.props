@@ -5,5 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Third-party packages a specific library needs. Uno.Sdk itself is pinned in global.json. -->
+    <PackageVersion Include="WinUI.TableView" Version="1.5.0-preview2" />
   </ItemGroup>
 </Project>
