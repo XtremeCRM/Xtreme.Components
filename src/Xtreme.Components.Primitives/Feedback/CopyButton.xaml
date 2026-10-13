@@ -1,0 +1,58 @@
+<UserControl
+    x:Class="Xtreme.Components.Primitives.CopyButton"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!-- Brief "Copied" confirmation: fade in, hold, fade out. Was hand-rolled per-site
+             (ContactRow storyboard, TenantInfo Task.Delay opacity); centralized here so every
+             copy affordance gives the same feedback. -->
+        <Storyboard x:Name="CopiedStoryboard" Completed="CopiedStoryboard_Completed">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="CopiedBadge"
+                                           Storyboard.TargetProperty="Opacity">
+                <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0" />
+                <LinearDoubleKeyFrame KeyTime="0:0:0.15" Value="1" />
+                <LinearDoubleKeyFrame KeyTime="0:0:1.35" Value="1" />
+                <LinearDoubleKeyFrame KeyTime="0:0:1.6" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <Grid>
+        <HyperlinkButton x:Name="CopyHyperlink"
+                         Click="Copy_Click"
+                         Padding="4"
+                         MinWidth="0"
+                         MinHeight="0"
+                         VerticalAlignment="Center"
+                         ToolTipService.ToolTip="{x:Bind ToolTipText, Mode=OneWay}">
+            <FontIcon Glyph="{x:Bind Glyph, Mode=OneWay}"
+                      FontSize="{x:Bind IconSize, Mode=OneWay}"
+                      FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+        </HyperlinkButton>
+
+        <!-- The badge lives in a Popup so it floats above the icon without shifting layout and
+             without being clipped by an ancestor ScrollViewer. Not light-dismiss, so it never
+             eats the user's next click. Offsets nudge it just above the glyph. -->
+        <Popup x:Name="CopiedPopup"
+               IsLightDismissEnabled="False"
+               VerticalOffset="-30"
+               HorizontalOffset="-6">
+            <Border x:Name="CopiedBadge"
+                    Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                    BorderBrush="{ThemeResource SystemFillColorSuccessBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="6,2"
+                    Opacity="0"
+                    IsHitTestVisible="False">
+                <TextBlock Text="Copied"
+                           FontSize="{StaticResource XcFontSizeCaption}"
+                           Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

@@ -1,0 +1,62 @@
+<UserControl
+    x:Class="Xtreme.Components.Primitives.EditorActionBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    HorizontalAlignment="Stretch">
+
+    <!-- Standard editor button panel. The column structure IS the rule:
+         Delete (trash icon) far left, an optional center slot for odd actions,
+         and the Save/Cancel pair pinned far right. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Delete: far left, trash glyph (E74D — the codebase's delete glyph).
+             Collapsed unless ShowDelete is set. -->
+        <Button x:Name="DeleteButton"
+                Grid.Column="0"
+                Click="OnDeleteClick"
+                Visibility="Collapsed"
+                VerticalAlignment="Center">
+            <FontIcon Glyph="&#xE74D;"
+                      FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                      FontSize="16" />
+        </Button>
+
+        <!-- Center slot: host-specific extras (e.g. an Unlock button) that don't
+             belong in the terminal Save/Cancel pair. Left-aligned so it can't push
+             the right-hand pair around. ContentControl (not ContentPresenter) so
+             data-bound hosted content inherits DataContext reliably outside a template.
+             No Margin here: the gutter is applied in OnCenterContentChanged only when the
+             slot actually holds something, so an empty slot claims no width when the bar
+             is measured unconstrained (e.g. an Auto grid column in an in-list row). -->
+        <ContentControl x:Name="CenterHost"
+                        Grid.Column="1"
+                        IsTabStop="False"
+                        HorizontalAlignment="Left"
+                        HorizontalContentAlignment="Left"
+                        VerticalAlignment="Center"
+                        VerticalContentAlignment="Center" />
+
+        <!-- Save + Cancel: far right. Both enabled only when dirty (Save additionally
+             gated by CanSave). Save is accent (primary), Cancel default (secondary). -->
+        <StackPanel x:Name="SaveCancelPanel"
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+            <Button x:Name="SaveButton"
+                    Content="Save"
+                    Style="{ThemeResource AccentButtonStyle}"
+                    IsEnabled="False"
+                    Click="OnSaveClick" />
+            <Button x:Name="CancelButton"
+                    Content="Cancel"
+                    IsEnabled="False"
+                    Click="OnCancelClick" />
+        </StackPanel>
+    </Grid>
+</UserControl>

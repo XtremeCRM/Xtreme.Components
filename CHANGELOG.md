@@ -18,6 +18,11 @@ family on a shared version.
 - `Xtreme.Components.Core`: `ComponentTheme`, the `ActualTheme`-driven surface and outline
   brushes shared by Docking and Cards, with high-contrast overrides read from the
   `XcHighContrast` sentinel key.
+- `Xtreme.Components.Primitives`: `MaskedTextBox` + `InputMask`, `TypeableTimeBox`,
+  `CompactCalendarDatePicker`, `MonthYearPicker`, `MultiMonthDateNavigator` (moved out of the
+  Scheduler, which now depends on Primitives), `PagingControl`, `ColumnFlowPanel`, `WrapPanel`,
+  `ExpanderClipFix`, `ToastControl`, `EditorActionBar`, `CopyButton`. Font sizes read the
+  `XcFontSizeBody` / `XcFontSizeCaption` resources.
 - `Xtreme.Components.Scheduler`: `SchedulerControl` with Day, Week, Month, Agenda and
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event

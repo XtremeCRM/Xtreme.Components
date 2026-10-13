@@ -1,0 +1,9 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <Description>Small, app-agnostic Uno Platform primitives: MaskedTextBox with InputMask, TypeableTimeBox, CompactCalendarDatePicker, MonthYearPicker, MultiMonthDateNavigator, PagingControl, ColumnFlowPanel, WrapPanel, ExpanderClipFix, ToastControl, EditorActionBar and CopyButton. WinUI primitives only; no third-party packages.</Description>
+    <PackageTags>uno;uno-platform;winui;controls;input;masked-textbox;date-picker;paging;wrap-panel;toast;cross-platform;skia</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
+  </ItemGroup>
+</Project>

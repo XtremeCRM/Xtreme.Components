@@ -10,6 +10,7 @@ dotnet add package Xtreme.Components --prerelease
 | Package | What it is |
 |---|---|
 | `Xtreme.Components.Core` | Theme tokens and the `ActualTheme`-driven surface helper. No controls. |
+| `Xtreme.Components.Primitives` | Masked text, time and date pickers, paging, panels, toast, action bar, copy button. |
 | `Xtreme.Components.Scheduler` | Day / Week / Month / Agenda / Planner scheduler with drag interaction. |
 | `Xtreme.Components.Docking` | Dock manager: dockable panes, tab groups, auto-hide, float to an OS window. |
 | `Xtreme.Components.Cards` | `SectionCard` frame with tab strip and `CardDockerControl`. |

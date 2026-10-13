@@ -2,9 +2,8 @@ using System.Globalization;
 using Windows.System;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Xtreme.Components.Scheduler.Rendering;
 
-namespace Xtreme.Components.Scheduler.Controls;
+namespace Xtreme.Components.Primitives;
 
 /// <summary>
 /// A resizable multi-month date navigator — our own control, replacing WinUI's <c>CalendarView</c>
@@ -241,7 +240,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         // against the APPLICATION theme, which stays Light while this control renders Dark. The
         // palette is keyed off ActualTheme (this element), and the ctor already re-renders on
         // ActualThemeChanged, so a theme switch repaints correctly.
-        var divider = SchedulerPalette.For(ActualTheme).MinorLine;
+        var divider = CalendarPalette.For(ActualTheme).MinorLine;
 
         var count = cols * rows;
 
@@ -339,7 +338,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
                 FontSize = 11,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Foreground = SchedulerPalette.For(ActualTheme).SecondaryForeground,
+                Foreground = CalendarPalette.For(ActualTheme).SecondaryForeground,
             };
             Grid.SetColumn(hdr, c);
             Grid.SetRow(hdr, 0);
@@ -494,7 +493,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
     private void ApplyHighlight()
     {
         // XU-413: all of these come from the theme-keyed palette now - see the note in RenderMonths.
-        var palette = SchedulerPalette.For(ActualTheme);
+        var palette = CalendarPalette.For(ActualTheme);
         var accent = palette.SelectionFill;
         var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         // Adjacent-month days sit on a faint fill so the current month still reads as a block,
@@ -521,7 +520,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
     private Brush ForegroundFor(bool isWeekend, bool selected, bool outOfScope)
     {
         // XU-413: every role resolves from the theme-keyed palette rather than app scope.
-        var palette = SchedulerPalette.For(ActualTheme);
+        var palette = CalendarPalette.For(ActualTheme);
         if (selected)
         {
             return palette.SelectionForeground;

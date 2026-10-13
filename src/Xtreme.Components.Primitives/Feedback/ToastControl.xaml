@@ -1,0 +1,35 @@
+<UserControl
+    x:Class="Xtreme.Components.Primitives.ToastControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    IsHitTestVisible="False"
+    HorizontalAlignment="Center"
+    VerticalAlignment="Bottom">
+
+    <!-- Transient confirmation toast: overlay as the LAST child of a host's root Grid and
+         call Show("..."). Fades in, holds, fades out; never intercepts input. -->
+    <Border x:Name="ToastBorder"
+            Opacity="0"
+            Visibility="Collapsed"
+            Margin="0,0,0,32"
+            Padding="16,10"
+            CornerRadius="8"
+            Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="1">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                      Glyph="&#xE73E;"
+                      FontSize="14"
+                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+            <TextBlock x:Name="ToastText"
+                       VerticalAlignment="Center"
+                       TextWrapping="NoWrap"
+                       TextTrimming="CharacterEllipsis"
+                       MaxWidth="360" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Xtreme.Components.Scheduler.Controls"
+    xmlns:primitives="using:Xtreme.Components.Primitives"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -78,7 +79,7 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <controls:MultiMonthDateNavigator x:Name="RangeCalendar"
+                            <primitives:MultiMonthDateNavigator x:Name="RangeCalendar"
                                                               Grid.Row="0"
                                                               SelectionChanged="OnNavigatorSelectionChanged" />
 

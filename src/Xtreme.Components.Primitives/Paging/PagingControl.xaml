@@ -1,0 +1,237 @@
+<UserControl
+    x:Class="Xtreme.Components.Primitives.PagingControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Xtreme.Components.Primitives"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    SizeChanged="OnRootSizeChanged">
+
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center" MinHeight="35">
+
+        <!-- Inline (expanded) tree -->
+        <Border x:Name="PART_InlineRoot"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="4">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="4"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Right">
+
+                <!-- Rows-per-page selector -->
+                <StackPanel x:Name="PART_PageSizePanel"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Rows:" VerticalAlignment="Center" FontSize="{StaticResource XcFontSizeBody}" />
+                    <ComboBox x:Name="PART_PageSizeCombo"
+                              MinWidth="64"
+                              VerticalAlignment="Center"
+                              SelectionChanged="OnPageSizeSelectionChanged" />
+                </StackPanel>
+
+                <!-- First -->
+                <Button x:Name="PART_First"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Content="|&lt;"
+                        ToolTipService.ToolTip="First page"
+                        Click="OnFirstClick" />
+
+                <!-- Prev -->
+                <Button x:Name="PART_Prev"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Content="&lt;"
+                        ToolTipService.ToolTip="Previous page"
+                        Click="OnPrevClick" />
+
+                <!-- Numbered pages with ellipsis (rebuilt in code-behind) -->
+                <StackPanel x:Name="PART_NumberedPages"
+                            Orientation="Horizontal"
+                            Spacing="2"
+                            VerticalAlignment="Center" />
+
+                <!-- Next -->
+                <Button x:Name="PART_Next"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Content="&gt;"
+                        ToolTipService.ToolTip="Next page"
+                        Click="OnNextClick" />
+
+                <!-- Last -->
+                <Button x:Name="PART_Last"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Content="&gt;|"
+                        ToolTipService.ToolTip="Last page"
+                        Click="OnLastClick" />
+
+                <!-- Jump to page -->
+                <StackPanel x:Name="PART_JumpPanel"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Go to:" VerticalAlignment="Center" FontSize="{StaticResource XcFontSizeBody}" />
+                    <TextBox x:Name="PART_JumpInput"
+                             MinWidth="48"
+                             Width="56"
+                             VerticalAlignment="Center"
+                             InputScope="Number"
+                             KeyDown="OnJumpKeyDown" />
+                </StackPanel>
+
+                <!-- Summary -->
+                <TextBlock x:Name="PART_Summary"
+                           VerticalAlignment="Center"
+                           FontSize="{StaticResource XcFontSizeBody}"
+                           Margin="8,0,0,0" />
+
+                <!-- Overflow button (visible only in overflow mode; hosts page-size selector + jump-to-page) -->
+                <Button x:Name="PART_OverflowButton"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Visibility="Collapsed"
+                        ToolTipService.ToolTip="Page options">
+                    <FontIcon Glyph="&#xE712;" FontSize="14" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+                    <Button.Flyout>
+                        <Flyout x:Name="PART_OverflowFlyout" Placement="Top">
+                            <StackPanel Spacing="8" MinWidth="180">
+                                <StackPanel x:Name="PART_OverflowPageSizePanel"
+                                            Orientation="Horizontal"
+                                            Spacing="4">
+                                    <TextBlock Text="Rows:" VerticalAlignment="Center" FontSize="{StaticResource XcFontSizeBody}" />
+                                    <ComboBox x:Name="PART_OverflowPageSizeCombo"
+                                              MinWidth="64"
+                                              VerticalAlignment="Center"
+                                              SelectionChanged="OnOverflowPageSizeSelectionChanged" />
+                                </StackPanel>
+
+                                <StackPanel x:Name="PART_OverflowJumpPanel"
+                                            Orientation="Horizontal"
+                                            Spacing="4">
+                                    <TextBlock Text="Go to:" VerticalAlignment="Center" FontSize="{StaticResource XcFontSizeBody}" />
+                                    <TextBox x:Name="PART_OverflowJumpInput"
+                                             MinWidth="48"
+                                             Width="56"
+                                             VerticalAlignment="Center"
+                                             InputScope="Number"
+                                             KeyDown="OnOverflowJumpKeyDown" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Compact tree -->
+        <Border x:Name="PART_CompactRoot"
+                Visibility="Collapsed"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="4">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="4"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch">
+
+                <Button x:Name="PART_CompactPrev"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Content="&lt;"
+                        ToolTipService.ToolTip="Previous page"
+                        Click="OnPrevClick" />
+
+                <Button x:Name="PART_CompactIndicator"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
+                        MinWidth="0">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock x:Name="PART_CompactIndicatorText"
+                                       VerticalAlignment="Center"
+                                       FontSize="{StaticResource XcFontSizeBody}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <FontIcon Glyph="&#xE70D;" FontSize="10" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.Flyout>
+                        <Flyout x:Name="PART_CompactFlyout" Placement="Top">
+                            <StackPanel Spacing="8" MinWidth="180">
+                                <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="PART_CompactPages"
+                                                Orientation="Vertical"
+                                                Spacing="2" />
+                                </ScrollViewer>
+
+                                <StackPanel x:Name="PART_CompactJumpPanel"
+                                            Orientation="Horizontal"
+                                            Spacing="4">
+                                    <TextBlock Text="Go to:" VerticalAlignment="Center" FontSize="{StaticResource XcFontSizeBody}" />
+                                    <TextBox x:Name="PART_CompactJumpInput"
+                                             MinWidth="48"
+                                             Width="56"
+                                             VerticalAlignment="Center"
+                                             InputScope="Number"
+                                             KeyDown="OnCompactJumpKeyDown" />
+                                </StackPanel>
+
+                                <StackPanel x:Name="PART_CompactPageSizePanel"
+                                            Orientation="Horizontal"
+                                            Spacing="4">
+                                    <TextBlock Text="Rows:" VerticalAlignment="Center" FontSize="{StaticResource XcFontSizeBody}" />
+                                    <ComboBox x:Name="PART_CompactPageSizeCombo"
+                                              MinWidth="64"
+                                              VerticalAlignment="Center"
+                                              SelectionChanged="OnCompactPageSizeSelectionChanged" />
+                                </StackPanel>
+
+                                <TextBlock x:Name="PART_CompactSummary"
+                                           VerticalAlignment="Center"
+                                           FontSize="{StaticResource XcFontSizeBody}" />
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button x:Name="PART_CompactNext"
+                        MinWidth="32"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Content="&gt;"
+                        ToolTipService.ToolTip="Next page"
+                        Click="OnNextClick" />
+            </StackPanel>
+        </Border>
+
+    </Grid>
+
+</UserControl>

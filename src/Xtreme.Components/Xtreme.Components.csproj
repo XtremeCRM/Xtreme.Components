@@ -14,6 +14,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
+    <ProjectReference Include="../Xtreme.Components.Primitives/Xtreme.Components.Primitives.csproj" />
     <ProjectReference Include="../Xtreme.Components.Scheduler/Xtreme.Components.Scheduler.csproj" />
     <ProjectReference Include="../Xtreme.Components.Docking/Xtreme.Components.Docking.csproj" />
     <ProjectReference Include="../Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
