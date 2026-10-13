@@ -39,8 +39,14 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('global.json', '**/Directory.*.props', '**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      # The solution includes the gallery's WebAssembly head, which needs the workload.
+      - name: Install the wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      # Restore for Release explicitly: Uno.Sdk decides at restore time whether the DevServer
+      # package is in the graph (Optimize != true), so a Debug restore + Release build trips UNOB0019.
       - name: Restore
-        run: dotnet restore Xtreme.Components.slnx
+        run: dotnet restore Xtreme.Components.slnx -p:Configuration=Release
 
       - name: Build
         run: dotnet build Xtreme.Components.slnx -c Release --no-restore
@@ -82,6 +88,8 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-gallery-${{ hashFiles('global.json', '**/Directory.*.props', '**/*.csproj') }}
           restore-keys: nuget-gallery-
+      - name: Install the wasm-tools workload
+        run: dotnet workload install wasm-tools
       - name: Publish the gallery for GitHub Pages
         run: >
           dotnet publish samples/Xtreme.Components.Gallery/Xtreme.Components.Gallery.csproj

@@ -114,8 +114,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - name: Install the wasm-tools workload
+        run: dotnet workload install wasm-tools
+      # Restore for Release: Uno.Sdk adds the DevServer package to a Debug restore graph (UNOB0019 otherwise).
       - name: Restore
-        run: dotnet restore Xtreme.Components.slnx
+        run: dotnet restore Xtreme.Components.slnx -p:Configuration=Release
       # No --no-build: Uno.Sdk's pack invokes Build for its library layout (NETSDK1085 otherwise).
       - name: Pack every packable project
         run: dotnet pack Xtreme.Components.slnx -c Release --no-restore -o artifacts/packages
