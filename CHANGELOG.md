@@ -34,6 +34,8 @@ family on a shared version.
   and calendar palettes resolve `XcScheduler<Role>Brush` / `XcCalendar<Role>Brush` tokens before
   their built-in values; `ComponentHost.NotifyResourcesChanged()` drops the cached lookups.
   See `docs/theming.md`.
+- `samples/Xtreme.Components.Gallery`: desktop + WebAssembly gallery with one page per family,
+  published to GitHub Pages from `main`; `--selftest` on desktop opens every page.
 - `Xtreme.Components.Scheduler`: `SchedulerControl` with Day, Week, Month, Agenda and
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event

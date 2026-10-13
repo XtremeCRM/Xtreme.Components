@@ -1,0 +1,25 @@
+<Application x:Class="Xtreme.Components.Gallery.App"
+       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+        <!-- The one merge a consumer needs: a family dictionary brings the Core tokens with it. -->
+        <ResourceDictionary Source="ms-appx:///Xtreme.Components.Primitives/Themes/Generic.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <!-- Token overrides go after the merge. Brushes the TableView page's row flags name: -->
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="GalleryFlagNewBrush" Color="#2E8B57" />
+          <SolidColorBrush x:Key="GalleryFlagChangedBrush" Color="#C0392B" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="GalleryFlagNewBrush" Color="#5FD38D" />
+          <SolidColorBrush x:Key="GalleryFlagChangedBrush" Color="#F08A7E" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

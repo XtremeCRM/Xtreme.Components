@@ -67,3 +67,44 @@ jobs:
             artifacts/packages/*.snupkg
             artifacts/test-results/**
           if-no-files-found: ignore
+
+  gallery:
+    name: Gallery (WebAssembly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-gallery-${{ hashFiles('global.json', '**/Directory.*.props', '**/*.csproj') }}
+          restore-keys: nuget-gallery-
+      - name: Publish the gallery for GitHub Pages
+        run: >
+          dotnet publish samples/Xtreme.Components.Gallery/Xtreme.Components.Gallery.csproj
+          -c Release -f net10.0-browserwasm -o artifacts/gallery
+          -p:GalleryBasePath=/Xtreme.Components/
+      - name: Add a .nojekyll marker
+        run: touch artifacts/gallery/wwwroot/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/gallery/wwwroot
+
+  pages:
+    name: Deploy gallery to GitHub Pages
+    needs: [build, gallery]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

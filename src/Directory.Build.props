@@ -30,7 +30,8 @@
     <!-- Uno.Sdk display metadata (required by the single-project targets even for a library). -->
     <ApplicationTitle>$(MSBuildProjectName)</ApplicationTitle>
     <ApplicationId>com.xtremecrm.components</ApplicationId>
-    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <!-- Uno wants a plain 3-part version here; strip any pre-release suffix from $(Version). -->
+    <ApplicationDisplayVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '-.*$', ''))</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationPublisher>Xtreme.Components</ApplicationPublisher>
 

@@ -1,0 +1,36 @@
+<Project Sdk="Uno.Sdk">
+  <!--
+    The gallery: one page per control family, built against the src/ projects directly so a
+    change to a control shows up on the next run. Desktop (Skia) and WebAssembly; the WASM
+    build is published to GitHub Pages by ci.yml. No app services, no mock API: everything the
+    pages show is hand-written sample data, which is also the proof that the packages work on
+    their own.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-desktop;net10.0-browserwasm</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+    <IsPackable>false</IsPackable>
+
+    <ApplicationTitle>Xtreme.Components Gallery</ApplicationTitle>
+    <ApplicationId>com.xtremecrm.components.gallery</ApplicationId>
+    <ApplicationDisplayVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '-.*$', ''))</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationPublisher>Xtreme.Components</ApplicationPublisher>
+    <Description>Gallery for the Xtreme.Components Uno Platform controls.</Description>
+
+    <UnoFeatures>SkiaRenderer</UnoFeatures>
+
+    <!-- Published under https://xtremecrm.github.io/Xtreme.Components/ -->
+    <WasmShellWebAppBasePath Condition="'$(GalleryBasePath)' != ''">$(GalleryBasePath)</WasmShellWebAppBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
+    <ProjectReference Include="../../src/Xtreme.Components.Primitives/Xtreme.Components.Primitives.csproj" />
+    <ProjectReference Include="../../src/Xtreme.Components.Scheduler/Xtreme.Components.Scheduler.csproj" />
+    <ProjectReference Include="../../src/Xtreme.Components.Docking/Xtreme.Components.Docking.csproj" />
+    <ProjectReference Include="../../src/Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
+    <ProjectReference Include="../../src/Xtreme.Components.TableView/Xtreme.Components.TableView.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,66 @@
+<UserControl x:Class="Xtreme.Components.Gallery.Pages.PrimitivesPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:xc="using:Xtreme.Components.Primitives">
+  <ScrollViewer>
+    <xc:ColumnFlowPanel x:Name="Flow" MinColumnWidth="340" MaxColumns="2" ColumnSpacing="16">
+
+      <StackPanel Spacing="8" Margin="0,0,16,16">
+        <TextBlock Text="Input" Style="{ThemeResource SubtitleTextBlockStyle}" />
+        <xc:MaskedTextBox Header="Phone (mask 000-000-0000)" Mask="000-000-0000" PlaceholderText="555-010-2030" />
+        <xc:MaskedTextBox Header="Postal code (mask A0A 0A0)" Mask="A0A 0A0" />
+        <TextBlock Text="Typeable time: type 9, 930, 9:30p or 21:30 then Tab" Style="{StaticResource XcFieldLabelStyle}" />
+        <xc:TypeableTimeBox x:Name="TimeBox" TimeCommitted="TimeBox_TimeCommitted" />
+        <TextBlock x:Name="TimeEcho" Opacity="0.7" />
+        <TextBlock Text="Date and time" Style="{StaticResource XcFieldLabelStyle}" />
+        <xc:DateTimePicker x:Name="DateTime" />
+        <TextBlock Text="Month and year" Style="{StaticResource XcFieldLabelStyle}" />
+        <xc:MonthYearPicker />
+        <TextBlock Text="Compact calendar date" Style="{StaticResource XcFieldLabelStyle}" />
+        <xc:CompactCalendarDatePicker />
+      </StackPanel>
+
+      <StackPanel Spacing="8" Margin="0,0,16,16">
+        <TextBlock Text="Chip picker" Style="{ThemeResource SubtitleTextBlockStyle}" />
+        <TextBlock Text="Click the button, pick a few, close the dialog." Opacity="0.7" TextWrapping="Wrap" />
+        <xc:ChipPickerControl x:Name="Chips" />
+        <TextBlock x:Name="ChipEcho" Opacity="0.7" TextWrapping="Wrap" />
+
+        <TextBlock Text="Overlay glyph icon" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <xc:OverlayGlyphIcon BackGlyph="&#xE77B;" FrontGlyph="&#xE710;" Size="32" />
+          <xc:OverlayGlyphIcon BackGlyph="&#xE8A5;" FrontGlyph="&#xE70F;" Size="32" />
+          <xc:OverlayGlyphIcon BackGlyph="&#xE787;" FrontGlyph="&#xE74D;" Size="32" />
+          <xc:OverlayGlyphIcon BackGeometryKey="star" FrontGlyph="&#xE710;" Size="32" />
+        </StackPanel>
+        <TextBlock Text="The fourth uses a vector resolved through ComponentHost.ResolveGeometry." Opacity="0.7" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <StackPanel Spacing="8" Margin="0,0,16,16">
+        <TextBlock Text="Paging" Style="{ThemeResource SubtitleTextBlockStyle}" />
+        <xc:PagingControl x:Name="Pager" ShowAllOption="True" />
+        <TextBlock x:Name="PagerEcho" Opacity="0.7" />
+
+        <TextBlock Text="Criteria panel" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+        <xc:CriteriaPanel x:Name="Criteria" Title="Customer" />
+      </StackPanel>
+
+      <StackPanel Spacing="8" Margin="0,0,16,16">
+        <TextBlock Text="Editor action bar" Style="{ThemeResource SubtitleTextBlockStyle}" />
+        <TextBox x:Name="DirtyBox" Header="Type to make the editor dirty" TextChanged="DirtyBox_TextChanged" />
+        <xc:EditorActionBar x:Name="Actions" IsDirty="False" SaveRequested="Actions_SaveRequested" CancelRequested="Actions_CancelRequested" DeleteRequested="Actions_DeleteRequested" />
+        <TextBlock x:Name="ActionEcho" Opacity="0.7" />
+
+        <TextBlock Text="Copy button and toast" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <xc:CopyButton Text="XC-2026-0042" ToolTipText="Copy the order number" />
+          <Button Content="Show a toast" Click="Toast_Click" />
+        </StackPanel>
+
+        <TextBlock Text="Wrap panel" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+        <xc:WrapPanel x:Name="Wrap" />
+      </StackPanel>
+
+    </xc:ColumnFlowPanel>
+  </ScrollViewer>
+</UserControl>

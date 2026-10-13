@@ -66,6 +66,17 @@ the Core tokens with it), then override any token after the merge:
 Every token, the high-contrast keys and the runtime hooks are listed in
 [docs/theming.md](docs/theming.md).
 
+## Gallery
+
+Every family has a live page in the gallery, published from `main` to
+**https://xtremecrm.github.io/Xtreme.Components/**. Run it locally on desktop with:
+
+```bash
+dotnet run --project samples/Xtreme.Components.Gallery -f net10.0-desktop
+```
+
+`--selftest` opens every page in turn and exits non-zero if one throws.
+
 ## Repository layout
 
 ```
