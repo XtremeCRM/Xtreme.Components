@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Headless tests for the Cards package. Only the XAML-free layout rules (CardDockerLayoutRules,
+    internal, reached through InternalsVisibleTo) are exercised: nothing here creates a control, so
+    no Uno renderer or dispatcher is needed and the tests run anywhere `dotnet test` does.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
+  </ItemGroup>
+</Project>

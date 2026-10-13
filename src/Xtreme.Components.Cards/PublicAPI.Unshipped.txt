@@ -2,12 +2,20 @@
 const Xtreme.Components.Cards.CardDockerControl.MaxPanelHeight = 1200 -> int
 const Xtreme.Components.Cards.CardDockerControl.MinPanelHeight = 60 -> int
 static readonly Xtreme.Components.Cards.CardDockerControl.ColumnCountProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.DropTargetBackgroundProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.DropTargetBorderBrushProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.InsertionMarkerBrushProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.NewPanelTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Cards.CardDockerControl.PanelActionLabelProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Cards.CardDockerControl.ShowPanelActionProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.TrayHeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.TrayPlaceholderTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Cards.SectionCard.BodyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.SectionCard.SelectedIndexProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Cards.SectionCard.TitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Cards.SectionCardTab.ContentProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Cards.SectionCardTab.HeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.SectionCardTab.IconProperty -> Microsoft.UI.Xaml.DependencyProperty!
 Xtreme.Components.Cards.CardDockerCard
 Xtreme.Components.Cards.CardDockerCard.CardDockerCard() -> void
 Xtreme.Components.Cards.CardDockerCard.CreateIcon.get -> System.Func<Microsoft.UI.Xaml.Controls.IconElement?>?
@@ -22,14 +30,26 @@ Xtreme.Components.Cards.CardDockerControl.Cards.get -> System.Collections.Generi
 Xtreme.Components.Cards.CardDockerControl.Cards.set -> void
 Xtreme.Components.Cards.CardDockerControl.ColumnCount.get -> int
 Xtreme.Components.Cards.CardDockerControl.ColumnCount.set -> void
+Xtreme.Components.Cards.CardDockerControl.DropTargetBackground.get -> Microsoft.UI.Xaml.Media.Brush?
+Xtreme.Components.Cards.CardDockerControl.DropTargetBackground.set -> void
+Xtreme.Components.Cards.CardDockerControl.DropTargetBorderBrush.get -> Microsoft.UI.Xaml.Media.Brush?
+Xtreme.Components.Cards.CardDockerControl.DropTargetBorderBrush.set -> void
+Xtreme.Components.Cards.CardDockerControl.InsertionMarkerBrush.get -> Microsoft.UI.Xaml.Media.Brush?
+Xtreme.Components.Cards.CardDockerControl.InsertionMarkerBrush.set -> void
 Xtreme.Components.Cards.CardDockerControl.Layout.get -> Xtreme.Components.Cards.CardDockerLayout!
 Xtreme.Components.Cards.CardDockerControl.Layout.set -> void
 Xtreme.Components.Cards.CardDockerControl.LayoutChanged -> System.EventHandler?
+Xtreme.Components.Cards.CardDockerControl.NewPanelText.get -> string!
+Xtreme.Components.Cards.CardDockerControl.NewPanelText.set -> void
 Xtreme.Components.Cards.CardDockerControl.PanelActionInvoked -> System.EventHandler<string!>?
 Xtreme.Components.Cards.CardDockerControl.PanelActionLabel.get -> string!
 Xtreme.Components.Cards.CardDockerControl.PanelActionLabel.set -> void
 Xtreme.Components.Cards.CardDockerControl.ShowPanelAction.get -> bool
 Xtreme.Components.Cards.CardDockerControl.ShowPanelAction.set -> void
+Xtreme.Components.Cards.CardDockerControl.TrayHeader.get -> string!
+Xtreme.Components.Cards.CardDockerControl.TrayHeader.set -> void
+Xtreme.Components.Cards.CardDockerControl.TrayPlaceholderText.get -> string!
+Xtreme.Components.Cards.CardDockerControl.TrayPlaceholderText.set -> void
 Xtreme.Components.Cards.CardDockerLayout
 Xtreme.Components.Cards.CardDockerLayout.CardDockerLayout() -> void
 Xtreme.Components.Cards.CardDockerLayout.Clone() -> Xtreme.Components.Cards.CardDockerLayout!
@@ -47,12 +67,18 @@ Xtreme.Components.Cards.CardDockerPanel.Id.get -> string!
 Xtreme.Components.Cards.CardDockerPanel.Id.init -> void
 Xtreme.Components.Cards.CardDockerPanel.MinHeight.get -> int
 Xtreme.Components.Cards.CardDockerPanel.MinHeight.set -> void
+Xtreme.Components.Cards.CardDockerPanel.PreferredColumn.get -> int?
+Xtreme.Components.Cards.CardDockerPanel.PreferredColumn.set -> void
 Xtreme.Components.Cards.CardDockerPanel.Sort.get -> int
 Xtreme.Components.Cards.CardDockerPanel.Sort.set -> void
 Xtreme.Components.Cards.SectionCard
 Xtreme.Components.Cards.SectionCard.Body.get -> object?
 Xtreme.Components.Cards.SectionCard.Body.set -> void
 Xtreme.Components.Cards.SectionCard.SectionCard() -> void
+Xtreme.Components.Cards.SectionCard.SelectedIndex.get -> int
+Xtreme.Components.Cards.SectionCard.SelectedIndex.set -> void
+Xtreme.Components.Cards.SectionCard.SelectedTab.get -> Xtreme.Components.Cards.SectionCardTab?
+Xtreme.Components.Cards.SectionCard.SelectionChanged -> System.EventHandler?
 Xtreme.Components.Cards.SectionCard.Tabs.get -> System.Collections.Generic.IList<Xtreme.Components.Cards.SectionCardTab!>!
 Xtreme.Components.Cards.SectionCard.Title.get -> string?
 Xtreme.Components.Cards.SectionCard.Title.set -> void
@@ -61,4 +87,6 @@ Xtreme.Components.Cards.SectionCardTab.Content.get -> object?
 Xtreme.Components.Cards.SectionCardTab.Content.set -> void
 Xtreme.Components.Cards.SectionCardTab.Header.get -> string?
 Xtreme.Components.Cards.SectionCardTab.Header.set -> void
+Xtreme.Components.Cards.SectionCardTab.Icon.get -> Microsoft.UI.Xaml.Controls.IconElement?
+Xtreme.Components.Cards.SectionCardTab.Icon.set -> void
 Xtreme.Components.Cards.SectionCardTab.SectionCardTab() -> void
