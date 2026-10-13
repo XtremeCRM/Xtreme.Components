@@ -40,6 +40,27 @@
       NETSDK1201: RID won't self-contain (library, expected)
       PRI257: default language (en) not in included resources
     -->
-    <NoWarn>$(NoWarn);NU1507;NETSDK1201;PRI257</NoWarn>
+    <!--
+      RS0016 (public symbol missing from PublicAPI.*.txt) and RS0041 (oblivious nullability) fire on
+      the public plumbing the Uno source generators add to every XAML partial class, which the fixer
+      cannot record and .editorconfig cannot reach (generated files have synthetic paths). They are
+      silenced here; the baseline files are kept current with "dotnet format analyzers" (see below)
+      and reviewed as a diff. RS0017 (a listed symbol was removed) stays a warning: it only ever
+      concerns authored API.
+    -->
+    <NoWarn>$(NoWarn);NU1507;NETSDK1201;PRI257;RS0016;RS0041</NoWarn>
   </PropertyGroup>
+
+  <!--
+    Public API baseline (XU-890): PublicAPI.Shipped.txt holds what a released version exposes,
+    PublicAPI.Unshipped.txt what the next one adds. The analyzer turns a missing or removed
+    symbol into RS0016 / RS0017, so an API break is a visible diff in review. On a release,
+    move Unshipped into Shipped. Regenerate after adding members with
+    "dotnet format analyzers Xtreme.Components.slnx" restricted to diagnostic RS0016.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false' and Exists('$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt')">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
 </Project>

@@ -15,7 +15,8 @@ public partial class App : Application
         this.InitializeComponent();
     }
 
-    protected Window? MainWindow { get; private set; }
+    /// <summary>The one window; pages that spawn OS windows (Docking) use it as the owner.</summary>
+    public static Window? MainWindow { get; private set; }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {

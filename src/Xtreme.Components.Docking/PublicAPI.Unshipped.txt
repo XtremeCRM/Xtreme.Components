@@ -1,0 +1,145 @@
+#nullable enable
+static readonly Xtreme.Components.Docking.Controls.DockHost.DocumentProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockHost.PersistenceKeyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockHost.ShowClosedPaneRestoreProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.AllowedDockEdgesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.AllowFloatProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.BandProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.CanCloseProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.CanResizeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.DockIdProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.DockLengthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.EdgeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.IsFloatingProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.IsOpenProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.IsPinnedProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.LayerGroupProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.MaxLengthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.MinLengthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.NarrowBehaviorProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.ShowHeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.ShowPinToggleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.TabGroupProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockItem.TitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.DockedOnlyPlatformServices.Instance -> Xtreme.Components.Docking.DockedOnlyPlatformServices!
+static Xtreme.Components.Docking.DockEdgeExtensions.FirstOrDefault(this Xtreme.Components.Docking.DockEdge edges, Xtreme.Components.Docking.DockEdge fallback = Xtreme.Components.Docking.DockEdge.Left) -> Xtreme.Components.Docking.DockEdge
+static Xtreme.Components.Docking.DockEdgeExtensions.IsFarSide(this Xtreme.Components.Docking.DockEdge edge) -> bool
+static Xtreme.Components.Docking.DockEdgeExtensions.IsHorizontal(this Xtreme.Components.Docking.DockEdge edge) -> bool
+Xtreme.Components.Docking.Controls.DockBand
+Xtreme.Components.Docking.Controls.DockBand.Inner = 1 -> Xtreme.Components.Docking.Controls.DockBand
+Xtreme.Components.Docking.Controls.DockBand.Outer = 0 -> Xtreme.Components.Docking.Controls.DockBand
+Xtreme.Components.Docking.Controls.DockHost
+Xtreme.Components.Docking.Controls.DockHost.DockHost() -> void
+Xtreme.Components.Docking.Controls.DockHost.Document.get -> object?
+Xtreme.Components.Docking.Controls.DockHost.Document.set -> void
+Xtreme.Components.Docking.Controls.DockHost.EdgePriority.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Docking.DockEdge>!
+Xtreme.Components.Docking.Controls.DockHost.EdgePriority.set -> void
+Xtreme.Components.Docking.Controls.DockHost.FlyoutDismissRequested -> System.EventHandler<Xtreme.Components.Docking.Controls.FlyoutDismissEventArgs!>?
+Xtreme.Components.Docking.Controls.DockHost.FlyoutOpened -> System.EventHandler<Xtreme.Components.Docking.Controls.DockItem!>?
+Xtreme.Components.Docking.Controls.DockHost.IsNarrow.get -> bool
+Xtreme.Components.Docking.Controls.DockHost.Items.get -> System.Collections.Generic.IList<Xtreme.Components.Docking.Controls.DockItem!>!
+Xtreme.Components.Docking.Controls.DockHost.NarrowChanged -> System.EventHandler?
+Xtreme.Components.Docking.Controls.DockHost.OpenFlyout(Xtreme.Components.Docking.Controls.DockItem! item) -> void
+Xtreme.Components.Docking.Controls.DockHost.Persistence.get -> Xtreme.Components.Docking.IDockPersistence?
+Xtreme.Components.Docking.Controls.DockHost.Persistence.set -> void
+Xtreme.Components.Docking.Controls.DockHost.PersistenceKey.get -> string?
+Xtreme.Components.Docking.Controls.DockHost.PersistenceKey.set -> void
+Xtreme.Components.Docking.Controls.DockHost.PlatformServices.get -> Xtreme.Components.Docking.IDockPlatformServices!
+Xtreme.Components.Docking.Controls.DockHost.PlatformServices.set -> void
+Xtreme.Components.Docking.Controls.DockHost.RestoreItemOpenState.get -> bool
+Xtreme.Components.Docking.Controls.DockHost.RestoreItemOpenState.set -> void
+Xtreme.Components.Docking.Controls.DockHost.ShowClosedPaneRestore.get -> bool
+Xtreme.Components.Docking.Controls.DockHost.ShowClosedPaneRestore.set -> void
+Xtreme.Components.Docking.Controls.DockItem
+Xtreme.Components.Docking.Controls.DockItem.AllowedDockEdges.get -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.Controls.DockItem.AllowedDockEdges.set -> void
+Xtreme.Components.Docking.Controls.DockItem.AllowFloat.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.AllowFloat.set -> void
+Xtreme.Components.Docking.Controls.DockItem.Band.get -> Xtreme.Components.Docking.Controls.DockBand
+Xtreme.Components.Docking.Controls.DockItem.Band.set -> void
+Xtreme.Components.Docking.Controls.DockItem.CanClose.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.CanClose.set -> void
+Xtreme.Components.Docking.Controls.DockItem.CanResize.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.CanResize.set -> void
+Xtreme.Components.Docking.Controls.DockItem.CloseRequested -> System.EventHandler?
+Xtreme.Components.Docking.Controls.DockItem.DockId.get -> string?
+Xtreme.Components.Docking.Controls.DockItem.DockId.set -> void
+Xtreme.Components.Docking.Controls.DockItem.DockItem() -> void
+Xtreme.Components.Docking.Controls.DockItem.DockLength.get -> double
+Xtreme.Components.Docking.Controls.DockItem.DockLength.set -> void
+Xtreme.Components.Docking.Controls.DockItem.Edge.get -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.Controls.DockItem.Edge.set -> void
+Xtreme.Components.Docking.Controls.DockItem.IsFloating.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.IsOpen.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.IsOpen.set -> void
+Xtreme.Components.Docking.Controls.DockItem.IsPinned.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.IsPinned.set -> void
+Xtreme.Components.Docking.Controls.DockItem.LayerGroup.get -> string?
+Xtreme.Components.Docking.Controls.DockItem.LayerGroup.set -> void
+Xtreme.Components.Docking.Controls.DockItem.MaxLength.get -> double
+Xtreme.Components.Docking.Controls.DockItem.MaxLength.set -> void
+Xtreme.Components.Docking.Controls.DockItem.MinLength.get -> double
+Xtreme.Components.Docking.Controls.DockItem.MinLength.set -> void
+Xtreme.Components.Docking.Controls.DockItem.NarrowBehavior.get -> Xtreme.Components.Docking.Controls.DockNarrowBehavior
+Xtreme.Components.Docking.Controls.DockItem.NarrowBehavior.set -> void
+Xtreme.Components.Docking.Controls.DockItem.Reparented -> System.EventHandler?
+Xtreme.Components.Docking.Controls.DockItem.ShowHeader.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.ShowHeader.set -> void
+Xtreme.Components.Docking.Controls.DockItem.ShowPinToggle.get -> bool
+Xtreme.Components.Docking.Controls.DockItem.ShowPinToggle.set -> void
+Xtreme.Components.Docking.Controls.DockItem.TabGroup.get -> string?
+Xtreme.Components.Docking.Controls.DockItem.TabGroup.set -> void
+Xtreme.Components.Docking.Controls.DockItem.Title.get -> string?
+Xtreme.Components.Docking.Controls.DockItem.Title.set -> void
+Xtreme.Components.Docking.Controls.DockNarrowBehavior
+Xtreme.Components.Docking.Controls.DockNarrowBehavior.AutoHide = 3 -> Xtreme.Components.Docking.Controls.DockNarrowBehavior
+Xtreme.Components.Docking.Controls.DockNarrowBehavior.Hide = 1 -> Xtreme.Components.Docking.Controls.DockNarrowBehavior
+Xtreme.Components.Docking.Controls.DockNarrowBehavior.Keep = 2 -> Xtreme.Components.Docking.Controls.DockNarrowBehavior
+Xtreme.Components.Docking.Controls.DockNarrowBehavior.Overlay = 0 -> Xtreme.Components.Docking.Controls.DockNarrowBehavior
+Xtreme.Components.Docking.Controls.DockSplitter
+Xtreme.Components.Docking.Controls.DockSplitter.DockSplitter(Microsoft.UI.Xaml.Controls.Orientation orientation, Microsoft.UI.Xaml.ElementTheme theme, Xtreme.Components.Docking.DockEdge attachEdge = Xtreme.Components.Docking.DockEdge.None) -> void
+Xtreme.Components.Docking.Controls.DockSplitter.DragCompleted -> System.EventHandler?
+Xtreme.Components.Docking.Controls.DockSplitter.Dragged -> System.Action<double>?
+Xtreme.Components.Docking.Controls.DockSplitter.DragStarted -> System.EventHandler?
+Xtreme.Components.Docking.Controls.FlyoutDismissEventArgs
+Xtreme.Components.Docking.Controls.FlyoutDismissEventArgs.FlyoutDismissEventArgs(Xtreme.Components.Docking.Controls.DockItem! item) -> void
+Xtreme.Components.Docking.Controls.FlyoutDismissEventArgs.Item.get -> Xtreme.Components.Docking.Controls.DockItem!
+Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.All = Xtreme.Components.Docking.DockEdge.Horizontal | Xtreme.Components.Docking.DockEdge.Vertical -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.Bottom = 8 -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.Horizontal = Xtreme.Components.Docking.DockEdge.Left | Xtreme.Components.Docking.DockEdge.Right -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.Left = 1 -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.None = 0 -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.Right = 2 -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.Top = 4 -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdge.Vertical = Xtreme.Components.Docking.DockEdge.Top | Xtreme.Components.Docking.DockEdge.Bottom -> Xtreme.Components.Docking.DockEdge
+Xtreme.Components.Docking.DockEdgeExtensions
+Xtreme.Components.Docking.DockedOnlyPlatformServices
+Xtreme.Components.Docking.DockedOnlyPlatformServices.SupportsFloatingWindows.get -> bool
+Xtreme.Components.Docking.IDockPersistence
+Xtreme.Components.Docking.IDockPersistence.LoadAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+Xtreme.Components.Docking.IDockPersistence.SaveAsync(string! key, string! document, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Xtreme.Components.Docking.IDockPlatformServices
+Xtreme.Components.Docking.IDockPlatformServices.BeginWindowDrag(Microsoft.UI.Xaml.Window! window) -> bool
+Xtreme.Components.Docking.IDockPlatformServices.HostWindow.get -> Microsoft.UI.Xaml.Window?
+Xtreme.Components.Docking.IDockPlatformServices.OnWindowSpawned(Microsoft.UI.Xaml.Window! window) -> void
+Xtreme.Components.Docking.IDockPlatformServices.SupportsFloatingWindows.get -> bool
+Xtreme.Components.Docking.IDockPlatformServices.TrackFloatingWindowDrag(Microsoft.UI.Xaml.Window! window, System.Action<Windows.Graphics.PointInt32>! dragMoved, System.Action<Windows.Graphics.PointInt32>! dropped) -> System.IDisposable?
+Xtreme.Components.Docking.IDockPlatformServices.TryAcquireFloatWindow() -> Microsoft.UI.Xaml.Window?
+Xtreme.Components.Docking.IDockPlatformServices.TryReleaseFloatWindow(Microsoft.UI.Xaml.Window! window) -> bool
+Xtreme.Components.Docking.IDockPlatformServices.WarmFloatSupport(Microsoft.UI.Dispatching.DispatcherQueue! dispatcher) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.BeginWindowDrag(Microsoft.UI.Xaml.Window! window) -> bool
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.CaptureShellWindowHandle(Microsoft.UI.Dispatching.DispatcherQueue! dispatcher) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.HostWindow.get -> Microsoft.UI.Xaml.Window?
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.HostWindow.set -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.Log.get -> System.Action<string!>?
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.Log.set -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.OnWindowSpawned(Microsoft.UI.Xaml.Window! window) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.PrimePoolWhenIdle(Microsoft.UI.Dispatching.DispatcherQueue! dispatcher) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.SupportsFloatingWindows.get -> bool
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.TrackFloatingWindowDrag(Microsoft.UI.Xaml.Window! window, System.Action<Windows.Graphics.PointInt32>! dragMoved, System.Action<Windows.Graphics.PointInt32>! dropped) -> System.IDisposable?
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.TryAcquireFloatWindow() -> Microsoft.UI.Xaml.Window?
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.TryReleaseFloatWindow(Microsoft.UI.Xaml.Window! window) -> bool
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.WarmFloatSupport(Microsoft.UI.Dispatching.DispatcherQueue! dispatcher) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.Win32DockPlatformServices() -> void

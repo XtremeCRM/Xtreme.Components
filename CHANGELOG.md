@@ -36,6 +36,13 @@ family on a shared version.
   See `docs/theming.md`.
 - `samples/Xtreme.Components.Gallery`: desktop + WebAssembly gallery with one page per family,
   published to GitHub Pages from `main`; `--selftest` on desktop opens every page.
+- `Xtreme.Components.Docking`: `Win32DockPlatformServices`, the Windows implementation of
+  `IDockPlatformServices` (window pool, owned float windows, drag tracking, drag translucency),
+  ported from the XtremeCRM app. `HostWindow` is a property, diagnostics go to an optional `Log`
+  hook, and the floating window's HWND comes from Uno's `WindowHelper.GetNativeWindow` with the
+  foreground-window heuristic as fallback.
+- Public API baseline: every package carries `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
+  under `Microsoft.CodeAnalysis.PublicApiAnalyzers`, so an API change is a visible diff.
 - `Xtreme.Components.Scheduler`: `SchedulerControl` with Day, Week, Month, Agenda and
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event

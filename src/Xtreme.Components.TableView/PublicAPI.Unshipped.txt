@@ -1,0 +1,14 @@
+#nullable enable
+static Xtreme.Components.TableView.RowFlagDecorator.Attach(WinUI.TableView.TableView! table, System.Func<object?, Xtreme.Components.TableView.RowFlag?>! flagOf, Xtreme.Components.TableView.RowFlagDecorator.BrushResolver? resolveBrush = null) -> void
+static Xtreme.Components.TableView.RowFlagDecorator.DefaultResolveBrush(Microsoft.UI.Xaml.FrameworkElement! element, string! key) -> Microsoft.UI.Xaml.Media.Brush?
+static Xtreme.Components.TableView.RowFlagDecorator.Refresh(WinUI.TableView.TableView! table) -> void
+Xtreme.Components.TableView.RowFlag
+Xtreme.Components.TableView.RowFlag.BrushKey.get -> string!
+Xtreme.Components.TableView.RowFlag.BrushKey.init -> void
+Xtreme.Components.TableView.RowFlag.Label.get -> string!
+Xtreme.Components.TableView.RowFlag.Label.init -> void
+Xtreme.Components.TableView.RowFlag.RowFlag(string! Label, string! BrushKey, string? Tip = null) -> void
+Xtreme.Components.TableView.RowFlag.Tip.get -> string?
+Xtreme.Components.TableView.RowFlag.Tip.init -> void
+Xtreme.Components.TableView.RowFlagDecorator
+Xtreme.Components.TableView.RowFlagDecorator.BrushResolver

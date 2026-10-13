@@ -1,0 +1,547 @@
+#nullable enable
+const Xtreme.Components.Scheduler.Interaction.ExternalDropHandler.DataKey = "Xtreme.Components.Scheduler.ExternalDroppable" -> string!
+const Xtreme.Components.Scheduler.Rendering.DayColumnPanel.MinBlockHeight = 22 -> double
+const Xtreme.Components.Scheduler.Rendering.EventBlockLayout.DefaultMinVisibleMinutes = 15 -> double
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentBarTemplateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentChipTemplateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentCornerRadiusProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTemplateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTooltipTemplateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.ColumnMinWidthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.CurrentViewProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.FirstDayOfWeekProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.GroupModeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.HideIdleResourcesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.IsReadOnlyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.SchedulerResourcesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedAppointmentProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedAppointmentsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedDateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedDatesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.ShowTilesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.SingleClickCreatesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.TimeIncrementProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.VisibleDaysProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.WorkDayEndProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.WorkDayStartProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.DayColumnPanel.ColumnCountProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.DayColumnPanel.ColumnIndexProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.DayColumnPanel.DurationMinutesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.DayColumnPanel.StartMinutesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.DurationMinutesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.StartMinutesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.SubRowProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static Xtreme.Components.Scheduler.Interaction.ExternalDropHandler.SetDroppable(Windows.ApplicationModel.DataTransfer.DataPackage! data, Xtreme.Components.Scheduler.Contracts.ISchedulerDroppable! item) -> void
+static Xtreme.Components.Scheduler.Models.TimeIncrementConfig.Default.get -> Xtreme.Components.Scheduler.Models.TimeIncrementConfig!
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.GetColumnCount(Microsoft.UI.Xaml.DependencyObject! o) -> int
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.GetColumnIndex(Microsoft.UI.Xaml.DependencyObject! o) -> int
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.GetDurationMinutes(Microsoft.UI.Xaml.DependencyObject! o) -> double
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.GetStartMinutes(Microsoft.UI.Xaml.DependencyObject! o) -> double
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.SetColumnCount(Microsoft.UI.Xaml.DependencyObject! o, int v) -> void
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.SetColumnIndex(Microsoft.UI.Xaml.DependencyObject! o, int v) -> void
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.SetDurationMinutes(Microsoft.UI.Xaml.DependencyObject! o, double v) -> void
+static Xtreme.Components.Scheduler.Rendering.DayColumnPanel.SetStartMinutes(Microsoft.UI.Xaml.DependencyObject! o, double v) -> void
+static Xtreme.Components.Scheduler.Rendering.EventBlockLayout.Layout(System.DateTime day, System.Collections.Generic.IEnumerable<Xtreme.Components.Scheduler.Models.AppointmentModel!>! appointments, double minVisibleMinutes = 15) -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Rendering.EventLayout>!
+static Xtreme.Components.Scheduler.Rendering.EventBlockLayout.LayoutRange(System.DateTime rangeStart, System.DateTime rangeEnd, System.Collections.Generic.IEnumerable<Xtreme.Components.Scheduler.Models.AppointmentModel!>! appointments, double minVisibleMinutes = 15) -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Rendering.EventLayout>!
+static Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.GetDurationMinutes(Microsoft.UI.Xaml.DependencyObject! o) -> double
+static Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.GetStartMinutes(Microsoft.UI.Xaml.DependencyObject! o) -> double
+static Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.GetSubRow(Microsoft.UI.Xaml.DependencyObject! o) -> int
+static Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.SetDurationMinutes(Microsoft.UI.Xaml.DependencyObject! o, double v) -> void
+static Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.SetStartMinutes(Microsoft.UI.Xaml.DependencyObject! o, double v) -> void
+static Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.SetSubRow(Microsoft.UI.Xaml.DependencyObject! o, int v) -> void
+static Xtreme.Components.Scheduler.Utilities.SchedulerTimeFormatter.Compact(System.DateTime t) -> string!
+static Xtreme.Components.Scheduler.Utilities.SchedulerTimeFormatter.CompactRange(System.DateTime start, System.DateTime end) -> string!
+static Xtreme.Components.Scheduler.Utilities.SchedulerTimeFormatter.RangeFormatter.get -> System.Func<System.DateTime, System.DateTime, string!>!
+static Xtreme.Components.Scheduler.Utilities.SchedulerTimeFormatter.RangeFormatter.set -> void
+static Xtreme.Components.Scheduler.Utilities.TimeZoneConverter.FromZone(System.DateTime zoned, string? ianaId) -> System.DateTime
+static Xtreme.Components.Scheduler.Utilities.TimeZoneConverter.ShortLabel(string? ianaId) -> string?
+static Xtreme.Components.Scheduler.Utilities.TimeZoneConverter.ToZone(System.DateTime utc, string? ianaId) -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs.AppointmentClickArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs.WithCtrl.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs.WithCtrl.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs.AppointmentContextRequestedArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs.Position.get -> Windows.Foundation.Point?
+Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs.Position.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.AppointmentCreateArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.End.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.End.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.IsAllDay.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.IsAllDay.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.Position.get -> Windows.Foundation.Point?
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.Position.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.ResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.ResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.Start.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs.Start.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs.AppointmentEditRequestedArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs.Handled.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs.Handled.set -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.AppointmentMoveArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.FromResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.FromResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.IsCopy.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.IsCopy.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.NewEnd.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.NewEnd.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.NewStart.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.NewStart.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.ToResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.ToResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.WithShift.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs.WithShift.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.AppointmentMoveItem() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.FromResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.FromResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.NewEnd.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.NewEnd.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.NewStart.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.NewStart.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.ToResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem.ToResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.AppointmentResizeArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.NewEnd.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.NewEnd.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.NewStart.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.NewStart.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.WithShift.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs.WithShift.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.Appointment.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.AppointmentResizeItem() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.NewEnd.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.NewEnd.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.NewStart.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem.NewStart.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs.Appointments.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.AppointmentModel!>!
+Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs.Appointments.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs.AppointmentsDeleteArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs.WithShift.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs.WithShift.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.AppointmentsMoveArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.IsCopy.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.IsCopy.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.Items.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Contracts.AppointmentMoveItem!>!
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.Items.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.WithShift.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs.WithShift.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs
+Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs.AppointmentsResizeArgs() -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs.Items.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Contracts.AppointmentResizeItem!>!
+Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs.Items.init -> void
+Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs.WithShift.get -> bool
+Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs.WithShift.init -> void
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.EmptySlotSelectedArgs() -> void
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.Position.get -> Windows.Foundation.Point?
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.Position.init -> void
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.ResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.ResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.Start.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs.Start.init -> void
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.End.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.End.init -> void
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.ExternalDropArgs() -> void
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.Item.get -> Xtreme.Components.Scheduler.Contracts.ISchedulerDroppable!
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.Item.init -> void
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.ResourceId.get -> object?
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.ResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.Start.get -> System.DateTime
+Xtreme.Components.Scheduler.Contracts.ExternalDropArgs.Start.init -> void
+Xtreme.Components.Scheduler.Contracts.ISchedulerDroppable
+Xtreme.Components.Scheduler.Contracts.ISchedulerDroppable.DefaultDuration.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Contracts.ISchedulerDroppable.Payload.get -> object?
+Xtreme.Components.Scheduler.Contracts.ISchedulerDroppable.Subject.get -> string!
+Xtreme.Components.Scheduler.Controls.AgendaView
+Xtreme.Components.Scheduler.Controls.AgendaView.AgendaView() -> void
+Xtreme.Components.Scheduler.Controls.MonthView
+Xtreme.Components.Scheduler.Controls.MonthView.MonthView() -> void
+Xtreme.Components.Scheduler.Controls.PlannerView
+Xtreme.Components.Scheduler.Controls.PlannerView.AppointmentContextMenuRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs!>?
+Xtreme.Components.Scheduler.Controls.PlannerView.CreateRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs!>?
+Xtreme.Components.Scheduler.Controls.PlannerView.ExternalDropRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.ExternalDropArgs!>?
+Xtreme.Components.Scheduler.Controls.PlannerView.MoveRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs!>?
+Xtreme.Components.Scheduler.Controls.PlannerView.PlannerView() -> void
+Xtreme.Components.Scheduler.Controls.PlannerView.ResizeRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs!>?
+Xtreme.Components.Scheduler.Controls.ResizeGrip
+Xtreme.Components.Scheduler.Controls.ResizeGrip.ResizeCompleted -> System.EventHandler?
+Xtreme.Components.Scheduler.Controls.ResizeGrip.Resized -> System.EventHandler<Windows.Foundation.Point>?
+Xtreme.Components.Scheduler.Controls.ResizeGrip.ResizeGrip() -> void
+Xtreme.Components.Scheduler.Controls.ResizeGrip.ResizeStarted -> System.EventHandler?
+Xtreme.Components.Scheduler.Controls.SchedulerControl
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AdornmentToggleRequested -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentBarTemplate.get -> Microsoft.UI.Xaml.DataTemplate?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentBarTemplate.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentChipTemplate.get -> Microsoft.UI.Xaml.DataTemplate?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentChipTemplate.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentContextRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentCornerRadius.get -> double
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentCornerRadius.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentCreateRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentEditRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentEditRequestedArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentMoveRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentRenderer.get -> System.Func<Xtreme.Components.Scheduler.Rendering.AppointmentContext!, Microsoft.UI.Xaml.FrameworkElement?>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentRenderer.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentResizeRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.Appointments.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.AppointmentModel!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.Appointments.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentsDeleteRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentsDeleteArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentsMoveRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentsResizeRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTemplate.get -> Microsoft.UI.Xaml.DataTemplate?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTemplate.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTooltipRenderer.get -> System.Func<Xtreme.Components.Scheduler.Rendering.AppointmentContext!, Microsoft.UI.Xaml.FrameworkElement?>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTooltipRenderer.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTooltipTemplate.get -> Microsoft.UI.Xaml.DataTemplate?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.AppointmentTooltipTemplate.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ColumnMinWidth.get -> double
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ColumnMinWidth.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.CurrentView.get -> Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Controls.SchedulerControl.CurrentView.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.DeleteSelected(bool withShift = false) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.EmptySlotSelected -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ExternalAppointmentDropped -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.ExternalDropArgs!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.FirstDayOfWeek.get -> System.DayOfWeek
+Xtreme.Components.Scheduler.Controls.SchedulerControl.FirstDayOfWeek.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.GroupMode.get -> Xtreme.Components.Scheduler.Models.SchedulerGroupMode
+Xtreme.Components.Scheduler.Controls.SchedulerControl.GroupMode.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.HideIdleResources.get -> bool
+Xtreme.Components.Scheduler.Controls.SchedulerControl.HideIdleResources.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.IsReadOnly.get -> bool
+Xtreme.Components.Scheduler.Controls.SchedulerControl.IsReadOnly.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SchedulerControl() -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SchedulerResources.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.ResourceModel!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SchedulerResources.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedAppointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedAppointment.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedAppointments.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.AppointmentModel!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedDate.get -> System.DateTimeOffset
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedDate.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedDates.get -> System.Collections.Generic.IReadOnlyList<System.DateTime>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectedDates.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SelectionChanged -> System.EventHandler<System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.AppointmentModel!>!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SetTileOptions(System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.SchedulerTileOption!>! options) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ShowTiles.get -> bool
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ShowTiles.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SingleClickCreates.get -> bool
+Xtreme.Components.Scheduler.Controls.SchedulerControl.SingleClickCreates.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.TileOptionToggled -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerTileOption!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.TimeIncrement.get -> Xtreme.Components.Scheduler.Models.TimeIncrementConfig!
+Xtreme.Components.Scheduler.Controls.SchedulerControl.TimeIncrement.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ToolbarAdornments.get -> System.Collections.ObjectModel.ObservableCollection<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>!
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ToolbarButtonClicked -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ToolbarButtons.get -> System.Collections.ObjectModel.ObservableCollection<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>!
+Xtreme.Components.Scheduler.Controls.SchedulerControl.VisibleDays.get -> int
+Xtreme.Components.Scheduler.Controls.SchedulerControl.VisibleDays.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.WorkDayEnd.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Controls.SchedulerControl.WorkDayEnd.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.WorkDayStart.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Controls.SchedulerControl.WorkDayStart.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.AdornmentClicked -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.ColumnMinWidthChanged -> System.EventHandler<double>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.CornerRadiusChanged -> System.EventHandler<double>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.CustomButtonClicked -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.DatesSelected -> System.EventHandler<System.Collections.Generic.IReadOnlyList<System.DateTime>!>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.FirstDayOfWeekChanged -> System.EventHandler<System.DayOfWeek>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.GroupModeChanged -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerGroupMode>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.HideIdleChanged -> System.EventHandler<bool>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.NextClicked -> System.EventHandler?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.PreviousClicked -> System.EventHandler?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SchedulerToolbar() -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetActiveView(Xtreme.Components.Scheduler.Models.SchedulerView view) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetAdornmentButtons(System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>! buttons) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetColumnMinWidth(double width) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetCornerRadius(double radius) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetCurrentDates(System.Collections.Generic.IReadOnlyList<System.DateTime>! dates) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetCustomButtons(System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>! buttons) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetFirstDayOfWeek(System.DayOfWeek day) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetGroupMode(Xtreme.Components.Scheduler.Models.SchedulerGroupMode mode) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetHideIdle(bool hide) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetPeriodLabel(string! text) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetResourceOptionsVisible(bool visible) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetShowTiles(bool show) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetTileOptions(System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.SchedulerTileOption!>! options) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetTimeIncrement(Xtreme.Components.Scheduler.Models.TimeIncrementConfig! increment) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.SetWorkHours(System.TimeSpan start, System.TimeSpan end) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.ShowTilesChanged -> System.EventHandler<bool>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.TileOptionToggled -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerTileOption!>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.TimeIncrementChanged -> System.EventHandler<Xtreme.Components.Scheduler.Models.TimeIncrementConfig!>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.TodayClicked -> System.EventHandler?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.ViewSelected -> System.EventHandler<Xtreme.Components.Scheduler.Models.SchedulerView>?
+Xtreme.Components.Scheduler.Controls.SchedulerToolbar.WorkHoursChanged -> System.EventHandler<(System.TimeSpan Start, System.TimeSpan End)>?
+Xtreme.Components.Scheduler.Controls.TimeGridView
+Xtreme.Components.Scheduler.Controls.TimeGridView.AppointmentClicked -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentClickArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.AppointmentContextMenuRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentContextRequestedArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.CreateRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentCreateArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.EmptySlotClicked -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.ExternalDropRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.ExternalDropArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.MoveManyRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentsMoveArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.MoveRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentMoveArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.ResizeManyRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentsResizeArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.ResizeRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.AppointmentResizeArgs!>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.ScrollOffsetChanged -> System.EventHandler<(double V, double H)>?
+Xtreme.Components.Scheduler.Controls.TimeGridView.TimeGridView() -> void
+Xtreme.Components.Scheduler.Interaction.ExternalDropHandler
+Xtreme.Components.Scheduler.Models.AppointmentDecoration
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Alignment.get -> Xtreme.Components.Scheduler.Models.DecorationAlignment
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Alignment.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.AppointmentDecoration() -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.BackColor.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.BackColor.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Bold.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Bold.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.BorderColor.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.BorderColor.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.FontSize.get -> double
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.FontSize.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.ForeColor.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.ForeColor.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Glyph.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Glyph.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.GlyphFontFamily.get -> Microsoft.UI.Xaml.Media.FontFamily?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.GlyphFontFamily.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Image.get -> byte[]?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Image.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.OffsetX.get -> int
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.OffsetX.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.OffsetY.get -> int
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.OffsetY.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Position.get -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Position.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Text.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Text.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Tooltip.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentDecoration.Tooltip.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDetail
+Xtreme.Components.Scheduler.Models.AppointmentDetail.AppointmentDetail() -> void
+Xtreme.Components.Scheduler.Models.AppointmentDetail.AppointmentDetail(string! label, string! value) -> void
+Xtreme.Components.Scheduler.Models.AppointmentDetail.Label.get -> string!
+Xtreme.Components.Scheduler.Models.AppointmentDetail.Label.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentDetail.Value.get -> string!
+Xtreme.Components.Scheduler.Models.AppointmentDetail.Value.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentIndicator
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.AppointmentIndicator() -> void
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.Color.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.Color.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.FontFamily.get -> Microsoft.UI.Xaml.Media.FontFamily?
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.FontFamily.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.Glyph.get -> string!
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.Glyph.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.Tooltip.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentIndicator.Tooltip.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel
+Xtreme.Components.Scheduler.Models.AppointmentModel.Adornments.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentDecoration!>!
+Xtreme.Components.Scheduler.Models.AppointmentModel.Adornments.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.AppointmentModel() -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.BackColor.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.AppointmentModel.BackColor.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.BarColor.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.AppointmentModel.BarColor.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Description.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentModel.Description.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Details.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentDetail!>!
+Xtreme.Components.Scheduler.Models.AppointmentModel.Details.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Duration.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Models.AppointmentModel.End.get -> System.DateTime
+Xtreme.Components.Scheduler.Models.AppointmentModel.End.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Id.get -> object?
+Xtreme.Components.Scheduler.Models.AppointmentModel.Id.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Indicators.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentIndicator!>!
+Xtreme.Components.Scheduler.Models.AppointmentModel.Indicators.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsAllDay.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsAllDay.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsCancelled.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsCancelled.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsComplete.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsComplete.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsConfirmed.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsConfirmed.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsLocked.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsLocked.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsRecurring.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsTentative.get -> bool
+Xtreme.Components.Scheduler.Models.AppointmentModel.IsTentative.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Memo.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentModel.Memo.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.RecurrenceException.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentModel.RecurrenceException.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.RecurrenceRule.get -> string?
+Xtreme.Components.Scheduler.Models.AppointmentModel.RecurrenceRule.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.ResourceIds.get -> System.Collections.Generic.IList<object!>!
+Xtreme.Components.Scheduler.Models.AppointmentModel.ResourceIds.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Start.get -> System.DateTime
+Xtreme.Components.Scheduler.Models.AppointmentModel.Start.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Subject.get -> string!
+Xtreme.Components.Scheduler.Models.AppointmentModel.Subject.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Tag.get -> object?
+Xtreme.Components.Scheduler.Models.AppointmentModel.Tag.set -> void
+Xtreme.Components.Scheduler.Models.AppointmentModel.Tiles.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentDecoration!>!
+Xtreme.Components.Scheduler.Models.AppointmentModel.Tiles.set -> void
+Xtreme.Components.Scheduler.Models.DecorationAlignment
+Xtreme.Components.Scheduler.Models.DecorationAlignment.Far = 2 -> Xtreme.Components.Scheduler.Models.DecorationAlignment
+Xtreme.Components.Scheduler.Models.DecorationAlignment.Middle = 1 -> Xtreme.Components.Scheduler.Models.DecorationAlignment
+Xtreme.Components.Scheduler.Models.DecorationAlignment.Near = 0 -> Xtreme.Components.Scheduler.Models.DecorationAlignment
+Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.Bottom = 3 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.FloatCenter = 5 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.FloatLeft = 4 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.FloatRight = 6 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.Left = 0 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.Right = 2 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.DecorationPosition.Top = 1 -> Xtreme.Components.Scheduler.Models.DecorationPosition
+Xtreme.Components.Scheduler.Models.ResourceModel
+Xtreme.Components.Scheduler.Models.ResourceModel.Color.get -> Windows.UI.Color?
+Xtreme.Components.Scheduler.Models.ResourceModel.Color.set -> void
+Xtreme.Components.Scheduler.Models.ResourceModel.Id.get -> object!
+Xtreme.Components.Scheduler.Models.ResourceModel.Id.set -> void
+Xtreme.Components.Scheduler.Models.ResourceModel.Name.get -> string!
+Xtreme.Components.Scheduler.Models.ResourceModel.Name.set -> void
+Xtreme.Components.Scheduler.Models.ResourceModel.ResourceModel() -> void
+Xtreme.Components.Scheduler.Models.ResourceModel.TimeZoneId.get -> string?
+Xtreme.Components.Scheduler.Models.ResourceModel.TimeZoneId.set -> void
+Xtreme.Components.Scheduler.Models.SchedulerGroupMode
+Xtreme.Components.Scheduler.Models.SchedulerGroupMode.ByDay = 1 -> Xtreme.Components.Scheduler.Models.SchedulerGroupMode
+Xtreme.Components.Scheduler.Models.SchedulerGroupMode.ByResource = 0 -> Xtreme.Components.Scheduler.Models.SchedulerGroupMode
+Xtreme.Components.Scheduler.Models.SchedulerTileOption
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.IsOn.get -> bool
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.IsOn.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.Key.get -> string!
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.Key.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.Label.get -> string!
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.Label.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerTileOption.SchedulerTileOption() -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Command.get -> System.Windows.Input.ICommand?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Command.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.CommandParameter.get -> object?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.CommandParameter.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Glyph.get -> string?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Glyph.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Id.get -> string?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Id.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Image.get -> byte[]?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Image.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.IsChecked.get -> bool
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.IsChecked.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.IsEnabled.get -> bool
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.IsEnabled.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.IsToggle.get -> bool
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.IsToggle.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Label.get -> string?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Label.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.MenuItems.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.SchedulerToolbarButton!>?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.MenuItems.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.SchedulerToolbarButton() -> void
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Tooltip.get -> string?
+Xtreme.Components.Scheduler.Models.SchedulerToolbarButton.Tooltip.init -> void
+Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Models.SchedulerView.Agenda = 3 -> Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Models.SchedulerView.Day = 0 -> Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Models.SchedulerView.Month = 2 -> Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Models.SchedulerView.Planner = 4 -> Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Models.SchedulerView.Week = 1 -> Xtreme.Components.Scheduler.Models.SchedulerView
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.DayHeight.get -> double
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.MajorSlotHeight.get -> double
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.MajorTick.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.MajorTick.set -> void
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.MinorSlotHeight.get -> double
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.MinorTick.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.MinorTick.set -> void
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.PixelsPerMinute.get -> double
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.PixelsPerMinute.set -> void
+Xtreme.Components.Scheduler.Models.TimeIncrementConfig.TimeIncrementConfig() -> void
+Xtreme.Components.Scheduler.Rendering.AllDayBanner
+Xtreme.Components.Scheduler.Rendering.AllDayBanner.AllDayBanner() -> void
+Xtreme.Components.Scheduler.Rendering.AllDayBanner.AllDayBanner(Microsoft.UI.Xaml.FrameworkElement! Element, int RowCount) -> void
+Xtreme.Components.Scheduler.Rendering.AllDayBanner.Element.get -> Microsoft.UI.Xaml.FrameworkElement!
+Xtreme.Components.Scheduler.Rendering.AllDayBanner.Element.init -> void
+Xtreme.Components.Scheduler.Rendering.AllDayBanner.RowCount.get -> int
+Xtreme.Components.Scheduler.Rendering.AllDayBanner.RowCount.init -> void
+Xtreme.Components.Scheduler.Rendering.AppointmentContext
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Adornments.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentDecoration!>!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.BackBrush.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.BarBrush.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.BorderBrush.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.CompactStart.get -> string!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.CompactTimeRange.get -> string!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.CornerRadius.get -> double
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Details.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentDetail!>!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.End.get -> System.DateTime
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Foreground.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Indicators.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentIndicator!>!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsAllDay.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsCancelled.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsComplete.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsConfirmed.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsLocked.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsRecurring.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.IsTentative.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Memo.get -> string?
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Note.get -> string?
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.ShowTiles.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.ShowTime.get -> bool
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Start.get -> System.DateTime
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.StartTime.get -> string!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Subject.get -> string!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Surface.get -> Xtreme.Components.Scheduler.Rendering.AppointmentSurface
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Tag.get -> object?
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.Tiles.get -> System.Collections.Generic.IList<Xtreme.Components.Scheduler.Models.AppointmentDecoration!>!
+Xtreme.Components.Scheduler.Rendering.AppointmentContext.TimeRange.get -> string!
+Xtreme.Components.Scheduler.Rendering.AppointmentSurface
+Xtreme.Components.Scheduler.Rendering.AppointmentSurface.Bar = 2 -> Xtreme.Components.Scheduler.Rendering.AppointmentSurface
+Xtreme.Components.Scheduler.Rendering.AppointmentSurface.Chip = 1 -> Xtreme.Components.Scheduler.Rendering.AppointmentSurface
+Xtreme.Components.Scheduler.Rendering.AppointmentSurface.Timed = 0 -> Xtreme.Components.Scheduler.Rendering.AppointmentSurface
+Xtreme.Components.Scheduler.Rendering.DayColumnPanel
+Xtreme.Components.Scheduler.Rendering.DayColumnPanel.DayColumnPanel() -> void
+Xtreme.Components.Scheduler.Rendering.DayColumnPanel.Increment.get -> Xtreme.Components.Scheduler.Models.TimeIncrementConfig!
+Xtreme.Components.Scheduler.Rendering.DayColumnPanel.Increment.set -> void
+Xtreme.Components.Scheduler.Rendering.EventBlockLayout
+Xtreme.Components.Scheduler.Rendering.EventLayout
+Xtreme.Components.Scheduler.Rendering.EventLayout.Appointment.get -> Xtreme.Components.Scheduler.Models.AppointmentModel!
+Xtreme.Components.Scheduler.Rendering.EventLayout.Appointment.init -> void
+Xtreme.Components.Scheduler.Rendering.EventLayout.ColumnCount.get -> int
+Xtreme.Components.Scheduler.Rendering.EventLayout.ColumnCount.init -> void
+Xtreme.Components.Scheduler.Rendering.EventLayout.ColumnIndex.get -> int
+Xtreme.Components.Scheduler.Rendering.EventLayout.ColumnIndex.init -> void
+Xtreme.Components.Scheduler.Rendering.EventLayout.EndMinutes.get -> double
+Xtreme.Components.Scheduler.Rendering.EventLayout.EndMinutes.init -> void
+Xtreme.Components.Scheduler.Rendering.EventLayout.EventLayout() -> void
+Xtreme.Components.Scheduler.Rendering.EventLayout.EventLayout(Xtreme.Components.Scheduler.Models.AppointmentModel! Appointment, double StartMinutes, double EndMinutes, int ColumnIndex, int ColumnCount) -> void
+Xtreme.Components.Scheduler.Rendering.EventLayout.StartMinutes.get -> double
+Xtreme.Components.Scheduler.Rendering.EventLayout.StartMinutes.init -> void
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.PixelsPerMinute.get -> double
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.PixelsPerMinute.set -> void
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.RowCount.get -> int
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.RowCount.set -> void
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.RowHeight.get -> double
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.RowHeight.set -> void
+Xtreme.Components.Scheduler.Rendering.TimelineLanePanel.TimelineLanePanel() -> void
+Xtreme.Components.Scheduler.Utilities.SchedulerTimeFormatter
+Xtreme.Components.Scheduler.Utilities.TimeZoneConverter

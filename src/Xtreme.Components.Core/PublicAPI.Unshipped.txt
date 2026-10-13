@@ -1,0 +1,18 @@
+#nullable enable
+const Xtreme.Components.Core.ComponentTheme.HighContrastSentinel = "XcHighContrast" -> string!
+const Xtreme.Components.Core.ComponentTheme.SurfaceKey = "XcSurfaceBrush" -> string!
+const Xtreme.Components.Core.ComponentTheme.SurfaceOutlineKey = "XcSurfaceOutlineBrush" -> string!
+static Xtreme.Components.Core.ComponentHost.CurrentTheme.get -> System.Func<Microsoft.UI.Xaml.ElementTheme?>?
+static Xtreme.Components.Core.ComponentHost.CurrentTheme.set -> void
+static Xtreme.Components.Core.ComponentHost.EffectiveTheme() -> Microsoft.UI.Xaml.ElementTheme
+static Xtreme.Components.Core.ComponentHost.NotifyResourcesChanged() -> void
+static Xtreme.Components.Core.ComponentHost.PrepareDialog(Microsoft.UI.Xaml.Controls.ContentDialog! dialog) -> void
+static Xtreme.Components.Core.ComponentHost.ResolveGeometry.get -> System.Func<string!, Microsoft.UI.Xaml.Media.Geometry?>?
+static Xtreme.Components.Core.ComponentHost.ResolveGeometry.set -> void
+static Xtreme.Components.Core.ComponentHost.ResourcesChanged -> System.EventHandler?
+static Xtreme.Components.Core.ComponentHost.TryGetBrush(string! key) -> Microsoft.UI.Xaml.Media.Brush?
+static Xtreme.Components.Core.ComponentHost.TryGetBrush(string! key, Microsoft.UI.Xaml.ElementTheme theme) -> Microsoft.UI.Xaml.Media.Brush?
+static Xtreme.Components.Core.ComponentTheme.Surface(Microsoft.UI.Xaml.ElementTheme theme) -> Microsoft.UI.Xaml.Media.SolidColorBrush!
+static Xtreme.Components.Core.ComponentTheme.SurfaceOutline(Microsoft.UI.Xaml.ElementTheme theme) -> Microsoft.UI.Xaml.Media.SolidColorBrush!
+Xtreme.Components.Core.ComponentHost
+Xtreme.Components.Core.ComponentTheme

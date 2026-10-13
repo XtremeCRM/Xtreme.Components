@@ -1,0 +1,64 @@
+#nullable enable
+const Xtreme.Components.Cards.CardDockerControl.MaxPanelHeight = 1200 -> int
+const Xtreme.Components.Cards.CardDockerControl.MinPanelHeight = 60 -> int
+static readonly Xtreme.Components.Cards.CardDockerControl.ColumnCountProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.PanelActionLabelProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.CardDockerControl.ShowPanelActionProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.SectionCard.BodyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.SectionCard.TitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.SectionCardTab.ContentProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Cards.SectionCardTab.HeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
+Xtreme.Components.Cards.CardDockerCard
+Xtreme.Components.Cards.CardDockerCard.CardDockerCard() -> void
+Xtreme.Components.Cards.CardDockerCard.CreateIcon.get -> System.Func<Microsoft.UI.Xaml.Controls.IconElement?>?
+Xtreme.Components.Cards.CardDockerCard.CreateIcon.init -> void
+Xtreme.Components.Cards.CardDockerCard.Id.get -> string!
+Xtreme.Components.Cards.CardDockerCard.Id.init -> void
+Xtreme.Components.Cards.CardDockerCard.Title.get -> string!
+Xtreme.Components.Cards.CardDockerCard.Title.init -> void
+Xtreme.Components.Cards.CardDockerControl
+Xtreme.Components.Cards.CardDockerControl.CardDockerControl() -> void
+Xtreme.Components.Cards.CardDockerControl.Cards.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Cards.CardDockerCard!>!
+Xtreme.Components.Cards.CardDockerControl.Cards.set -> void
+Xtreme.Components.Cards.CardDockerControl.ColumnCount.get -> int
+Xtreme.Components.Cards.CardDockerControl.ColumnCount.set -> void
+Xtreme.Components.Cards.CardDockerControl.Layout.get -> Xtreme.Components.Cards.CardDockerLayout!
+Xtreme.Components.Cards.CardDockerControl.Layout.set -> void
+Xtreme.Components.Cards.CardDockerControl.LayoutChanged -> System.EventHandler?
+Xtreme.Components.Cards.CardDockerControl.PanelActionInvoked -> System.EventHandler<string!>?
+Xtreme.Components.Cards.CardDockerControl.PanelActionLabel.get -> string!
+Xtreme.Components.Cards.CardDockerControl.PanelActionLabel.set -> void
+Xtreme.Components.Cards.CardDockerControl.ShowPanelAction.get -> bool
+Xtreme.Components.Cards.CardDockerControl.ShowPanelAction.set -> void
+Xtreme.Components.Cards.CardDockerLayout
+Xtreme.Components.Cards.CardDockerLayout.CardDockerLayout() -> void
+Xtreme.Components.Cards.CardDockerLayout.Clone() -> Xtreme.Components.Cards.CardDockerLayout!
+Xtreme.Components.Cards.CardDockerLayout.Panels.get -> System.Collections.Generic.List<Xtreme.Components.Cards.CardDockerPanel!>!
+Xtreme.Components.Cards.CardDockerLayout.Panels.init -> void
+Xtreme.Components.Cards.CardDockerLayout.TrayCardIds.get -> System.Collections.Generic.List<string!>!
+Xtreme.Components.Cards.CardDockerLayout.TrayCardIds.init -> void
+Xtreme.Components.Cards.CardDockerPanel
+Xtreme.Components.Cards.CardDockerPanel.CardDockerPanel() -> void
+Xtreme.Components.Cards.CardDockerPanel.CardIds.get -> System.Collections.Generic.List<string!>!
+Xtreme.Components.Cards.CardDockerPanel.CardIds.init -> void
+Xtreme.Components.Cards.CardDockerPanel.Column.get -> int
+Xtreme.Components.Cards.CardDockerPanel.Column.set -> void
+Xtreme.Components.Cards.CardDockerPanel.Id.get -> string!
+Xtreme.Components.Cards.CardDockerPanel.Id.init -> void
+Xtreme.Components.Cards.CardDockerPanel.MinHeight.get -> int
+Xtreme.Components.Cards.CardDockerPanel.MinHeight.set -> void
+Xtreme.Components.Cards.CardDockerPanel.Sort.get -> int
+Xtreme.Components.Cards.CardDockerPanel.Sort.set -> void
+Xtreme.Components.Cards.SectionCard
+Xtreme.Components.Cards.SectionCard.Body.get -> object?
+Xtreme.Components.Cards.SectionCard.Body.set -> void
+Xtreme.Components.Cards.SectionCard.SectionCard() -> void
+Xtreme.Components.Cards.SectionCard.Tabs.get -> System.Collections.Generic.IList<Xtreme.Components.Cards.SectionCardTab!>!
+Xtreme.Components.Cards.SectionCard.Title.get -> string?
+Xtreme.Components.Cards.SectionCard.Title.set -> void
+Xtreme.Components.Cards.SectionCardTab
+Xtreme.Components.Cards.SectionCardTab.Content.get -> object?
+Xtreme.Components.Cards.SectionCardTab.Content.set -> void
+Xtreme.Components.Cards.SectionCardTab.Header.get -> string?
+Xtreme.Components.Cards.SectionCardTab.Header.set -> void
+Xtreme.Components.Cards.SectionCardTab.SectionCardTab() -> void

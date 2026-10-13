@@ -1,0 +1,336 @@
+#nullable enable
+override Xtreme.Components.Primitives.ColumnFlowPanel.ArrangeOverride(Windows.Foundation.Size finalSize) -> Windows.Foundation.Size
+override Xtreme.Components.Primitives.ColumnFlowPanel.MeasureOverride(Windows.Foundation.Size availableSize) -> Windows.Foundation.Size
+override Xtreme.Components.Primitives.CompactCalendarDatePicker.OnApplyTemplate() -> void
+override Xtreme.Components.Primitives.WrapPanel.ArrangeOverride(Windows.Foundation.Size finalSize) -> Windows.Foundation.Size
+override Xtreme.Components.Primitives.WrapPanel.MeasureOverride(Windows.Foundation.Size availableSize) -> Windows.Foundation.Size
+static readonly Xtreme.Components.Primitives.ChipPickerControl.AllowExcludeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.CalculatedMaxChipWidthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.ChipMaxWidthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.CustomPickAsyncProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.IsBusyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.ItemsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.SaveAsyncProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.SelectedItemsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.ShowTitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.TitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ChipPickerControl.WorkingItemsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ColumnFlowPanel.ColumnSpacingProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ColumnFlowPanel.MaxColumnsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ColumnFlowPanel.MinColumnWidthProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ColumnFlowPanel.RowSpacingProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CopyButton.GlyphProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CopyButton.IconSizeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CopyButton.TextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CopyButton.ToolTipTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CriteriaPanel.HeadingProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CriteriaPanel.LabelProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.CriteriaPanel.TitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.DateTimePicker.DateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.DateTimePicker.HeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.DateTimePicker.MinuteStepProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.DateTimePicker.ShowTimeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.DateTimePicker.TimeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.AlwaysEnableCancelProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.CancelTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.CanSaveProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.CenterContentProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.DeleteConfirmMessageProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.DeleteConfirmTitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.DeleteTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.IsDeleteEnabledProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.IsDirtyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.SaveTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.ShowDeleteProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.EditorActionBar.ShowSaveCancelProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.ExpanderClipFix.IsEnabledProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MaskedTextBox.HeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MaskedTextBox.MaskProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MaskedTextBox.PlaceholderTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MaskedTextBox.TextProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MonthYearPicker.IncrementMonthsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MonthYearPicker.SelectedDateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MultiMonthDateNavigator.SingleDateModeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.BackDataProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.BackForegroundProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.BackGeometryKeyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.BackGlyphProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.FrontBackgroundProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.FrontForegroundProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.FrontGlyphProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.FrontSizeRatioProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.SizeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.CompactIndicatorFormatProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.CompactThresholdProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.CurrentPageProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.DefaultPageSizeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.IsCompactProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.IsOverflowProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.MaxNumberedPagesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.OverflowThresholdProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.PageSizeOptionsProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.PageSizeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowAllOptionProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowFirstButtonProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowJumpToPageProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowLastButtonProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowNumberedPagesProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowPageSizeSelectorProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShowSummaryProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.SummaryFormatProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.TotalItemCountProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.TypeableTimeBox.TimeProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.WrapPanel.ColumnSpacingProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.WrapPanel.RowSpacingProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static Xtreme.Components.Primitives.ClipboardHelper.CopyText(string? text) -> void
+static Xtreme.Components.Primitives.CriteriaPanel.GetHeading(Microsoft.UI.Xaml.DependencyObject! obj) -> string!
+static Xtreme.Components.Primitives.CriteriaPanel.GetLabel(Microsoft.UI.Xaml.DependencyObject! obj) -> string!
+static Xtreme.Components.Primitives.CriteriaPanel.SetHeading(Microsoft.UI.Xaml.DependencyObject! obj, string! value) -> void
+static Xtreme.Components.Primitives.CriteriaPanel.SetLabel(Microsoft.UI.Xaml.DependencyObject! obj, string! value) -> void
+static Xtreme.Components.Primitives.ExpanderClipFix.Apply(Microsoft.UI.Xaml.Controls.Expander! expander) -> void
+static Xtreme.Components.Primitives.ExpanderClipFix.GetIsEnabled(Microsoft.UI.Xaml.DependencyObject! obj) -> bool
+static Xtreme.Components.Primitives.ExpanderClipFix.SetIsEnabled(Microsoft.UI.Xaml.DependencyObject! obj, bool value) -> void
+static Xtreme.Components.Primitives.InputMask.ExtractDigits(string? raw, int max) -> string!
+static Xtreme.Components.Primitives.InputMask.Format(string? raw, string? mask) -> string!
+static Xtreme.Components.Primitives.InputMask.FormatTemplate(string? raw, string? mask, char placeholder) -> string!
+static Xtreme.Components.Primitives.InputMask.HasMask(string? mask) -> bool
+static Xtreme.Components.Primitives.InputMask.PlaceholderCount(string? mask) -> int
+static Xtreme.Components.Primitives.TypeableTimeBox.TryParseTime(string! input, out System.TimeOnly result) -> bool
+Xtreme.Components.Primitives.BoolToBrushConverter
+Xtreme.Components.Primitives.BoolToBrushConverter.BoolToBrushConverter() -> void
+Xtreme.Components.Primitives.BoolToBrushConverter.Convert(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.BoolToBrushConverter.ConvertBack(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.BoolToBrushConverter.FalseBrush.get -> Microsoft.UI.Xaml.Media.Brush?
+Xtreme.Components.Primitives.BoolToBrushConverter.FalseBrush.set -> void
+Xtreme.Components.Primitives.BoolToBrushConverter.TrueBrush.get -> Microsoft.UI.Xaml.Media.Brush?
+Xtreme.Components.Primitives.BoolToBrushConverter.TrueBrush.set -> void
+Xtreme.Components.Primitives.BoolToVisibilityConverter
+Xtreme.Components.Primitives.BoolToVisibilityConverter.BoolToVisibilityConverter() -> void
+Xtreme.Components.Primitives.BoolToVisibilityConverter.Convert(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.BoolToVisibilityConverter.ConvertBack(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.ChipGroupHeader
+Xtreme.Components.Primitives.ChipGroupHeader.ChipGroupHeader(string! Name) -> void
+Xtreme.Components.Primitives.ChipGroupHeader.Name.get -> string!
+Xtreme.Components.Primitives.ChipGroupHeader.Name.init -> void
+Xtreme.Components.Primitives.ChipItem
+Xtreme.Components.Primitives.ChipItem.BackgroundColor.get -> Windows.UI.Color?
+Xtreme.Components.Primitives.ChipItem.BackgroundColor.init -> void
+Xtreme.Components.Primitives.ChipItem.CanRemove.get -> bool
+Xtreme.Components.Primitives.ChipItem.CanRemove.init -> void
+Xtreme.Components.Primitives.ChipItem.ChipId.get -> int
+Xtreme.Components.Primitives.ChipItem.ChipId.init -> void
+Xtreme.Components.Primitives.ChipItem.ForegroundColor.get -> Windows.UI.Color?
+Xtreme.Components.Primitives.ChipItem.ForegroundColor.init -> void
+Xtreme.Components.Primitives.ChipItem.GroupName.get -> string?
+Xtreme.Components.Primitives.ChipItem.GroupName.init -> void
+Xtreme.Components.Primitives.ChipItem.IsExcluded.get -> bool
+Xtreme.Components.Primitives.ChipItem.IsExcluded.set -> void
+Xtreme.Components.Primitives.ChipItem.IsSelected.get -> bool
+Xtreme.Components.Primitives.ChipItem.IsSelected.set -> void
+Xtreme.Components.Primitives.ChipItem.Name.get -> string!
+Xtreme.Components.Primitives.ChipItem.Name.init -> void
+Xtreme.Components.Primitives.ChipItem.PillName.get -> string?
+Xtreme.Components.Primitives.ChipItem.PillName.init -> void
+Xtreme.Components.Primitives.ChipItem.PillText.get -> string!
+Xtreme.Components.Primitives.ChipPickerControl
+Xtreme.Components.Primitives.ChipPickerControl.AllowExclude.get -> bool
+Xtreme.Components.Primitives.ChipPickerControl.AllowExclude.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.CalculatedMaxChipWidth.get -> double
+Xtreme.Components.Primitives.ChipPickerControl.CalculatedMaxChipWidth.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.ChipMaxWidth.get -> double
+Xtreme.Components.Primitives.ChipPickerControl.ChipPickerControl() -> void
+Xtreme.Components.Primitives.ChipPickerControl.CustomPickAsync.get -> System.Func<System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>?>!>?
+Xtreme.Components.Primitives.ChipPickerControl.CustomPickAsync.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.IsBusy.get -> bool
+Xtreme.Components.Primitives.ChipPickerControl.IsBusy.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.Items.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>?
+Xtreme.Components.Primitives.ChipPickerControl.Items.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.SaveAsync.get -> System.Func<System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>!, System.Threading.Tasks.ValueTask>?
+Xtreme.Components.Primitives.ChipPickerControl.SaveAsync.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.SelectedItems.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>?
+Xtreme.Components.Primitives.ChipPickerControl.ShowTitle.get -> bool
+Xtreme.Components.Primitives.ChipPickerControl.ShowTitle.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.Title.get -> string!
+Xtreme.Components.Primitives.ChipPickerControl.Title.set -> void
+Xtreme.Components.Primitives.ChipPickerControl.WorkingItems.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>?
+Xtreme.Components.Primitives.ChipPickerControl.WorkingItems.set -> void
+Xtreme.Components.Primitives.ChipPickerDialog
+Xtreme.Components.Primitives.ChipPickerDialog.ChipPickerDialog() -> void
+Xtreme.Components.Primitives.ClipboardHelper
+Xtreme.Components.Primitives.ColorToBrushConverter
+Xtreme.Components.Primitives.ColorToBrushConverter.ColorToBrushConverter() -> void
+Xtreme.Components.Primitives.ColorToBrushConverter.Convert(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.ColorToBrushConverter.ConvertBack(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.ColumnFlowPanel
+Xtreme.Components.Primitives.ColumnFlowPanel.ColumnFlowPanel() -> void
+Xtreme.Components.Primitives.ColumnFlowPanel.ColumnSpacing.get -> double
+Xtreme.Components.Primitives.ColumnFlowPanel.ColumnSpacing.set -> void
+Xtreme.Components.Primitives.ColumnFlowPanel.MaxColumns.get -> int
+Xtreme.Components.Primitives.ColumnFlowPanel.MaxColumns.set -> void
+Xtreme.Components.Primitives.ColumnFlowPanel.MinColumnWidth.get -> double
+Xtreme.Components.Primitives.ColumnFlowPanel.MinColumnWidth.set -> void
+Xtreme.Components.Primitives.ColumnFlowPanel.RowSpacing.get -> double
+Xtreme.Components.Primitives.ColumnFlowPanel.RowSpacing.set -> void
+Xtreme.Components.Primitives.CompactCalendarDatePicker
+Xtreme.Components.Primitives.CompactCalendarDatePicker.CompactCalendarDatePicker() -> void
+Xtreme.Components.Primitives.CopyButton
+Xtreme.Components.Primitives.CopyButton.CopyButton() -> void
+Xtreme.Components.Primitives.CopyButton.Glyph.get -> string!
+Xtreme.Components.Primitives.CopyButton.Glyph.set -> void
+Xtreme.Components.Primitives.CopyButton.IconSize.get -> double
+Xtreme.Components.Primitives.CopyButton.IconSize.set -> void
+Xtreme.Components.Primitives.CopyButton.Text.get -> string?
+Xtreme.Components.Primitives.CopyButton.Text.set -> void
+Xtreme.Components.Primitives.CopyButton.ToolTipText.get -> string!
+Xtreme.Components.Primitives.CopyButton.ToolTipText.set -> void
+Xtreme.Components.Primitives.CriteriaPanel
+Xtreme.Components.Primitives.CriteriaPanel.CriteriaPanel() -> void
+Xtreme.Components.Primitives.CriteriaPanel.Fields.get -> System.Collections.ObjectModel.ObservableCollection<Microsoft.UI.Xaml.FrameworkElement!>!
+Xtreme.Components.Primitives.CriteriaPanel.Title.get -> string!
+Xtreme.Components.Primitives.CriteriaPanel.Title.set -> void
+Xtreme.Components.Primitives.DateTimePicker
+Xtreme.Components.Primitives.DateTimePicker.Date.get -> System.DateOnly?
+Xtreme.Components.Primitives.DateTimePicker.Date.set -> void
+Xtreme.Components.Primitives.DateTimePicker.DateTimePicker() -> void
+Xtreme.Components.Primitives.DateTimePicker.Header.get -> string!
+Xtreme.Components.Primitives.DateTimePicker.Header.set -> void
+Xtreme.Components.Primitives.DateTimePicker.MinuteStep.get -> int
+Xtreme.Components.Primitives.DateTimePicker.MinuteStep.set -> void
+Xtreme.Components.Primitives.DateTimePicker.ShowTime.get -> bool
+Xtreme.Components.Primitives.DateTimePicker.ShowTime.set -> void
+Xtreme.Components.Primitives.DateTimePicker.Time.get -> System.TimeOnly?
+Xtreme.Components.Primitives.DateTimePicker.Time.set -> void
+Xtreme.Components.Primitives.DateTimePicker.ValueChanged -> System.EventHandler?
+Xtreme.Components.Primitives.EditorActionBar
+Xtreme.Components.Primitives.EditorActionBar.AlwaysEnableCancel.get -> bool
+Xtreme.Components.Primitives.EditorActionBar.AlwaysEnableCancel.set -> void
+Xtreme.Components.Primitives.EditorActionBar.CancelRequested -> System.EventHandler?
+Xtreme.Components.Primitives.EditorActionBar.CancelText.get -> string!
+Xtreme.Components.Primitives.EditorActionBar.CancelText.set -> void
+Xtreme.Components.Primitives.EditorActionBar.CanSave.get -> bool
+Xtreme.Components.Primitives.EditorActionBar.CanSave.set -> void
+Xtreme.Components.Primitives.EditorActionBar.CenterContent.get -> object?
+Xtreme.Components.Primitives.EditorActionBar.CenterContent.set -> void
+Xtreme.Components.Primitives.EditorActionBar.DeleteConfirmMessage.get -> string?
+Xtreme.Components.Primitives.EditorActionBar.DeleteConfirmMessage.set -> void
+Xtreme.Components.Primitives.EditorActionBar.DeleteConfirmTitle.get -> string!
+Xtreme.Components.Primitives.EditorActionBar.DeleteConfirmTitle.set -> void
+Xtreme.Components.Primitives.EditorActionBar.DeleteRequested -> System.EventHandler?
+Xtreme.Components.Primitives.EditorActionBar.DeleteText.get -> string!
+Xtreme.Components.Primitives.EditorActionBar.DeleteText.set -> void
+Xtreme.Components.Primitives.EditorActionBar.EditorActionBar() -> void
+Xtreme.Components.Primitives.EditorActionBar.IsDeleteEnabled.get -> bool
+Xtreme.Components.Primitives.EditorActionBar.IsDeleteEnabled.set -> void
+Xtreme.Components.Primitives.EditorActionBar.IsDirty.get -> bool
+Xtreme.Components.Primitives.EditorActionBar.IsDirty.set -> void
+Xtreme.Components.Primitives.EditorActionBar.SaveRequested -> System.EventHandler?
+Xtreme.Components.Primitives.EditorActionBar.SaveText.get -> string!
+Xtreme.Components.Primitives.EditorActionBar.SaveText.set -> void
+Xtreme.Components.Primitives.EditorActionBar.ShowDelete.get -> bool
+Xtreme.Components.Primitives.EditorActionBar.ShowDelete.set -> void
+Xtreme.Components.Primitives.EditorActionBar.ShowSaveCancel.get -> bool
+Xtreme.Components.Primitives.EditorActionBar.ShowSaveCancel.set -> void
+Xtreme.Components.Primitives.ExpanderClipFix
+Xtreme.Components.Primitives.InputMask
+Xtreme.Components.Primitives.MaskedTextBox
+Xtreme.Components.Primitives.MaskedTextBox.Header.get -> object?
+Xtreme.Components.Primitives.MaskedTextBox.Header.set -> void
+Xtreme.Components.Primitives.MaskedTextBox.Mask.get -> string?
+Xtreme.Components.Primitives.MaskedTextBox.Mask.set -> void
+Xtreme.Components.Primitives.MaskedTextBox.MaskedTextBox() -> void
+Xtreme.Components.Primitives.MaskedTextBox.PlaceholderText.get -> string!
+Xtreme.Components.Primitives.MaskedTextBox.PlaceholderText.set -> void
+Xtreme.Components.Primitives.MaskedTextBox.Text.get -> string!
+Xtreme.Components.Primitives.MaskedTextBox.Text.set -> void
+Xtreme.Components.Primitives.MonthYearPicker
+Xtreme.Components.Primitives.MonthYearPicker.IncrementMonths.get -> int
+Xtreme.Components.Primitives.MonthYearPicker.IncrementMonths.set -> void
+Xtreme.Components.Primitives.MonthYearPicker.MonthYearPicker() -> void
+Xtreme.Components.Primitives.MonthYearPicker.SelectedDate.get -> System.DateTimeOffset
+Xtreme.Components.Primitives.MonthYearPicker.SelectedDate.set -> void
+Xtreme.Components.Primitives.MultiMonthDateNavigator
+Xtreme.Components.Primitives.MultiMonthDateNavigator.ClearSelection() -> void
+Xtreme.Components.Primitives.MultiMonthDateNavigator.GetSelection() -> System.Collections.Generic.IReadOnlyList<System.DateTime>!
+Xtreme.Components.Primitives.MultiMonthDateNavigator.MultiMonthDateNavigator() -> void
+Xtreme.Components.Primitives.MultiMonthDateNavigator.SelectionChanged -> System.EventHandler?
+Xtreme.Components.Primitives.MultiMonthDateNavigator.SetFirstDayOfWeek(System.DayOfWeek day) -> void
+Xtreme.Components.Primitives.MultiMonthDateNavigator.SetSelection(System.Collections.Generic.IReadOnlyList<System.DateTime>! dates) -> void
+Xtreme.Components.Primitives.MultiMonthDateNavigator.SingleDateMode.get -> bool
+Xtreme.Components.Primitives.MultiMonthDateNavigator.SingleDateMode.set -> void
+Xtreme.Components.Primitives.MultiplyConverter
+Xtreme.Components.Primitives.MultiplyConverter.Convert(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.MultiplyConverter.ConvertBack(object! value, System.Type! targetType, object! parameter, string! language) -> object!
+Xtreme.Components.Primitives.MultiplyConverter.MultiplyConverter() -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackData.get -> Microsoft.UI.Xaml.Media.Geometry?
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackForeground.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackForeground.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackGeometryKey.get -> string!
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackGeometryKey.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackGlyph.get -> string!
+Xtreme.Components.Primitives.OverlayGlyphIcon.BackGlyph.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontBackground.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontBackground.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontForeground.get -> Microsoft.UI.Xaml.Media.Brush!
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontForeground.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontGlyph.get -> string!
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontGlyph.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontSizeRatio.get -> double
+Xtreme.Components.Primitives.OverlayGlyphIcon.FrontSizeRatio.set -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.OverlayGlyphIcon() -> void
+Xtreme.Components.Primitives.OverlayGlyphIcon.Size.get -> double
+Xtreme.Components.Primitives.OverlayGlyphIcon.Size.set -> void
+Xtreme.Components.Primitives.PagingControl
+Xtreme.Components.Primitives.PagingControl.CompactIndicatorFormat.get -> string!
+Xtreme.Components.Primitives.PagingControl.CompactIndicatorFormat.set -> void
+Xtreme.Components.Primitives.PagingControl.CompactThreshold.get -> double
+Xtreme.Components.Primitives.PagingControl.CompactThreshold.set -> void
+Xtreme.Components.Primitives.PagingControl.CurrentPage.get -> uint
+Xtreme.Components.Primitives.PagingControl.CurrentPage.set -> void
+Xtreme.Components.Primitives.PagingControl.DefaultPageSize.get -> uint
+Xtreme.Components.Primitives.PagingControl.DefaultPageSize.set -> void
+Xtreme.Components.Primitives.PagingControl.IsCompact.get -> bool
+Xtreme.Components.Primitives.PagingControl.IsCompact.set -> void
+Xtreme.Components.Primitives.PagingControl.IsOverflow.get -> bool
+Xtreme.Components.Primitives.PagingControl.IsOverflow.set -> void
+Xtreme.Components.Primitives.PagingControl.MaxNumberedPages.get -> int
+Xtreme.Components.Primitives.PagingControl.MaxNumberedPages.set -> void
+Xtreme.Components.Primitives.PagingControl.OverflowThreshold.get -> double
+Xtreme.Components.Primitives.PagingControl.OverflowThreshold.set -> void
+Xtreme.Components.Primitives.PagingControl.PageSize.get -> uint
+Xtreme.Components.Primitives.PagingControl.PageSize.set -> void
+Xtreme.Components.Primitives.PagingControl.PageSizeOptions.get -> System.Collections.Generic.IList<uint>?
+Xtreme.Components.Primitives.PagingControl.PageSizeOptions.set -> void
+Xtreme.Components.Primitives.PagingControl.PagingControl() -> void
+Xtreme.Components.Primitives.PagingControl.ShowAllOption.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowAllOption.set -> void
+Xtreme.Components.Primitives.PagingControl.ShowFirstButton.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowFirstButton.set -> void
+Xtreme.Components.Primitives.PagingControl.ShowJumpToPage.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowJumpToPage.set -> void
+Xtreme.Components.Primitives.PagingControl.ShowLastButton.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowLastButton.set -> void
+Xtreme.Components.Primitives.PagingControl.ShowNumberedPages.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowNumberedPages.set -> void
+Xtreme.Components.Primitives.PagingControl.ShowPageSizeSelector.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowPageSizeSelector.set -> void
+Xtreme.Components.Primitives.PagingControl.ShowSummary.get -> bool
+Xtreme.Components.Primitives.PagingControl.ShowSummary.set -> void
+Xtreme.Components.Primitives.PagingControl.SummaryFormat.get -> string!
+Xtreme.Components.Primitives.PagingControl.SummaryFormat.set -> void
+Xtreme.Components.Primitives.PagingControl.TotalItemCount.get -> uint
+Xtreme.Components.Primitives.PagingControl.TotalItemCount.set -> void
+Xtreme.Components.Primitives.ToastControl
+Xtreme.Components.Primitives.ToastControl.Show(string! message) -> void
+Xtreme.Components.Primitives.ToastControl.ToastControl() -> void
+Xtreme.Components.Primitives.TypeableTimeBox
+Xtreme.Components.Primitives.TypeableTimeBox.Time.get -> System.TimeOnly?
+Xtreme.Components.Primitives.TypeableTimeBox.Time.set -> void
+Xtreme.Components.Primitives.TypeableTimeBox.TimeCommitted -> System.EventHandler<System.TimeOnly?>?
+Xtreme.Components.Primitives.TypeableTimeBox.TypeableTimeBox() -> void
+Xtreme.Components.Primitives.WrapPanel
+Xtreme.Components.Primitives.WrapPanel.ColumnSpacing.get -> double
+Xtreme.Components.Primitives.WrapPanel.ColumnSpacing.set -> void
+Xtreme.Components.Primitives.WrapPanel.RowSpacing.get -> double
+Xtreme.Components.Primitives.WrapPanel.RowSpacing.set -> void
+Xtreme.Components.Primitives.WrapPanel.WrapPanel() -> void

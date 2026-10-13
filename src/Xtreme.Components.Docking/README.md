@@ -13,7 +13,9 @@ primitives only. Part of [Xtreme.Components](https://github.com/XtremeCRM/Xtreme
   Below a configurable width panes auto-unpin (`DockNarrowBehavior.AutoHide`).
 - **Float to an OS window.** On desktop a pane tears out into a real window and drags back to
   re-dock; on WASM and mobile it stays in-surface. All of it goes through
-  `IDockPlatformServices`, so the library owns no Win32.
+  `IDockPlatformServices`. `Win32DockPlatformServices` is the shipped Windows implementation
+  (window pool, owned windows, drag tracking, drag translucency), runtime-guarded so the same
+  assembly runs everywhere; without it the host is docked-only.
 - **Persistence.** The whole layout (edges, layers, tab groups, ratios, pinned/open state) is a
   versioned document saved through `IDockPersistence`.
 - **Theme-aware.** Follows `ActualTheme` live; high-contrast palettes override through the
@@ -45,5 +47,13 @@ Optional seams, each with a no-op default:
 | OS windows | `IDockPlatformServices` | Create and track floating windows, window pool, drag tracking |
 
 Set them on the host: `DockHost.Persistence` and `DockHost.PlatformServices`.
+
+```csharp
+// App.OnLaunched, once the main window exists:
+var platform = new Win32DockPlatformServices { HostWindow = MainWindow };
+host.PlatformServices = platform;
+platform.CaptureShellWindowHandle(MainWindow.DispatcherQueue);   // owned float windows
+platform.PrimePoolWhenIdle(MainWindow.DispatcherQueue);          // pre-built windows, off the click
+```
 
 Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.

@@ -13,11 +13,29 @@ public sealed partial class DockingPage : Grid
 {
     public DockingPage()
     {
+        // The shipped Windows implementation: float affordances appear on desktop Windows and
+        // nowhere else (it reports no float support on other runtimes).
+        var platform = new Xtreme.Components.Docking.Platform.Win32DockPlatformServices
+        {
+            Log = line => System.Diagnostics.Debug.WriteLine(line),
+        };
+
         var host = new DockHost
         {
             PersistenceKey = "Gallery.Docking",
             Document = Panel("Document", "#FF2D5B8A"),
             EdgePriority = [DockEdge.Right, DockEdge.Top, DockEdge.Bottom, DockEdge.Left],
+            PlatformServices = platform,
+        };
+
+        Loaded += (_, _) =>
+        {
+            if (App.MainWindow is { } window)
+            {
+                platform.HostWindow = window;
+                platform.CaptureShellWindowHandle(DispatcherQueue);
+                platform.PrimePoolWhenIdle(DispatcherQueue);
+            }
         };
 
         host.Items.Add(new DockItem { DockId = "explorer", Title = "Explorer", Edge = DockEdge.Left, AllowedDockEdges = DockEdge.Horizontal, DockLength = 220, Content = Panel("Explorer", "#FF3E7C4F") });

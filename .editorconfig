@@ -19,3 +19,8 @@ csharp_style_namespace_declarations = file_scoped:suggestion
 csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
 dotnet_sort_system_directives_first = true
+
+# Public API baseline (Microsoft.CodeAnalysis.PublicApiAnalyzers): RS0016 is silenced in
+# src/Directory.Build.props (see the note there); RS0017, a listed symbol removed, is a warning.
+[*.cs]
+dotnet_diagnostic.RS0017.severity = warning
