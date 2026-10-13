@@ -37,7 +37,13 @@
         <Setter Property="Margin" Value="0,8,0,4" />
     </Style>
 
-    <!-- Selectable list rows: row height and padding only; selection colours stay with the platform default -->
+    <!--
+        Selectable list rows: row height and padding ONLY. The selected / hover / pressed colors are
+        the platform ListViewItem defaults (ListViewItemBackgroundSelected and friends), which are
+        read inside the item template and cannot be changed from a Style setter without
+        re-templating. To change them, override those ListViewItem* theme resources in App.xaml,
+        or redefine XcListViewItemStyle there (BasedOn your own item style).
+    -->
     <Style x:Key="XcListViewItemStyle" TargetType="ListViewItem">
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="8,4" />

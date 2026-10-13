@@ -9,9 +9,10 @@ Helpers for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) on
 
 ## RowFlagDecorator
 
-Frames a flagged row in a 2px coloured border and pins a small caps tag ("NEW", "CHANGED",
+Frames a flagged row in a 2px colored frame and pins a small caps tag ("NEW", "CHANGED",
 "AGED OUT") to its bottom-left corner. Recycle-safe and theme-aware: every realized container is
-painted or cleared on each pass, and a theme switch repaints the row it holds at that moment.
+painted or cleared on each pass, and a theme switch repaints the row it holds at that moment. The
+frame is an overlay, so the row's own `BorderBrush` / `BorderThickness` and size are left alone.
 
 ```csharp
 using Xtreme.Components.TableView;
@@ -28,7 +29,16 @@ RowFlagDecorator.Refresh(EventTypesTable);
 ```
 
 `RowFlag.BrushKey` names a brush resource. By default it resolves for the row's own
-`ActualTheme` through `ComponentHost.TryGetBrush(key, theme)` (the app's `ThemeDictionaries`
-first, then application scope). Pass a `BrushResolver` to `Attach` to resolve keys your own way.
+`ActualTheme` through `ComponentHost.TryGetBrush(key, theme)` (the app's and its merged
+dictionaries' `ThemeDictionaries`, then application scope). Pass a `BrushResolver` to `Attach`
+to resolve keys your own way, or a `RowFlagOptions` to also set the frame thickness and the tag's
+text size, color, padding and corners.
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.
+```csharp
+RowFlagDecorator.Attach(EventTypesTable, FlagOf, new RowFlagOptions { FrameThickness = 3, TagFontSize = 10 });
+RowFlagDecorator.Detach(EventTypesTable);   // stop decorating; realized rows are cleared
+```
+
+Attaching again to the same table replaces the earlier registration.
+
+Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.

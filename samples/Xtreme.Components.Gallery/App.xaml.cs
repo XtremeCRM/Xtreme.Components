@@ -47,6 +47,8 @@ public partial class App : Application
             rootFrame.Navigate(typeof(MainPage), args.Arguments);
         }
 
+        InitializeComponentHost(rootFrame);
+
         MainWindow.SetWindowIcon();
         // Ensure the current window is active
         MainWindow.Activate();
@@ -62,6 +64,25 @@ public partial class App : Application
                 Environment.Exit(failures == 0 ? 0 : 1);
             };
         }
+    }
+
+    /// <summary>
+    /// The library's host hooks, set once at startup as a real app would. Both are delegates, so
+    /// they keep answering correctly after later theme switches or page navigations.
+    /// </summary>
+    private static void InitializeComponentHost(Frame rootFrame)
+    {
+        // The gallery drives its theme from the root page's RequestedTheme (the dark-mode switch),
+        // not from Application.RequestedTheme, so tell the library where to read the visible theme.
+        Xtreme.Components.Core.ComponentHost.CurrentTheme = () => (rootFrame.Content as FrameworkElement)?.ActualTheme;
+
+        // Vector data for icon keys the controls expose; the gallery knows one ("star", used by
+        // the Primitives page's OverlayGlyphIcon). A fresh Geometry per call: a geometry instance
+        // must not be shared between shapes.
+        Xtreme.Components.Core.ComponentHost.ResolveGeometry = key => key == "star"
+            ? (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof(Geometry),
+                "M12,2 L15,9 L22,9.5 L16.5,14.5 L18,22 L12,18 L6,22 L7.5,14.5 L2,9.5 L9,9 Z")
+            : null;
     }
 
     /// <summary>
