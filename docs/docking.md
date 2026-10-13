@@ -17,7 +17,7 @@ Namespaces:
 | Namespace | Contents |
 |---|---|
 | `Xtreme.Components.Docking` | `DockEdge`, `DockEdgeExtensions`, `IDockPersistence`, `IDockPlatformServices`, `DockedOnlyPlatformServices` |
-| `Xtreme.Components.Docking.Controls` | `DockHost`, `DockItem`, `DockBand`, `DockNarrowBehavior`, `DockSplitter`, `FlyoutDismissEventArgs` |
+| `Xtreme.Components.Docking.Controls` | `DockHost`, `DockItem`, `DockBand`, `DockNarrowBehavior`, `DockSplitter`, `FlyoutDismissEventArgs`, `DockItemCloseRequestedEventArgs` |
 | `Xtreme.Components.Docking.Platform` | `Win32DockPlatformServices` |
 
 ## Contents
@@ -30,7 +30,7 @@ Namespaces:
 - [Pinning, auto-hide rails and flyouts](#pinning-auto-hide-rails-and-flyouts)
 - [Drag to re-dock](#drag-to-re-dock)
 - [Floating windows](#floating-windows)
-- [Narrow and responsive behaviour](#narrow-and-responsive-behaviour)
+- [Narrow and responsive behavior](#narrow-and-responsive-behavior)
 - [Persistence](#persistence)
 - [Host and item events](#host-and-item-events)
 - [Rebuilds reparent content](#rebuilds-reparent-content)
@@ -113,7 +113,7 @@ host.Items.Add(new DockItem { DockId = "output", Title = "Output", Edge = DockEd
     DockLength = 110, NarrowBehavior = DockNarrowBehavior.Hide, Content = outputView });
 ```
 
-Two optional seams change behaviour, each with a safe default:
+Two optional seams change behavior, each with a safe default:
 
 | Property | Type | Default | Supply it to get |
 |---|---|---|---|
@@ -163,7 +163,7 @@ properties (`Is*`, `Edge`, `DockLength`) say where the pane is now.
 | `ShowPinToggle` | `bool` | `true` | Whether the header offers the pushpin. |
 | `CanClose` | `bool` | `true` | Whether the header offers a close button. |
 | `ShowHeader` | `bool` | `true` | `false` gives a chromeless region: no title bar, so no header drag, pin or close. |
-| `NarrowBehavior` | `DockNarrowBehavior` | `AutoHide` | What the pane does below the narrow threshold. See [Narrow and responsive behaviour](#narrow-and-responsive-behaviour). |
+| `NarrowBehavior` | `DockNarrowBehavior` | `AutoHide` | What the pane does below the narrow threshold. See [Narrow and responsive behavior](#narrow-and-responsive-behavior). |
 | `AllowFloat` | `bool` | `false` | Whether the pane may tear out into an OS window. Ignored unless the platform supports floating. |
 | `IsFloating` | `bool` (read-only) | `false` | Whether the pane currently lives in its own window. Only the host changes it. |
 
@@ -201,8 +201,8 @@ host.Items.Add(new DockItem { DockId = "map", Title = "Map", Edge = DockEdge.Lef
 
 Clicking a tab selects it. Dragging a tab out of the strip ungroups it (see
 [Drag to re-dock](#drag-to-re-dock)). Grouping is by name across the whole edge, so item order in
-`Items` does not matter for membership. The selected tab is not persisted; after a restart the first
-visible tab in each group is selected.
+`Items` does not matter for membership. The selected tab is persisted; a group with no saved
+selection shows its first visible tab.
 
 ### Layers and side-by-side slots
 
@@ -218,8 +218,8 @@ host.Items.Add(new DockItem { DockId = "map", Title = "Map", Edge = DockEdge.Rig
     LayerGroup = "right-tools", Content = mapView });
 ```
 
-Ratios between layers are persisted. Column ratios between side-by-side slots inside a layer are
-kept for the session only.
+Ratios between layers and column ratios between side-by-side slots inside a layer are both
+persisted.
 
 ### Bands
 
@@ -245,7 +245,9 @@ full width.
 host.EdgePriority = [DockEdge.Right, DockEdge.Top, DockEdge.Bottom, DockEdge.Left];
 ```
 
-`EdgePriority` is a plain CLR property, so set it from code. Setting it rebuilds the layout.
+`EdgePriority` is a dependency property (`EdgePriorityProperty`), so it can be bound from XAML. There
+is no string syntax for a literal list: set it from code, or bind it to an `IReadOnlyList<DockEdge>`.
+Setting it rebuilds the layout; setting it to null restores the default.
 
 ## Pinning, auto-hide rails and flyouts
 
@@ -331,12 +333,12 @@ platform.PrimePoolWhenIdle(mainWindow.DispatcherQueue);        // pre-build wind
 | `HostWindow` | The app's main window. Used to map between in-host and screen coordinates (placing a torn-out window at the cursor, lighting guides during drag-back). | Floats still work but open at the OS default position, and drag-back-to-redock cannot map the cursor onto the host. |
 | `CaptureShellWindowHandle(dispatcher)` | Polls until the main window's native handle exists, then caches it. Call while the main window is the only window. | Float windows are not owned by the main window, so clicking the main window can bury them. |
 | `PrimePoolWhenIdle(dispatcher)` | Starts filling a pool of three spare windows once the user is idle. | The host also calls `WarmFloatSupport` whenever a floatable item is hosted, so the pool still fills, just later. |
-| `Log` | Receives `[DockPerf]` / `[DockWin]` diagnostic lines. | Silent. |
+| `Log` | Receives `[DockPerf]` / `[DockWin]` diagnostic lines, including the host's own float and re-dock timings. | Silent. The library never writes to the console. |
 
 Set `PlatformServices` before the host loads. The gallery sets it in the constructor and assigns
 `HostWindow` in `Loaded`.
 
-### Behaviour
+### Behavior
 
 - A pane floats by drag (past the host bounds, or released in open space) or from the header menu.
   The same `DockItem` instance moves into the new window, so its view state is kept. `IsFloating`
@@ -346,9 +348,16 @@ Set `PlatformServices` before the host loads. The gallery sets it in the constru
 - Dragging a floating window by its title bar back over the host lights the same edge markers and
   compasses; releasing over one re-docks the pane there. On Windows the window turns 30% opaque
   during the drag.
-- Closing the floating window (its title-bar close) returns the pane to the host closed
-  (`IsOpen = false`); reopen it from the restore pill or by setting `IsOpen = true`.
-- Floating state is not persisted. After a restart a previously floating pane is docked.
+- Closing the floating window (its title-bar close) first raises `DockItem.CloseRequested` with
+  `FromFloatingWindow = true`; setting `Cancel` keeps the window open. Otherwise the pane returns
+  to the host closed (`IsOpen = false`) and the layout is saved; reopen it from the restore pill or
+  by setting `IsOpen = true`.
+- Setting `IsOpen = false` on a floating pane from code closes its window the same way.
+- Floating state and the window's position and size are persisted (best effort). After a restart a
+  previously floating pane floats again at its saved bounds; the position is skipped if it no
+  longer lands on a connected display, and only the size is restored. A window closed by app
+  shutdown rather than by its close button does not save, so the last saved document still has the
+  pane floating.
 - Float windows are owned by the main window (with `CaptureShellWindowHandle`), so a floating pane
   always stays above the main window.
 
@@ -359,9 +368,9 @@ runtime.
 
 | Runtime | `SupportsFloatingWindows` | Behaviour |
 |---|---|---|
-| Windows desktop | true | Full support: pool, owned windows, drag-carried tear-out, drag-back-to-redock, drag translucency. |
-| macOS / Linux desktop | true | Floating windows open, but there is no drag tracking, owner relationship or drag-carried tear-out. A floating pane returns only by closing its window. |
-| WebAssembly, Android, iOS | false | Docked only. `AllowFloat` is ignored, no Float menu item appears, and a drag released in open space is cancelled. Docking, tabs, layers, pinning, flyouts, responsive behaviour and persistence all work. |
+| Windows desktop | true | Full support: pool, owned windows, drag-carried tear-out, drag-back-to-redock, drag translucency, saved window bounds. |
+| macOS / Linux desktop | false | In-surface only, like WebAssembly. Windows could open there, but without drag tracking a floating pane could only come back by closing its window, so floating is not offered. |
+| WebAssembly, Android, iOS | false | Docked only. `AllowFloat` is ignored, no Float menu item appears, and a drag released in open space is cancelled. Docking, tabs, layers, pinning, flyouts, responsive behavior and persistence all work. |
 
 With no `PlatformServices` set, `DockedOnlyPlatformServices.Instance` is used: docked only on every
 platform.
@@ -390,7 +399,7 @@ public sealed class MyPlatform : IDockPlatformServices
 }
 ```
 
-## Narrow and responsive behaviour
+## Narrow and responsive behavior
 
 The host has two width zones with hysteresis:
 
@@ -409,8 +418,8 @@ In the narrow zone each pinned, open pane applies its `NarrowBehavior`:
 | `DockNarrowBehavior` | Narrow-zone result |
 |---|---|
 | `AutoHide` (default) | Collapses to its rail tab, as if unpinned, without changing `IsPinned`. Widening restores it docked, and nothing about the change is persisted. |
-| `Overlay` | Shown over the document, aligned to its edge, with a scrim. Tapping the scrim closes every overlaid pane (`IsOpen = false`). |
-| `Hide` | Not shown. The app must provide a way back; the restore pill does not list it, because it is still open. |
+| `Overlay` | Shown over the document, aligned to its edge, with a scrim. Tapping the scrim raises `FlyoutDismissRequested` once per overlaid pane (cancelable), then closes each pane that was not cancelled (`IsOpen = false`, saved). |
+| `Hide` | Not shown. The restore pill lists it (as "Show *Title*") while the host is narrow; choosing it, or calling `OpenFlyout`, shows the pane over the document as a flyout. Widening docks it again. |
 | `Keep` | Stays docked and keeps taking space. |
 
 Unpinned panes are on their rails in both zones; `NarrowBehavior` does not apply to them.
@@ -467,20 +476,30 @@ Use a distinct `PersistenceKey` per host; two hosts sharing a key overwrite each
 
 ### When it loads and saves
 
-- **Load** happens once, in the host's `Loaded` handler, after the first build. Set `Persistence`
-  and `PersistenceKey` before the host enters the tree.
-- **Save** happens after user gestures: a drop that moves a pane, a splitter drag, pin or unpin,
-  reopening from the restore pill, and re-docking a floating window. Programmatic property changes
-  and the close button do not save on their own; their state is written with the next save.
+- **Load** happens once per store, in the host's `Loaded` handler, after the first build. Both
+  `Persistence` and `PersistenceKey` are dependency properties: setting either after the host has
+  loaded loads that store's layout at that point. A host that is unloaded and loaded again (a tab
+  switch) keeps its in-session layout instead of reloading.
+- Nothing is saved until the store's document has been read, so the authored layout can never
+  overwrite a stored one first.
+- **Save** happens immediately after a gesture that ends a deliberate action: a drop that moves a
+  pane, a splitter drag (between the region and the document, between layers, or between
+  side-by-side slots), pin or unpin, and re-docking a floating window.
+- **Debounced save** (300 ms after the last change) follows every `IsOpen` change, whoever made
+  it (the close button, a scrim dismiss, the restore menu, or code), a tab selection, floating a
+  pane, and moving or resizing a floating window. A pending debounced save is flushed when the host
+  unloads.
+- Other programmatic property changes (`Edge`, `DockLength`, ...) do not save on their own; their
+  state is written with the next save.
 
 ### What is stored
 
 Per item with a `DockId`, in `Items` order: edge, `DockLength`, `IsOpen`, `TabGroup`, `IsPinned`,
-the layer ratio, `Band`, and `LayerGroup`. Item order is restored too (it is the slot and layer
-order). The current format is version 5; documents written by versions 1 to 4 are still read.
-
-Not stored: floating state and window bounds, the selected tab in a tab group, and column ratios
-inside a side-by-side layer.
+the layer ratio, `Band`, `LayerGroup`, whether it is floating and its window bounds (physical
+pixels), whether it is the selected tab of its group, and its column ratio inside a side-by-side
+layer. Item order is restored too (it is the slot and layer order). The current format is version
+6; documents written by versions 1 to 5 are still read, and the fields they lack keep the authored
+values.
 
 On restore:
 
@@ -488,6 +507,8 @@ On restore:
   relative order after the known ones.
 - An edge outside the item's `AllowedDockEdges` is ignored.
 - Lengths are clamped to `MinLength`..`MaxLength`.
+- A floating record re-floats the pane only if it is open, still `AllowFloat`, and the platform
+  supports floating windows; otherwise the pane is docked.
 
 ### RestoreItemOpenState
 
@@ -512,8 +533,8 @@ var host = new DockHost
 |---|---|---|
 | `DockHost.NarrowChanged` | The host crosses the narrow/wide threshold. | Read `IsNarrow`. |
 | `DockHost.FlyoutOpened` (`EventHandler<DockItem>`) | An auto-hide flyout opens, from a rail tap or `OpenFlyout`. | List-style hosts use it to reset selection so re-picking the same row still registers. |
-| `DockHost.FlyoutDismissRequested` (`EventHandler<FlyoutDismissEventArgs>`) | The user taps the scrim behind an auto-hide flyout, before it closes. | Cancelable. Not raised for narrow-zone `Overlay` panes. |
-| `DockItem.CloseRequested` | The user clicks the item's close button (header, tab strip, or header menu). | Informational: the host sets `IsOpen = false` right after raising it. Not raised when a floating window is closed. |
+| `DockHost.FlyoutDismissRequested` (`EventHandler<FlyoutDismissEventArgs>`) | The user taps the scrim behind an auto-hide flyout or behind narrow-zone `Overlay` panes, before they close. | Cancelable. Raised once per overlaid pane. |
+| `DockItem.CloseRequested` (`EventHandler<DockItemCloseRequestedEventArgs>`) | The user asks to close the item: the close button on its header or tab strip, the header menu's Close, or its floating window's own close button. | Cancelable: set `Cancel = true` to keep it open. Otherwise the host sets `IsOpen = false` and saves. `FromFloatingWindow` says which kind of close it was. Not raised when code sets `IsOpen`. |
 | `DockItem.Reparented` | The item has moved into a different window: floated out, or docked back (including via the float window's close). | Read `IsFloating` and `IsOpen` for where it landed. Not raised by ordinary rebuilds. |
 | `DockSplitter.DragStarted` / `Dragged` / `DragCompleted` | See [DockSplitter in your own layouts](#docksplitter-in-your-own-layouts). | |
 
@@ -531,6 +552,21 @@ host.FlyoutDismissRequested += async (_, e) =>
     e.Cancel = true; // must be set synchronously, before the first await
     if (await ConfirmDiscardAsync())
         editorItem.IsOpen = false; // close the pane instead of sliding it back to the rail
+};
+```
+
+### Gating a pane close
+
+`DockItemCloseRequestedEventArgs` derives from `CancelEventArgs`, the same pattern:
+
+```csharp
+editorItem.CloseRequested += async (_, e) =>
+{
+    if (!editor.HasUnsavedChanges) return;
+
+    e.Cancel = true; // synchronously, before the first await
+    if (await ConfirmDiscardAsync())
+        editorItem.IsOpen = false; // also closes its floating window, if it has one
 };
 ```
 
@@ -563,10 +599,11 @@ Consequences for content inside panes and the document:
 
 ## Closing panes and the restore pill
 
-The close button sets `IsOpen = false`. Because `IsOpen` is persisted, a closed pane would otherwise
-stay closed across restarts. While any item is closed, the host shows a small menu button at the
-top-right corner of the document; it lists the closed panes by `Title` (or `DockId`), and choosing
-one reopens it where it was and saves the layout.
+The close button sets `IsOpen = false` (unless a `CloseRequested` handler cancels), and the close
+is saved. Because `IsOpen` is persisted, a closed pane would otherwise stay closed across restarts.
+While any item is closed, the host shows a small menu button at the top-right corner of the
+document; it lists the closed panes by `Title` (or `DockId`), and choosing one reopens it where it
+was and saves the layout.
 
 Set `ShowClosedPaneRestore = false` when the app opens and closes panes from code and provides its own
 way back (a toolbar toggle, a selection-driven editor):
@@ -575,7 +612,9 @@ way back (a toolbar toggle, a selection-driven editor):
 <dock:DockHost ShowClosedPaneRestore="False" />
 ```
 
-Panes hidden by `DockNarrowBehavior.Hide` are still open, so they are not listed.
+While the host is narrow, the same menu also lists panes hidden by `DockNarrowBehavior.Hide`, below
+a separator, as "Show *Title*": they are still open, so choosing one shows the pane over the
+document as a flyout rather than reopening it.
 
 ## DockSplitter in your own layouts
 
@@ -593,10 +632,11 @@ splitter.DragCompleted += (_, _) => SaveWidth(leftColumn.ActualWidth);
 ```
 
 - `Orientation.Vertical` draws a vertical seam that resizes horizontally; `Horizontal` the reverse.
-- `theme` is the owner's `ActualTheme`, passed in because the splitter is built before it enters the
-  tree. Recreate the splitter if the theme changes.
+- `theme` is the owner's `ActualTheme`, used for the first frame because the splitter is built
+  before it enters the tree. After that the splitter follows its own `ActualThemeChanged`, so a live
+  light/dark switch repaints it without recreating it.
 - `attachEdge` is the side of the pane that owns the seam; the handle sits flush against that pane.
-  `DockEdge.None` (the default) centres the handle on the seam.
+  `DockEdge.None` (the default) centers the handle on the seam.
 - `Dragged` reports cumulative movement since `DragStarted`, in DIPs. Apply `start + cumulative`;
   the sign is yours to interpret (a far-side pane inverts it).
 
@@ -628,9 +668,9 @@ Content property: `Items`.
 | `Document` | DP | `object?` | `null` |
 | `Items` | property (get) | `IList<DockItem>` | empty |
 | `PersistenceKey` | DP | `string?` | `null` |
-| `Persistence` | property | `IDockPersistence?` | `null` |
+| `Persistence` | DP | `IDockPersistence?` | `null` |
 | `PlatformServices` | property | `IDockPlatformServices` | `DockedOnlyPlatformServices.Instance` |
-| `EdgePriority` | property | `IReadOnlyList<DockEdge>` | `[Top, Bottom, Left, Right]` |
+| `EdgePriority` | DP | `IReadOnlyList<DockEdge>` | `[Top, Bottom, Left, Right]` |
 | `IsNarrow` | property (get) | `bool` | |
 | `ShowClosedPaneRestore` | DP | `bool` | `true` |
 | `RestoreItemOpenState` | property | `bool` | `true` |
@@ -662,7 +702,7 @@ Content property: `Items`.
 | `NarrowBehavior` | DP | `DockNarrowBehavior` | `AutoHide` |
 | `AllowFloat` | DP | `bool` | `false` |
 | `IsFloating` | DP (get; set is internal) | `bool` | `false` |
-| `CloseRequested` | event | `EventHandler?` | |
+| `CloseRequested` | event | `EventHandler<DockItemCloseRequestedEventArgs>?` | |
 | `Reparented` | event | `EventHandler?` | |
 
 ### DockSplitter (`Xtreme.Components.Docking.Controls`, sealed, derives from `Grid`)
@@ -680,6 +720,15 @@ Content property: `Items`.
 |---|---|---|
 | `FlyoutDismissEventArgs(DockItem item)` | constructor | |
 | `Item` | property (get) | `DockItem` |
+| `Cancel` | property (inherited) | `bool` |
+
+### DockItemCloseRequestedEventArgs (`Xtreme.Components.Docking.Controls`, sealed, derives from `CancelEventArgs`)
+
+| Member | Kind | Type |
+|---|---|---|
+| `DockItemCloseRequestedEventArgs(DockItem item, bool fromFloatingWindow)` | constructor | |
+| `Item` | property (get) | `DockItem` |
+| `FromFloatingWindow` | property (get) | `bool` |
 | `Cancel` | property (inherited) | `bool` |
 
 ### Enums
@@ -732,7 +781,7 @@ Content property: `Items`.
 | `Win32DockPlatformServices()` | constructor | |
 | `HostWindow` | property | `Window?` (settable) |
 | `Log` | property | `Action<string>?` |
-| `SupportsFloatingWindows` | property (get) | `bool` (false on WASM, Android, iOS) |
+| `SupportsFloatingWindows` | property (get) | `bool` (true on Windows only) |
 | `CaptureShellWindowHandle` | method | `void CaptureShellWindowHandle(DispatcherQueue dispatcher)` |
 | `PrimePoolWhenIdle` | method | `void PrimePoolWhenIdle(DispatcherQueue dispatcher)` |
 | `WarmFloatSupport` | method | `void WarmFloatSupport(DispatcherQueue dispatcher)` |
