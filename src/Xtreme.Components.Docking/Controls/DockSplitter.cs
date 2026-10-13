@@ -10,16 +10,16 @@ namespace Xtreme.Components.Docking.Controls;
 /// <summary>
 /// The draggable divider between a dock region and its neighbour — rendered as a SEAM, not a band:
 /// the two sides genuinely touch along a thin dark border line, and the only chrome is a centred
-/// grab handle in MasterDetailControl's tab silhouette (at ~80% of its width, grip bar only — no
-/// pin, no chevron; those affordances live in the pane headers now).
+/// grab handle (a small tab with a grip bar only — no pin, no chevron; those affordances live in the
+/// pane headers).
 /// </summary>
 /// <remarks>
 /// <para>Follows the same pattern as the scheduler's <c>ResizeGrip</c>, for the same two reasons:
 /// <c>Thumb</c> is sealed and cannot carry a cursor, and manipulation events stay reliable on Uno
 /// WASM where raw <c>PointerMoved</c> is not dependable during a held drag.</para>
 /// <para>The splitter's grid track collapses to NOTHING: the root is <see cref="HitSpan"/> thick
-/// with negative margins cancelling it out, so the neighbours meet flush (Russ: "the blue and brown
-/// should touch, except have a black thin border") while the hit area still straddles the seam.
+/// with negative margins cancelling it out, so the neighbors meet flush along a thin dark line
+/// while the hit area still straddles the seam.
 /// That also means it overhangs both neighbours and must draw above them (ZIndex).</para>
 /// <para><see cref="Dragged"/> reports the CUMULATIVE translation from the start of the drag, not a
 /// per-frame delta, so the host applies <c>startExtent + cumulative</c>. Summing per-frame deltas
@@ -31,18 +31,18 @@ namespace Xtreme.Components.Docking.Controls;
 public sealed partial class DockSplitter : Grid
 {
     private const double HitSpan = 16d;         // grab thickness straddling the seam (8 each side)
-    private const double HandleThickness = 14d; // ~80% of MasterDetail's tab width (Russ)
+    private const double HandleThickness = 14d;
     private const double HandleLength = 72d;
     private const double GripLength = 28d;
 
     /// <summary>
-    /// How far content must keep clear of an OWNED seam's handle (XU-631), on the neighbour's side: the
-    /// handle protrudes its full thickness over the neighbour, plus a little breathing room. The host
-    /// insets the neighbour by this, so no consumer ever pads for the handle itself.
+    /// How far content must keep clear of an OWNED seam's handle, on the neighbor's side: the
+    /// handle protrudes its full thickness over the neighbor, plus a little breathing room. The host
+    /// insets the neighbor by this, so no consumer ever pads for the handle itself.
     /// </summary>
     internal const double OwnedSeamClearance = HandleThickness + 2d;
 
-    /// <summary>Clearance on EACH side of an unowned seam, whose handle straddles the line (XU-631).</summary>
+    /// <summary>Clearance on EACH side of an unowned seam, whose handle straddles the line.</summary>
     internal const double StraddleClearance = HandleThickness / 2d + 2d;
 
     /// <summary>
@@ -77,14 +77,15 @@ public sealed partial class DockSplitter : Grid
     /// regions); <see cref="Orientation.Horizontal"/> draws a horizontal seam that resizes vertically.
     /// </param>
     /// <param name="theme">
-    /// The HOST's <c>ActualTheme</c>, passed in because a splitter is constructed before it enters
-    /// the tree, where its own <c>ActualTheme</c> is not yet meaningful. Drives the handle surface —
+    /// The owner's <c>ActualTheme</c>, used for the first frame because a splitter is constructed
+    /// before it enters the tree, where its own <c>ActualTheme</c> is not yet meaningful. After that
+    /// the handle follows the splitter's own <c>ActualThemeChanged</c>. Drives the handle surface —
     /// see <see cref="ComponentTheme"/> for why this is not an app-resource lookup.
     /// </param>
     /// <param name="attachEdge">
     /// Which edge's pane the handle BELONGS to: the handle sits flush against the seam on that side
-    /// and protrudes over the neighbour, rounded only on the protruding side — the way
-    /// MasterDetail's handle belongs to its detail pane. <see cref="DockEdge.None"/> (splitters
+    /// and protrudes over the neighbor, rounded only on the protruding side.
+    /// <see cref="DockEdge.None"/> (splitters
     /// between layers or side-by-side slots, where neither side owns the seam) straddles the seam
     /// with all corners rounded.
     /// </param>
@@ -119,7 +120,7 @@ public sealed partial class DockSplitter : Grid
         var seamBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0xCC, 0x00, 0x00, 0x00));
 
         // The seam line is drawn as TWO segments that stop at the handle rather than one full run —
-        // the line must go AROUND the handle (Russ), never under it, so the handle reads as an
+        // the line must go AROUND the handle, never under it, so the handle reads as an
         // opening in the seam that belongs to its pane. Track layout [* | handle | *] keeps the gap
         // centred at any length.
         var visual = new Grid { IsHitTestVisible = false };
@@ -189,8 +190,8 @@ public sealed partial class DockSplitter : Grid
             _ => new Thickness(1),
         };
 
-        // Pane-surface colour so the handle reads as a solid tab of the pane's surface, the way
-        // MasterDetail's does — with the seam's own colour wrapping it as the border.
+        // Pane-surface color so the handle reads as a solid tab of the pane's surface, with the
+        // seam's own color wrapping it as the border.
         var handle = new Border
         {
             Width = vertical ? HandleThickness : HandleLength,
@@ -219,6 +220,10 @@ public sealed partial class DockSplitter : Grid
         };
 
         Children.Add(handle);
+
+        // The constructor theme covers the first frame; once in the tree the splitter follows its own
+        // ActualTheme, so a live light/dark switch repaints the handle without the owner rebuilding it.
+        ActualThemeChanged += (_, _) => handle.Background = ComponentTheme.Surface(ActualTheme);
 
         ManipulationStarted += (_, _) => DragStarted?.Invoke(this, EventArgs.Empty);
         ManipulationDelta += OnManipulationDelta;

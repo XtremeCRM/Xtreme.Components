@@ -38,7 +38,7 @@ internal sealed partial class DockItemHeader : Grid
 
     internal DockItemHeader(DockItem item, bool platformSupportsFloating)
     {
-        Height = 22; // 70% of the original 32 (Russ) — the compact DX-style title bar
+        Height = 22; // the compact DX-style title bar
         Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x14, 0x80, 0x80, 0x80));
 
         // The header doubles as the drag handle for re-docking. RAW pointer events with an explicit
@@ -152,8 +152,8 @@ internal sealed partial class DockItemHeader : Grid
             e.Handled = true;
         };
 
-        // No float BUTTON: the header stays uncluttered (Russ retired the ❐ pop-out buttons once
-        // drag-to-float existed); dragging out and the menu above are the two float paths.
+        // No float BUTTON: the header stays uncluttered; dragging out and the menu above are the two
+        // float paths.
         ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // pin
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // close
@@ -178,8 +178,7 @@ internal sealed partial class DockItemHeader : Grid
 
         if (item.ShowPinToggle)
         {
-            // The pushpin (XU-452), matching MasterDetailControl's exactly (Russ: "use this pin"):
-            // FontIcon glyphs E718 (pin) / E77A (slashed unpin) swapped Chrome-style by state.
+            // The pushpin: FontIcon glyphs E718 (pin) / E77A (slashed unpin) swapped by state.
             // FontIcon's DEFAULT FontFamily is the theme's SymbolThemeFontFamily — the sanctioned,
             // per-platform-resolved symbol font, not a hardcoded "Segoe *" name (which is the actual
             // macOS missing-glyph trap). Glyphs spelled as \u escapes — the mojibake lesson.
@@ -227,8 +226,7 @@ internal sealed partial class DockItemHeader : Grid
     }
 
     // FontIcon variant for glyphs that exist in the THEME symbol font (SymbolThemeFontFamily — the
-    // per-platform-resolved resource, which is FontIcon's default). This is how MasterDetailControl
-    // draws its pin, and matching it is the point. Distinct from the hardcoded-"Segoe *" trap: the
+    // per-platform-resolved resource, which is FontIcon's default). Distinct from the hardcoded-"Segoe *" trap: the
     // theme resource maps correctly on every head, proven by the Shell's own pin rendering on Skia.
     internal static Button BuildIconButton(string glyph, string tooltip)
     {

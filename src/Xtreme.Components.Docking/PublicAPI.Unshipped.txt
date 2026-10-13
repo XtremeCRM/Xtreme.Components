@@ -1,6 +1,8 @@
 #nullable enable
 static readonly Xtreme.Components.Docking.Controls.DockHost.DocumentProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockHost.EdgePriorityProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Docking.Controls.DockHost.PersistenceKeyProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Docking.Controls.DockHost.PersistenceProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Docking.Controls.DockHost.ShowClosedPaneRestoreProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Docking.Controls.DockItem.AllowedDockEdgesProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Docking.Controls.DockItem.AllowFloatProperty -> Microsoft.UI.Xaml.DependencyProperty!
@@ -61,7 +63,7 @@ Xtreme.Components.Docking.Controls.DockItem.CanClose.get -> bool
 Xtreme.Components.Docking.Controls.DockItem.CanClose.set -> void
 Xtreme.Components.Docking.Controls.DockItem.CanResize.get -> bool
 Xtreme.Components.Docking.Controls.DockItem.CanResize.set -> void
-Xtreme.Components.Docking.Controls.DockItem.CloseRequested -> System.EventHandler?
+Xtreme.Components.Docking.Controls.DockItem.CloseRequested -> System.EventHandler<Xtreme.Components.Docking.Controls.DockItemCloseRequestedEventArgs!>?
 Xtreme.Components.Docking.Controls.DockItem.DockId.get -> string?
 Xtreme.Components.Docking.Controls.DockItem.DockId.set -> void
 Xtreme.Components.Docking.Controls.DockItem.DockItem() -> void
@@ -91,6 +93,10 @@ Xtreme.Components.Docking.Controls.DockItem.TabGroup.get -> string?
 Xtreme.Components.Docking.Controls.DockItem.TabGroup.set -> void
 Xtreme.Components.Docking.Controls.DockItem.Title.get -> string?
 Xtreme.Components.Docking.Controls.DockItem.Title.set -> void
+Xtreme.Components.Docking.Controls.DockItemCloseRequestedEventArgs
+Xtreme.Components.Docking.Controls.DockItemCloseRequestedEventArgs.DockItemCloseRequestedEventArgs(Xtreme.Components.Docking.Controls.DockItem! item, bool fromFloatingWindow) -> void
+Xtreme.Components.Docking.Controls.DockItemCloseRequestedEventArgs.FromFloatingWindow.get -> bool
+Xtreme.Components.Docking.Controls.DockItemCloseRequestedEventArgs.Item.get -> Xtreme.Components.Docking.Controls.DockItem!
 Xtreme.Components.Docking.Controls.DockNarrowBehavior
 Xtreme.Components.Docking.Controls.DockNarrowBehavior.AutoHide = 3 -> Xtreme.Components.Docking.Controls.DockNarrowBehavior
 Xtreme.Components.Docking.Controls.DockNarrowBehavior.Hide = 1 -> Xtreme.Components.Docking.Controls.DockNarrowBehavior

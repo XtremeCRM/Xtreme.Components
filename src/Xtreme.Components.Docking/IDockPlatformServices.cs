@@ -14,9 +14,9 @@ namespace Xtreme.Components.Docking;
 /// window is not possible. Everything else — docking, grouping, splitters, responsive collapse,
 /// persistence — works everywhere. So "can this float?" is a question asked of the platform, not a
 /// compile-time constant.</para>
-/// <para><b>Window lifecycle is host policy too.</b> [DockPerf] measurements (XU-450): construction is
-/// ~3.6s of UI-thread freeze, close is 18ms, and <c>AppWindow.Hide()</c> RETURNS SUCCESSFULLY WITHOUT
-/// HIDING on Uno Skia desktop — so whether a freed window can be pooled for reuse, and where the
+/// <para><b>Window lifecycle is host policy too.</b> Measured on Uno Skia desktop: construction can
+/// cost seconds of UI-thread freeze on a bad display driver, close is ~18ms, and
+/// <c>AppWindow.Hide()</c> RETURNS SUCCESSFULLY WITHOUT HIDING — so whether a freed window can be pooled for reuse, and where the
 /// construction freeze may land, are platform judgments the library cannot make. The acquire/release
 /// pair lets a host pool windows (with a hide it has VERIFIED works); the library's fallback is
 /// construct-on-demand and the cheap close.</para>
@@ -24,8 +24,8 @@ namespace Xtreme.Components.Docking;
 public interface IDockPlatformServices
 {
     /// <summary>
-    /// Whether this platform can host a floated pane in a separate OS window. False on WASM and mobile,
-    /// where <see cref="Controls.DockItem.AllowFloat"/> is ignored and no float affordance is shown.
+    /// Whether this platform can host a floated pane in a separate OS window. When false,
+    /// <see cref="Controls.DockItem.AllowFloat"/> is ignored and no float affordance is shown.
     /// </summary>
     bool SupportsFloatingWindows { get; }
 
@@ -75,8 +75,8 @@ public interface IDockPlatformServices
     /// <summary>
     /// A hint that floating is likely to be used soon — the dock manager calls this when it hosts an
     /// item with <see cref="Controls.DockItem.AllowFloat"/> on a float-capable platform. A pooling
-    /// host warms a spare window during idle here, so the first tear-out doesn't pay the ~3.6s
-    /// construction freeze under the user's gesture (XU-450). Must be safe to call repeatedly.
+    /// host warms a spare window during idle here, so the first tear-out doesn't pay the window
+    /// construction cost under the user's gesture. Must be safe to call repeatedly.
     /// Nothing happens by default.
     /// </summary>
     void WarmFloatSupport(Microsoft.UI.Dispatching.DispatcherQueue dispatcher)
@@ -112,7 +112,7 @@ public interface IDockPlatformServices
     /// applies its window-management policy here — nothing happens by default.
     /// </summary>
     /// <remarks>
-    /// This exists for XU-438: an unowned spawned window and the main window are unrelated top-levels
+    /// The motivating case: an unowned spawned window and the main window are unrelated top-levels
     /// to the OS, so activating one leaves the other buried. The fix is host territory — establishing a
     /// Win32 owner relationship, or hooking activation to raise the group — because it needs the main
     /// window's handle and per-OS interop this single-TFM library deliberately cannot contain. Note the

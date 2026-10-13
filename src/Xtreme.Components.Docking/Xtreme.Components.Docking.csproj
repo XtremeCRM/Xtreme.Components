@@ -4,6 +4,9 @@
     <PackageTags>uno;uno-platform;winui;docking;dock;tool-windows;layout;workspace;cross-platform;skia</PackageTags>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Xtreme.Components.Docking.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
   </ItemGroup>
 </Project>

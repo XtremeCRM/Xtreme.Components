@@ -7,8 +7,8 @@ namespace Xtreme.Components.Docking;
 /// <para>Xtreme.Components never reaches into app services — no <c>ServiceLocator</c>, no
 /// <c>IUiPreferenceService</c>, no <c>ProjectReference</c> to the host app. The library must stay
 /// consumable on its own. So persistence is a contract the host fills: an app can back
-/// this with <c>IUiPreferenceService</c> (per-user vs device-scoped keys), while the Harness can back it
-/// with an in-memory dictionary or nothing at all.</para>
+/// this with its own preference store (per-user vs device-scoped keys), while a sample or test host can
+/// back it with an in-memory dictionary or nothing at all.</para>
 /// <para>Deliberately a WHOLE-LAYOUT document keyed by <see cref="Controls.DockHost.PersistenceKey"/>,
 /// not one entry per pane. A dock layout is a tree — which edge each item is on, how items are grouped
 /// and ordered within an edge, every splitter position, and later each floating window's bounds. Those
