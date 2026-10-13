@@ -30,6 +30,10 @@ family on a shared version.
   `ResolveGeometry` hooks, `TryGetBrush` and `PrepareDialog`.
 - `Xtreme.Components.TableView`: `RowFlagDecorator` + `RowFlag` for `WinUI.TableView` rows,
   with a `BrushResolver` seam (default: the row's `ActualTheme` through `ComponentHost`).
+- Theming: Core ships `Themes/Generic.xaml` with the `Xc*` font and style tokens; the Scheduler
+  and calendar palettes resolve `XcScheduler<Role>Brush` / `XcCalendar<Role>Brush` tokens before
+  their built-in values; `ComponentHost.NotifyResourcesChanged()` drops the cached lookups.
+  See `docs/theming.md`.
 - `Xtreme.Components.Scheduler`: `SchedulerControl` with Day, Week, Month, Agenda and
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event

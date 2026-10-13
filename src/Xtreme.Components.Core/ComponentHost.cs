@@ -28,6 +28,19 @@ public static class ComponentHost
     /// </summary>
     public static Func<string, Geometry?>? ResolveGeometry { get; set; }
 
+    /// <summary>
+    /// Raised by <see cref="NotifyResourcesChanged"/>. Code palettes that cache token lookups
+    /// (the Scheduler's, the calendar pickers') drop their caches on it.
+    /// </summary>
+    public static event EventHandler? ResourcesChanged;
+
+    /// <summary>
+    /// Call after merging or removing a resource dictionary at runtime (a high-contrast palette,
+    /// a brand switch) so cached token lookups re-resolve. Theme switches need no call: palettes
+    /// are keyed by theme and controls re-render on <c>ActualThemeChanged</c>.
+    /// </summary>
+    public static void NotifyResourcesChanged() => ResourcesChanged?.Invoke(null, EventArgs.Empty);
+
     /// <summary>The theme to use for a code-built popup: the app's hook if set, else the app theme.</summary>
     public static ElementTheme EffectiveTheme()
     {

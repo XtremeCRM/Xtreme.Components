@@ -6,7 +6,7 @@ namespace Xtreme.Components.Scheduler.Rendering;
 /// markup cleanly, so the palette resolves light/dark itself. Views re-render on
 /// <see cref="FrameworkElement.ActualThemeChanged"/> to pick up theme switches.
 /// </summary>
-internal sealed class SchedulerPalette
+internal sealed record SchedulerPalette
 {
     /// <summary>Opaque surface behind the whole control (the grid body sits on this). Must be
     /// opaque so a host page's background/watermark doesn't bleed through the transparent cells.</summary>
@@ -45,8 +45,56 @@ internal sealed class SchedulerPalette
     /// while the neighbours stay obviously live rather than greyed-out-disabled.</summary>
     public required Brush OutsideMonthFill { get; init; }
 
-    /// <summary>Resolve the palette for the element's current theme.</summary>
-    public static SchedulerPalette For(ElementTheme theme) => theme == ElementTheme.Dark ? Dark : Light;
+    /// <summary>
+    /// Resolve the palette for the element's current theme. Token-first: every role checks the
+    /// app's resources for <c>XcScheduler&lt;Role&gt;Brush</c> (through
+    /// <see cref="Xtreme.Components.Core.ComponentHost.TryGetBrush(string, ElementTheme)"/>, so a
+    /// Light/Dark <c>ThemeDictionaries</c> entry wins over a flat one) and falls back to the built-in
+    /// value. Resolved once per theme and dropped on <c>ComponentHost.NotifyResourcesChanged</c>.
+    /// </summary>
+    public static SchedulerPalette For(ElementTheme theme)
+    {
+        if (theme == ElementTheme.Dark)
+            return _dark ??= Resolve(Dark, ElementTheme.Dark);
+        return _light ??= Resolve(Light, ElementTheme.Light);
+    }
+
+    private static SchedulerPalette? _light;
+    private static SchedulerPalette? _dark;
+
+    static SchedulerPalette()
+    {
+        Xtreme.Components.Core.ComponentHost.ResourcesChanged += (_, _) => { _light = null; _dark = null; };
+    }
+
+    private static SchedulerPalette Resolve(SchedulerPalette fallback, ElementTheme theme)
+    {
+        Brush Tok(string role, Brush dflt) =>
+            Xtreme.Components.Core.ComponentHost.TryGetBrush("XcScheduler" + role + "Brush", theme) ?? dflt;
+
+        return fallback with
+        {
+            SurfaceBackground = Tok(nameof(SurfaceBackground), fallback.SurfaceBackground),
+            HeaderBackground = Tok(nameof(HeaderBackground), fallback.HeaderBackground),
+            HeaderForeground = Tok(nameof(HeaderForeground), fallback.HeaderForeground),
+            SecondaryForeground = Tok(nameof(SecondaryForeground), fallback.SecondaryForeground),
+            MinorLine = Tok(nameof(MinorLine), fallback.MinorLine),
+            MajorLine = Tok(nameof(MajorLine), fallback.MajorLine),
+            TodayHighlight = Tok(nameof(TodayHighlight), fallback.TodayHighlight),
+            OffHoursBackground = Tok(nameof(OffHoursBackground), fallback.OffHoursBackground),
+            EventDefaultBack = Tok(nameof(EventDefaultBack), fallback.EventDefaultBack),
+            EventDefaultBar = Tok(nameof(EventDefaultBar), fallback.EventDefaultBar),
+            EventForeground = Tok(nameof(EventForeground), fallback.EventForeground),
+            EventBorder = Tok(nameof(EventBorder), fallback.EventBorder),
+            OutsideMonthForeground = Tok(nameof(OutsideMonthForeground), fallback.OutsideMonthForeground),
+            AgendaRule = Tok(nameof(AgendaRule), fallback.AgendaRule),
+            AccentForeground = Tok(nameof(AccentForeground), fallback.AccentForeground),
+            WeekendForeground = Tok(nameof(WeekendForeground), fallback.WeekendForeground),
+            SelectionFill = Tok(nameof(SelectionFill), fallback.SelectionFill),
+            SelectionForeground = Tok(nameof(SelectionForeground), fallback.SelectionForeground),
+            OutsideMonthFill = Tok(nameof(OutsideMonthFill), fallback.OutsideMonthFill),
+        };
+    }
 
     private static readonly SchedulerPalette Light = new()
     {

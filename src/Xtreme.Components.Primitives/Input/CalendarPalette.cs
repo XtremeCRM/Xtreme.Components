@@ -9,7 +9,7 @@ namespace Xtreme.Components.Primitives;
 /// a light-themed app painted light. Values mirror the Scheduler palette so a navigator embedded in
 /// the scheduler toolbar matches its host. Migration to <c>Xc*</c> theme tokens is tracked separately.
 /// </remarks>
-internal sealed class CalendarPalette
+internal sealed record CalendarPalette
 {
     public required Brush SecondaryForeground { get; init; }
     public required Brush MinorLine { get; init; }
@@ -20,7 +20,44 @@ internal sealed class CalendarPalette
     public required Brush HeaderForeground { get; init; }
     public required Brush WeekendForeground { get; init; }
 
-    public static CalendarPalette For(ElementTheme theme) => theme == ElementTheme.Dark ? Dark : Light;
+    /// <summary>
+    /// Token-first: each role checks the app's resources for <c>XcCalendar&lt;Role&gt;Brush</c>
+    /// (theme-aware through <see cref="Xtreme.Components.Core.ComponentHost.TryGetBrush(string, ElementTheme)"/>)
+    /// and falls back to the built-in value. Resolved once per theme; dropped on
+    /// <c>ComponentHost.NotifyResourcesChanged</c>.
+    /// </summary>
+    public static CalendarPalette For(ElementTheme theme)
+    {
+        if (theme == ElementTheme.Dark)
+            return _dark ??= Resolve(Dark, ElementTheme.Dark);
+        return _light ??= Resolve(Light, ElementTheme.Light);
+    }
+
+    private static CalendarPalette? _light;
+    private static CalendarPalette? _dark;
+
+    static CalendarPalette()
+    {
+        Xtreme.Components.Core.ComponentHost.ResourcesChanged += (_, _) => { _light = null; _dark = null; };
+    }
+
+    private static CalendarPalette Resolve(CalendarPalette fallback, ElementTheme theme)
+    {
+        Brush Tok(string role, Brush dflt) =>
+            Xtreme.Components.Core.ComponentHost.TryGetBrush("XcCalendar" + role + "Brush", theme) ?? dflt;
+
+        return fallback with
+        {
+            SecondaryForeground = Tok(nameof(SecondaryForeground), fallback.SecondaryForeground),
+            MinorLine = Tok(nameof(MinorLine), fallback.MinorLine),
+            SelectionFill = Tok(nameof(SelectionFill), fallback.SelectionFill),
+            SelectionForeground = Tok(nameof(SelectionForeground), fallback.SelectionForeground),
+            OutsideMonthFill = Tok(nameof(OutsideMonthFill), fallback.OutsideMonthFill),
+            OutsideMonthForeground = Tok(nameof(OutsideMonthForeground), fallback.OutsideMonthForeground),
+            HeaderForeground = Tok(nameof(HeaderForeground), fallback.HeaderForeground),
+            WeekendForeground = Tok(nameof(WeekendForeground), fallback.WeekendForeground),
+        };
+    }
 
     private static readonly CalendarPalette Light = new()
     {

@@ -52,13 +52,19 @@ is required to get going:
 
 ## Theming
 
-Every colour, brush and font token a control uses is a `ThemeResource` key you can override
-in `App.xaml`. Defaults ship in each package's `Themes/Generic.xaml` and derive from the WinUI
-theme brushes, so a control looks right in a bare Uno app:
+Merge the dictionary of each family you use once in `App.xaml` (a family's dictionary brings
+the Core tokens with it), then override any token after the merge:
 
 ```xml
-<SolidColorBrush x:Key="XcAccentBrush" Color="#0A84FF" />
+<ResourceDictionary.MergedDictionaries>
+  <ResourceDictionary Source="ms-appx:///Xtreme.Components.Primitives/Themes/Generic.xaml" />
+</ResourceDictionary.MergedDictionaries>
+<x:Double x:Key="XcFontSizeBody">15</x:Double>
+<SolidColorBrush x:Key="XcSchedulerSelectionFillBrush" Color="#0A84FF" />
 ```
+
+Every token, the high-contrast keys and the runtime hooks are listed in
+[docs/theming.md](docs/theming.md).
 
 ## Repository layout
 

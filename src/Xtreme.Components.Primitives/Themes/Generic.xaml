@@ -3,6 +3,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xc="using:Xtreme.Components.Primitives">
 
+    <!-- Merge this dictionary once in App.xaml:
+             <ResourceDictionary Source="ms-appx:///Xtreme.Components.Primitives/Themes/Generic.xaml" />
+         It brings the Core tokens (XcFontSize*, XcFieldLabelStyle, ...) with it. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="ms-appx:///Xtreme.Components.Core/Themes/Generic.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- Converters the default templates below use. Keyed under the library's own names so an
          app's converters of the same type never collide. -->
     <xc:MultiplyConverter x:Key="XcMultiplyConverter" />
