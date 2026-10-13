@@ -7,7 +7,7 @@ public sealed partial class MainPage : Page
     private static readonly (string Tag, string Title, string Blurb, Func<UIElement> Create)[] Catalog =
     [
         ("scheduler", "Scheduler",
-         "Xtreme.Components.Scheduler. Day / Week / Month / Agenda / Planner. Drag an appointment to move it, drag its edge to resize, click an empty slot to create. Every edit is an event; the page applies it and re-assigns the list.",
+         "Xtreme.Components.Scheduler. Day / Week / Month / Agenda / Planner. Drag an appointment to move it, drag its edge to resize, click an empty slot to create. The Examples switches add a host-side resource picker, data-driven tiles (with the toolbar's tile options), indicator icons, and positioned adornments (the toolbar's Urgent / Paid toggles act on the selected appointment).",
          () => new SchedulerPage()),
         ("docking", "Docking",
          "Xtreme.Components.Docking. A centre document with panes on all four edges, two stacked on the left and two tabbed. Drag a header or tab onto the guides, pin a pane to its rail, narrow the window below ~580px to see the overlay mode.",
@@ -47,6 +47,11 @@ public sealed partial class MainPage : Page
             {
                 Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == entry.Tag);
                 await Task.Delay(700);
+                if (Host.Content is SchedulerPage scheduler)
+                {
+                    scheduler.EnableAllExamples();   // tiles, icons, adornments, resource picker
+                    await Task.Delay(700);
+                }
                 Host.UpdateLayout();
                 Console.WriteLine($"selftest: {entry.Tag} ok ({Host.ActualWidth:0}x{Host.ActualHeight:0})");
             }
