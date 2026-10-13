@@ -28,7 +28,7 @@ public sealed partial class SchedulerPage : Grid
     private readonly StackPanel _resourcePane = new() { Spacing = 6, Margin = new Thickness(0, 0, 16, 0), MinWidth = 150, Visibility = Visibility.Collapsed };
     private readonly TextBlock _log = new() { Opacity = 0.75, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 6, 0, 0) };
 
-    private bool _tiles, _icons, _adornments, _editorEnabled;
+    private bool _tiles, _icons, _adornments, _editorEnabled, _tooltips;
     private readonly HashSet<string> _tileKeys = new() { "status", "tech" };
 
     // Appointment editor (host-side example): the control raises edit / create requests and ships
@@ -62,7 +62,23 @@ public sealed partial class SchedulerPage : Grid
             Appt(5, "Follow-up call", monday.AddDays(3).AddHours(11),   0.5, 3),
             Appt(6, "Team meeting",   monday.AddDays(4).AddHours(9),    1,   1, 2, 3),
             new() { Id = 7, Subject = "Trade show", Start = monday.AddDays(3), End = monday.AddDays(5), IsAllDay = true, ResourceIds = { 3 } },
+            // A fuller week: overlaps, a recurring stand-up, status flags, early and late slots.
+            Appt(8,  "Stand-up",          monday.AddHours(8).AddMinutes(30),           0.25, 1, 2, 3),
+            Appt(9,  "Quote: Whitfield",  monday.AddHours(10).AddMinutes(30),          1,    1),      // overlaps Site survey
+            Appt(10, "Annual service",    monday.AddDays(1).AddHours(8),               2,    3),
+            Appt(11, "Warranty visit",    monday.AddDays(2).AddHours(9),               1.5,  1),
+            Appt(12, "Parts pickup",      monday.AddDays(2).AddHours(12),              0.75, 3),
+            Appt(13, "Install: Osei",     monday.AddDays(2).AddHours(13).AddMinutes(30), 3, 1),
+            Appt(14, "Estimate: Novak",   monday.AddDays(3).AddHours(14),              1,    2),
+            Appt(15, "Leak callback",     monday.AddDays(4).AddHours(13),              1.5,  3),
+            Appt(16, "Office hours",      monday.AddDays(5).AddHours(9),               3,    2),
+            Appt(17, "Emergency: no heat", monday.AddDays(5).AddHours(16),             1.5,  1),
         ];
+        // Flags the renderer draws: a recurring marker, a tentative hatch, a locked item.
+        _appointments.First(a => a.Id is 8).RecurrenceRule = "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR";
+        _appointments.First(a => a.Id is 14).IsTentative = true;
+        _appointments.First(a => a.Id is 10).IsLocked = true;
+        _appointments.First(a => a.Id is 3).IsComplete = true;
 
         _scheduler.CurrentView = SchedulerView.Week;
         _scheduler.SelectedDate = new DateTimeOffset(monday);
@@ -134,7 +150,14 @@ public sealed partial class SchedulerPage : Grid
         switches.Children.Add(Switch("Tiles", on => { _tiles = on; Refresh(); }));
         switches.Children.Add(Switch("Icons", on => { _icons = on; Refresh(); }));
         switches.Children.Add(Switch("Adornments", on => { _adornments = on; Refresh(); }));
+        switches.Children.Add(Switch("Tooltips", on => { _tooltips = on; Refresh(); }));
         switches.Children.Add(Switch("Appointment editor", on => { _editorEnabled = on; if (!on) CloseEditor(); }));
+
+        var hint = new TextBlock
+        {
+            Text = "Hover an appointment for its tooltip. With the editor on, double-click an appointment to edit it, or click an empty slot to create one.",
+            Opacity = 0.7, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8),
+        };
 
         // Resource picker: plain checkboxes, one per resource, filtering what the scheduler shows.
         _resourcePane.Children.Add(new TextBlock { Text = "Resources", Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] });
@@ -160,11 +183,14 @@ public sealed partial class SchedulerPage : Grid
         body.Children.Add(_editorPane);
 
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        SetRow(body, 1);
-        SetRow(_log, 2);
+        SetRow(hint, 1);
+        SetRow(body, 2);
+        SetRow(_log, 3);
         Children.Add(switches);
+        Children.Add(hint);
         Children.Add(body);
         Children.Add(_log);
 
@@ -332,6 +358,26 @@ public sealed partial class SchedulerPage : Grid
             }
         }
 
+        // Tooltips: Details (label/value rows) and Description feed the built-in tooltip; the
+        // Install appointment also gets a custom renderer to show the override seam.
+        foreach (var a in _appointments)
+        {
+            var id = a.Id is int i ? i : 0;
+            a.Details = _tooltips
+                ? id switch
+                {
+                    1 => [new("Customer", "Rivera, Alex"), new("Address", "14 Harbour Rd"), new("Phone", "555-010-2030")],
+                    2 => [new("Customer", "Chen, Bailey"), new("Order", "SO-2026-0042"), new("Crew", "Alex, Dana")],
+                    3 => [new("Customer", "Morgan, Casey"), new("Plan", "Battery plan, 3 of 4")],
+                    4 => [new("Location", "Training room B"), new("Seats", "12")],
+                    6 => [new("Agenda", "Q4 schedule"), new("Room", "Main office")],
+                    _ => [],
+                }
+                : [];
+            a.Description = _tooltips && id == 5 ? "Check the water softener install went in clean." : null;
+        }
+        _scheduler.AppointmentTooltipRenderer = _tooltips ? CustomTooltip : null;
+
         _scheduler.ShowTiles = _tiles;
         _scheduler.SetTileOptions(_tiles
             ? [new SchedulerTileOption { Key = "status", Label = "Status", IsOn = _tileKeys.Contains("status") },
@@ -351,6 +397,24 @@ public sealed partial class SchedulerPage : Grid
     }
 
     private static AppointmentIndicator Icon(string glyph, string tip, Color? color) => new() { Glyph = glyph, Tooltip = tip, Color = color };
+
+    /// <summary>
+    /// The tooltip override seam: return an element to replace the built-in tooltip for this
+    /// appointment, or null to keep it. Only the Install job gets the custom card here, so hovering
+    /// the others shows the default (subject, time, Details rows, Description).
+    /// </summary>
+    private FrameworkElement? CustomTooltip(Scheduler.Rendering.AppointmentContext ctx)
+    {
+        if (ctx.Appointment.Id is not 2) return null;
+        var panel = new StackPanel { Spacing = 4, Padding = new Thickness(4) };
+        panel.Children.Add(new TextBlock { Text = ctx.Appointment.Subject, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text = $"{ctx.Appointment.Start:ddd d MMM, h:mm tt} to {ctx.Appointment.End:h:mm tt}", Opacity = 0.75 });
+        var bar = new Grid { Height = 6, CornerRadius = new CornerRadius(3), Background = new SolidColorBrush(Color.FromArgb(0x30, 0x80, 0x80, 0x80)), Margin = new Thickness(0, 4, 0, 0) };
+        bar.Children.Add(new Border { Width = 90, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(3), Background = new SolidColorBrush(Microsoft.UI.Colors.SeaGreen) });
+        panel.Children.Add(bar);
+        panel.Children.Add(new TextBlock { Text = "Parts picked 3 of 5. Custom tooltip via AppointmentTooltipRenderer.", FontSize = 11, Opacity = 0.75, TextWrapping = TextWrapping.Wrap, MaxWidth = 220 });
+        return panel;
+    }
 
     private static AppointmentDecoration Adornment(string template) => template switch
     {
