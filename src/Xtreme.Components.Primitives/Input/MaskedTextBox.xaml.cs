@@ -4,14 +4,16 @@ namespace Xtreme.Components.Primitives;
 /// A hand-rolled masked TextBox for Uno (the Community Toolkit <c>TextBoxExtensions.Mask</c> throws
 /// on every keystroke under Uno — see the data-entry plan). Shows the full template up front
 /// (e.g. <c>(___) ___-____</c>) and fills the placeholders as the user types. Mask grammar:
-/// <c>#</c> = digit, anything else = a literal shown as-is (see <see cref="InputMask"/>).
+/// <c>#</c> = digit, <c>A</c> = letter, <c>*</c> = letter or digit, <c>\</c> escapes the next
+/// character, anything else = a literal shown as-is (see <see cref="InputMask"/>).
 ///
-/// Invalid keystrokes (a non-digit, or a digit once every slot is full) are cancelled in
+/// Invalid keystrokes (one that fits no slot, or any once every slot is full) are cancelled in
 /// <see cref="OnBeforeTextChanging"/> so they never reach the screen — no flash. Deletions are left
-/// to the native TextBox and reconciled in <see cref="OnTextChanged"/>, which drops the last digit
+/// to the native TextBox and reconciled in <see cref="OnTextChanged"/>, which drops the last character
 /// when a literal/placeholder was the thing deleted (so backspace never feels stuck and never
-/// removes two characters). The bound <see cref="Text"/> holds the placeholder-free value to persist;
-/// the underscores are display-only. An empty/null <see cref="Mask"/> = plain passthrough TextBox.
+/// removes two characters). Letters are re-cased per <see cref="CharacterCasing"/>. The bound
+/// <see cref="Text"/> holds the placeholder-free value to persist; the underscores are display-only.
+/// An empty/null <see cref="Mask"/> = plain passthrough TextBox.
 /// </summary>
 public sealed partial class MaskedTextBox : UserControl
 {
@@ -69,7 +71,34 @@ public sealed partial class MaskedTextBox : UserControl
         set => SetValue(PlaceholderTextProperty, value);
     }
 
+    public static readonly DependencyProperty CharacterCasingProperty = DependencyProperty.Register(
+        nameof(CharacterCasing), typeof(CharacterCasing), typeof(MaskedTextBox),
+        new PropertyMetadata(CharacterCasing.Normal, OnMaskChanged));
+
+    /// <summary>
+    /// Case applied to letters entered into a masked box (<c>A</c> and <c>*</c> slots), e.g.
+    /// <see cref="CharacterCasing.Upper"/> for postal codes. <see cref="CharacterCasing.Normal"/> (the
+    /// default) keeps what was typed. Ignored when there is no mask.
+    /// </summary>
+    public CharacterCasing CharacterCasing
+    {
+        get => (CharacterCasing)GetValue(CharacterCasingProperty);
+        set => SetValue(CharacterCasingProperty, value);
+    }
+
     private bool HasMask => InputMask.HasMask(Mask);
+
+    /// <summary>The slot characters of <paramref name="text"/> against the mask, re-cased.</summary>
+    private string Slots(string? text)
+    {
+        var slots = InputMask.ExtractSlots(text, Mask);
+        return CharacterCasing switch
+        {
+            CharacterCasing.Upper => slots.ToUpperInvariant(),
+            CharacterCasing.Lower => slots.ToLowerInvariant(),
+            _ => slots,
+        };
+    }
 
     private static void OnTextProperty(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -92,17 +121,17 @@ public sealed partial class MaskedTextBox : UserControl
             return;
         }
 
-        var digits = InputMask.ExtractDigits(Text, InputMask.PlaceholderCount(Mask));
-        RenderTemplate(digits);
+        var slots = Slots(Text);
+        RenderTemplate(slots);
 
-        var canonical = InputMask.Format(digits, Mask);
+        var canonical = InputMask.Format(slots, Mask);
         if (canonical != Text)
             Text = canonical; // idempotent re-entry; settles on the next pass
     }
 
     /// <summary>
-    /// Cancel keystrokes that can't be placed BEFORE they render (no flash): a non-digit insertion,
-    /// or a digit once every slot is full. Deletions and valid digits pass through to the TextBox.
+    /// Cancel keystrokes that can't be placed BEFORE they render (no flash): an insertion that fits no
+    /// slot, or any insertion once every slot is full. Deletions and placeable characters pass through.
     /// </summary>
     private void OnBeforeTextChanging(TextBox sender, TextBoxBeforeTextChangingEventArgs args)
     {
@@ -113,11 +142,11 @@ public sealed partial class MaskedTextBox : UserControl
 
         if (proposed.Length <= current.Length) return; // deletion handled in OnTextChanged
 
-        var cap = InputMask.PlaceholderCount(Mask);
-        var curDigits = InputMask.ExtractDigits(current, int.MaxValue);
-        var newDigits = InputMask.ExtractDigits(proposed, int.MaxValue);
+        // ExtractSlots stops at the last slot, so a full mask reads the same before and after.
+        var curSlots = InputMask.ExtractSlots(current, Mask);
+        var newSlots = InputMask.ExtractSlots(proposed, Mask);
 
-        if (newDigits.Length <= curDigits.Length || newDigits.Length > cap)
+        if (newSlots.Length <= curSlots.Length)
             args.Cancel = true;
     }
 
@@ -132,37 +161,36 @@ public sealed partial class MaskedTextBox : UserControl
             return;
         }
 
-        var cap = InputMask.PlaceholderCount(Mask);
         var newText = PART_Box.Text ?? string.Empty;
-        var newDigits = InputMask.ExtractDigits(newText, cap);
+        var newSlots = Slots(newText);
 
-        // A deletion that removed a literal/placeholder leaves the digit count unchanged — that would
-        // feel "stuck", so drop the last digit instead. (A deletion that removed an actual digit
-        // already reduced the count, so leave it — no double delete.)
+        // A deletion that removed a literal/placeholder leaves the slot count unchanged — that would
+        // feel "stuck", so drop the last character instead. (A deletion that removed an actual slot
+        // character already reduced the count, so leave it — no double delete.)
         if (newText.Length < _prevText.Length)
         {
-            var prevDigits = InputMask.ExtractDigits(_prevText, cap);
-            if (newDigits.Length == prevDigits.Length && newDigits.Length > 0)
-                newDigits = newDigits.Substring(0, newDigits.Length - 1);
+            var prevSlots = InputMask.ExtractSlots(_prevText, Mask);
+            if (newSlots.Length == prevSlots.Length && newSlots.Length > 0)
+                newSlots = newSlots.Substring(0, newSlots.Length - 1);
         }
 
-        RenderTemplate(newDigits);
-        Text = InputMask.Format(newDigits, Mask);
+        RenderTemplate(newSlots);
+        Text = InputMask.Format(newSlots, Mask);
     }
 
     private void OnLostFocus(object sender, RoutedEventArgs e)
     {
         if (!HasMask) return;
 
-        var digits = InputMask.ExtractDigits(PART_Box.Text, InputMask.PlaceholderCount(Mask));
-        RenderTemplate(digits);
-        Text = InputMask.Format(digits, Mask);
+        var slots = Slots(PART_Box.Text);
+        RenderTemplate(slots);
+        Text = InputMask.Format(slots, Mask);
     }
 
-    /// <summary>Render the full template for the given digits, caret at the first empty slot.</summary>
-    private void RenderTemplate(string digits)
+    /// <summary>Render the full template for the given slot characters, caret at the first empty slot.</summary>
+    private void RenderTemplate(string slots)
     {
-        var display = InputMask.FormatTemplate(digits, Mask, Placeholder);
+        var display = InputMask.FormatTemplate(slots, Mask, Placeholder);
         SetInnerText(display, caretToFirstSlot: true);
     }
 

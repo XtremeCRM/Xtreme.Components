@@ -3,9 +3,41 @@ namespace Xtreme.Components.Primitives;
 
 public sealed class OverlayGlyphIcon : Control
 {
+    // Badge glyph size relative to the badge itself (the template's original 0.4 / 0.5).
+    private const double FrontGlyphToBadge = 0.8;
+
+    private FrameworkElement? _badge;
+    private FontIcon? _frontGlyph;
+
     public OverlayGlyphIcon()
     {
         DefaultStyleKey = typeof(OverlayGlyphIcon);
+    }
+
+    protected override void OnApplyTemplate()
+    {
+        base.OnApplyTemplate();
+        _badge = GetTemplateChild("PART_Badge") as FrameworkElement;
+        _frontGlyph = GetTemplateChild("PART_FrontGlyph") as FontIcon;
+        ApplyBadgeSize();
+    }
+
+    private static void OnBadgeSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        => ((OverlayGlyphIcon)d).ApplyBadgeSize();
+
+    // The badge is FrontSizeRatio of Size; its glyph fills 80% of the badge. Sized in code rather than
+    // by template bindings so the ratio is one property instead of a converter parameter per binding.
+    private void ApplyBadgeSize()
+    {
+        var ratio = double.IsNaN(FrontSizeRatio) ? 0.5 : Math.Clamp(FrontSizeRatio, 0, 1);
+        var badge = Math.Max(0, Size * ratio);
+        if (_badge is not null)
+        {
+            _badge.Width = badge;
+            _badge.Height = badge;
+        }
+        if (_frontGlyph is not null && badge > 0)
+            _frontGlyph.FontSize = badge * FrontGlyphToBadge;
     }
 
     #region Dependency Properties
@@ -87,8 +119,12 @@ public sealed class OverlayGlyphIcon : Control
             nameof(Size),
             typeof(double),
             typeof(OverlayGlyphIcon),
-            new PropertyMetadata(24d));
+            new PropertyMetadata(24d, OnBadgeSizeChanged));
 
+    /// <summary>
+    /// Size of the round badge as a fraction of <see cref="Size"/> (clamped to 0..1). Default 0.5.
+    /// The badge glyph is 80% of the badge.
+    /// </summary>
     public double FrontSizeRatio
     {
         get => (double)GetValue(FrontSizeRatioProperty);
@@ -100,7 +136,7 @@ public sealed class OverlayGlyphIcon : Control
             nameof(FrontSizeRatio),
             typeof(double),
             typeof(OverlayGlyphIcon),
-            new PropertyMetadata(0.45d));
+            new PropertyMetadata(0.5d, OnBadgeSizeChanged));
 
     public Brush BackForeground
     {

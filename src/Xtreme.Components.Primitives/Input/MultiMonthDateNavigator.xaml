@@ -53,7 +53,23 @@
             </Border>
         </Grid>
 
-        <!-- Month grid: reflows to show as many month tiles as fit the (resizable) surface. -->
-        <Grid x:Name="MonthsHost" Grid.Row="1" SizeChanged="OnMonthsHostSizeChanged" />
+        <!-- Month grid: reflows to show as many month tiles as fit the (resizable) surface.
+             The day cells are drawn Borders, so the grid as a whole is the tab stop: arrow keys move
+             a focus cell, Enter/Space picks it (see OnGridKeyDown). -->
+        <ContentControl x:Name="DayGridFocus"
+                        Grid.Row="1"
+                        IsTabStop="True"
+                        UseSystemFocusVisuals="False"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        AutomationProperties.Name="Dates"
+                        KeyDown="OnGridKeyDown"
+                        KeyUp="OnGridKeyUp"
+                        GotFocus="OnGridGotFocus"
+                        LostFocus="OnGridLostFocus">
+            <Grid x:Name="MonthsHost" SizeChanged="OnMonthsHostSizeChanged" />
+        </ContentControl>
     </Grid>
 </UserControl>

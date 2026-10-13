@@ -26,6 +26,8 @@ public sealed partial class EditorActionBar : UserControl
     public EditorActionBar()
     {
         InitializeComponent();
+        // The change callback only runs when DeleteText changes, so seed the default tooltip here.
+        ToolTipService.SetToolTip(DeleteButton, DeleteText);
     }
 
     // ---- IsDirty: drives Save + Cancel enabled-state ----
@@ -227,8 +229,9 @@ public sealed partial class EditorActionBar : UserControl
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot,
             };
-            if (Application.Current.Resources.TryGetValue("DefaultContentDialogStyle", out var style) && style is Style s)
-                dialog.Style = s;
+            // App dialog style + the app's effective theme (ComponentHost.CurrentTheme), like every
+            // other code-built dialog in the library.
+            Xtreme.Components.Core.ComponentHost.PrepareDialog(dialog);
 
             if (await dialog.ShowAsync() != ContentDialogResult.Primary)
                 return;

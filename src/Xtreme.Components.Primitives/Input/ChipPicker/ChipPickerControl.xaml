@@ -28,13 +28,13 @@
                                 Visibility="{Binding ElementName=Root,
                                                      Path=IsBusy,
                                                      Converter={StaticResource XcBoolToVisibilityConverter}}"/>
-                <TextBlock  Grid.Column="0"
+                <!-- Visibility is set in code (UpdateTitleVisibility): an explicit ShowTitle wins,
+                     otherwise the title shows only while nothing is selected. -->
+                <TextBlock  x:Name="TitleText"
+                            Grid.Column="0"
                             Text="{Binding ElementName=Root,
                                            Path=Title,
                                            FallbackValue='Select items...'}"
-                            Visibility="{Binding ElementName=Root,
-                                                 Path=ShowTitle,
-                                                 Converter={StaticResource XcBoolToVisibilityConverter}}"
                             FontSize="{StaticResource XcFontSizeBody}"
                             TextWrapping="NoWrap"
                             TextTrimming="CharacterEllipsis"
@@ -55,10 +55,10 @@
 
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate>
-                            <Border MaxWidth="{Binding ElementName=Root, Path=CalculatedMaxChipWidth}"
+                            <Border MaxWidth="{Binding ElementName=Root, Path=ChipMaxWidth}"
                                     Background="{Binding BackgroundColor,
                                                  Converter={StaticResource XcColorToBrushConverter},
-                                                 ConverterParameter=AccentFillColorDefaultBrush}"
+                                                 ConverterParameter=XcChipBackgroundBrush}"
                                     CornerRadius="5"
                                     Padding="6,4"
                                     HorizontalAlignment="Left">
@@ -77,8 +77,8 @@
                                           VerticalAlignment="Center"
                                           Visibility="{Binding IsExcluded,
                                                                Converter={StaticResource XcBoolToVisibilityConverter}}">
-                                        <Ellipse Stroke="#FFE04A4A" StrokeThickness="1.5" />
-                                        <Rectangle Fill="#FFE04A4A"
+                                        <Ellipse Stroke="{ThemeResource XcExcludedBrush}" StrokeThickness="1.5" />
+                                        <Rectangle Fill="{ThemeResource XcExcludedBrush}"
                                                    Width="9" Height="1.5"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                    RenderTransformOrigin="0.5,0.5">
@@ -91,7 +91,7 @@
                                                 FontSize="10"
                                                 Foreground="{Binding ForegroundColor,
                                                                      Converter={StaticResource XcColorToBrushConverter},
-                                                                     ConverterParameter=TextOnAccentFillColorPrimaryBrush}"
+                                                                     ConverterParameter=XcChipForegroundBrush}"
                                                 TextWrapping="NoWrap"
                                                 TextTrimming="CharacterEllipsis"
                                                 HorizontalTextAlignment="Left"

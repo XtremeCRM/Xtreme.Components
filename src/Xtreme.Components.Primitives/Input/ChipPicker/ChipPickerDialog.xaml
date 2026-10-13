@@ -11,12 +11,15 @@
 
     <ContentDialog.Resources>
         <local:BoolToVisibilityConverter x:Key="XcBoolToVisibilityConverter" />
+        <!-- False for a selected ChipItem with CanRemove = false: its row cannot be unchecked. -->
+        <local:ChipRemovableConverter x:Key="ChipRemovableConverter" />
         <Style TargetType="local:ChipPickerDialog" BasedOn="{StaticResource DefaultContentDialogStyle}"/>
 
         <!-- Plain include-only row: every consumer that leaves AllowExclude off. -->
         <DataTemplate x:Key="ChipRowTemplate">
             <CheckBox Content="{Binding Name}"
                       IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                      IsEnabled="{Binding Converter={StaticResource ChipRemovableConverter}}"
                       Checked="OnChipToggled"
                       Unchecked="OnChipToggled" />
         </DataTemplate>
@@ -29,7 +32,7 @@
              its circle-slash button turns solid red. Rows re-render on every toggle (RebuildRows),
              so OneWay bindings against the plain ChipItem are enough. -->
         <local:BoolToBrushConverter x:Key="ExcludedNameBrushConverter"
-                                      TrueBrush="{ThemeResource XtremeExcludedBrush}"
+                                      TrueBrush="{ThemeResource XcExcludedBrush}"
                                       FalseBrush="{ThemeResource TextFillColorPrimaryBrush}" />
 
         <DataTemplate x:Key="ChipRowWithExcludeTemplate">
@@ -40,10 +43,11 @@
                 </Grid.ColumnDefinitions>
                 <CheckBox Grid.Column="0"
                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                          IsEnabled="{Binding Converter={StaticResource ChipRemovableConverter}}"
                           Checked="OnChipToggled"
                           Unchecked="OnChipToggled">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Border Background="{ThemeResource XtremeExcludedBrush}"
+                        <Border Background="{ThemeResource XcExcludedBrush}"
                                 CornerRadius="3"
                                 Padding="4,0"
                                 VerticalAlignment="Center"
@@ -63,16 +67,17 @@
                      render. Outline = off, solid red disc with a white slash = excluding. -->
                 <ToggleButton Grid.Column="1"
                               IsChecked="{Binding IsExcluded, Mode=OneWay}"
+                              IsEnabled="{Binding Converter={StaticResource ChipRemovableConverter}}"
                               Click="OnExcludeToggled"
                               VerticalAlignment="Center"
                               MinWidth="0"
                               Padding="6,2"
                               ToolTipService.ToolTip="Exclude (NOT) — match everything except this">
                     <Grid Width="14" Height="14">
-                        <Ellipse Stroke="{ThemeResource XtremeExcludedBrush}" StrokeThickness="1.5" />
-                        <Ellipse Fill="{ThemeResource XtremeExcludedBrush}"
+                        <Ellipse Stroke="{ThemeResource XcExcludedBrush}" StrokeThickness="1.5" />
+                        <Ellipse Fill="{ThemeResource XcExcludedBrush}"
                                  Visibility="{Binding IsExcluded, Converter={StaticResource XcBoolToVisibilityConverter}}" />
-                        <Rectangle Fill="{ThemeResource XtremeExcludedBrush}"
+                        <Rectangle Fill="{ThemeResource XcExcludedBrush}"
                                    Width="12.5" Height="1.5"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                    RenderTransformOrigin="0.5,0.5"

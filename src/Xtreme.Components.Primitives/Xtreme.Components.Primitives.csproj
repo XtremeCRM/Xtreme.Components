@@ -4,6 +4,10 @@
     <PackageTags>uno;uno-platform;winui;controls;input;masked-textbox;date-picker;paging;wrap-panel;toast;cross-platform;skia</PackageTags>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Headless tests reach the pure helpers (TimeInputParser, ChipPickerControl.MergePicked). -->
+    <InternalsVisibleTo Include="Xtreme.Components.Primitives.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
   </ItemGroup>
 </Project>

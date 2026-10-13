@@ -12,6 +12,10 @@ namespace Xtreme.Components.Primitives;
 /// the surface, with click / Ctrl+click / Shift+click selection plus an on-screen Days/Range mode for
 /// touch. Owns only the pick; the host reads <see cref="GetSelection"/> on Apply and listens to
 /// <see cref="SelectionChanged"/> for live summary/enablement.
+///
+/// Keyboard: the day grid is one tab stop. Arrows move a focus cell (Up/Down by a week), PageUp /
+/// PageDown by a month, Home / End to the week's ends; Enter or Space picks the focus day exactly as
+/// a click would, including Ctrl and Shift.
 /// </summary>
 public sealed partial class MultiMonthDateNavigator : UserControl
 {
@@ -29,8 +33,14 @@ public sealed partial class MultiMonthDateNavigator : UserControl
 
     // The first (top-left) month currently shown. Reflow renders forward from here.
     private DateTime _baseMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
-    private DayOfWeek _firstDayOfWeek = DayOfWeek.Sunday;
     private PickMode _mode = PickMode.Days;
+
+    // Keyboard state: the day the arrows move, whether the grid holds keyboard focus (the focus cell
+    // is drawn only then), and the modifier keys, tracked from KeyDown/KeyUp.
+    private DateTime? _focusDate;
+    private bool _keyboardFocused;
+    private bool _ctrlDown;
+    private bool _shiftDown;
 
     // The date the navigator should open on (today, or the earliest seeded selection). When more than one
     // month is visible AND this date falls in the first displayed week of its month, RenderMonths backs
@@ -50,13 +60,39 @@ public sealed partial class MultiMonthDateNavigator : UserControl
     public MultiMonthDateNavigator()
     {
         InitializeComponent();
+        // The culture's first day as a local value, so XAML / a binding / SetFirstDayOfWeek replace it.
+        FirstDayOfWeek = CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
         DaysModeToggle.IsChecked = true;
         Loaded += (_, _) => RenderMonths(force: true);
         ActualThemeChanged += (_, _) => RenderMonths(force: true); // repaint weekend/divider colors on theme switch
     }
 
-    /// <summary>Raised whenever the picked set changes (host updates its summary + Apply enablement).</summary>
+    /// <summary>
+    /// Raised whenever the picked set changes, whoever changed it: a click or key, Today in
+    /// <see cref="SingleDateMode"/>, <see cref="SetSelection"/> or <see cref="ClearSelection"/>.
+    /// Not raised when a call leaves the set as it was.
+    /// </summary>
     public event EventHandler? SelectionChanged;
+
+    public static readonly DependencyProperty FirstDayOfWeekProperty = DependencyProperty.Register(
+        nameof(FirstDayOfWeek), typeof(DayOfWeek), typeof(MultiMonthDateNavigator),
+        new PropertyMetadata(DayOfWeek.Sunday, OnFirstDayOfWeekChanged));
+
+    /// <summary>
+    /// First column of each month grid. Defaults to <see cref="CultureInfo.CurrentCulture"/>'s
+    /// <c>DateTimeFormat.FirstDayOfWeek</c> at construction (Sunday for en-US, Monday for most of Europe).
+    /// </summary>
+    public DayOfWeek FirstDayOfWeek
+    {
+        get => (DayOfWeek)GetValue(FirstDayOfWeekProperty);
+        set => SetValue(FirstDayOfWeekProperty, value);
+    }
+
+    private static void OnFirstDayOfWeekChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is MultiMonthDateNavigator nav)
+            nav.RenderMonths(force: true);
+    }
 
     /// <summary>
     /// Single-date mode for use as a date FIELD rather than a scheduler range picker.
@@ -89,25 +125,21 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         nav.RenderMonths(force: true);
     }
 
-    /// <summary>The first day of the week for the month grids (matches the scheduler setting).</summary>
-    public void SetFirstDayOfWeek(DayOfWeek day)
-    {
-        if (_firstDayOfWeek == day)
-        {
-            return;
-        }
-        _firstDayOfWeek = day;
-        RenderMonths(force: true);
-    }
+    /// <summary>The first day of the week for the month grids (matches the scheduler setting).
+    /// Same as setting <see cref="FirstDayOfWeek"/>.</summary>
+    public void SetFirstDayOfWeek(DayOfWeek day) => FirstDayOfWeek = day;
 
-    /// <summary>Seed the selection (e.g. the dates currently on screen) and open on the first of them.</summary>
+    /// <summary>
+    /// Seed the selection (e.g. the dates currently on screen) and open on the first of them.
+    /// Raises <see cref="SelectionChanged"/> when the set differs from the current one.
+    /// </summary>
     public void SetSelection(IReadOnlyList<DateTime> dates)
     {
+        var next = new HashSet<DateTime>(dates.Select(d => d.Date));
+        var changed = !next.SetEquals(_selected);
+
         _selected.Clear();
-        foreach (var d in dates)
-        {
-            _selected.Add(d.Date);
-        }
+        _selected.UnionWith(next);
         _anchor = null;
         _pendingRangeAnchor = null;
 
@@ -115,13 +147,20 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         _anchorDate = first;
         _pendingAnchorAdjust = true;
         _baseMonth = new DateTime(first.Year, first.Month, 1);
+        _focusDate = null;
         RenderMonths(force: true);
+
+        if (changed)
+        {
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>The current picked set, sorted ascending.</summary>
     public IReadOnlyList<DateTime> GetSelection() => _selected.OrderBy(d => d).ToArray();
 
-    /// <summary>Empty the selection (the Clear button).</summary>
+    /// <summary>Empty the selection (the Clear button). Raises <see cref="SelectionChanged"/> when
+    /// something was selected.</summary>
     public void ClearSelection()
     {
         if (_selected.Count == 0 && _pendingRangeAnchor is null)
@@ -157,13 +196,14 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         // In a date field, "Today" means SET the value to today — paging there without selecting
         // leaves the field on its old value, which reads as the button doing nothing. In range mode
         // it stays a pure navigation jump so it can't disturb a half-built range.
-        var selectToday = SingleDateMode;
-        if (selectToday)
+        var selectToday = SingleDateMode && !(_selected.Count == 1 && _selected.Contains(DateTime.Today));
+        if (SingleDateMode)
         {
             _selected.Clear();
             _selected.Add(DateTime.Today);
             _anchor = DateTime.Today;
         }
+        _focusDate = DateTime.Today;
 
         RenderMonths(force: true); // re-renders and re-highlights
 
@@ -331,7 +371,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         var dayNames = ci.DateTimeFormat.AbbreviatedDayNames; // index by DayOfWeek
         for (var c = 0; c < 7; c++)
         {
-            var dow = (DayOfWeek)(((int)_firstDayOfWeek + c) % 7);
+            var dow = (DayOfWeek)(((int)FirstDayOfWeek + c) % 7);
             var hdr = new TextBlock
             {
                 Text = dayNames[(int)dow].Length >= 2 ? dayNames[(int)dow].Substring(0, 2) : dayNames[(int)dow],
@@ -402,12 +442,19 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         {
             return;
         }
-        var date = raw.Date;
         var mods = e.KeyModifiers;
-        var ctrl = mods.HasFlag(VirtualKeyModifiers.Control);
-        var shift = mods.HasFlag(VirtualKeyModifiers.Shift);
         e.Handled = true;
 
+        // A click also moves the keyboard focus cell, so arrows carry on from the clicked day.
+        _focusDate = raw.Date;
+        DayGridFocus.Focus(FocusState.Pointer);
+
+        Pick(raw.Date, mods.HasFlag(VirtualKeyModifiers.Control), mods.HasFlag(VirtualKeyModifiers.Shift));
+    }
+
+    // One pick gesture, from a click or from Enter/Space on the focus cell.
+    private void Pick(DateTime date, bool ctrl, bool shift)
+    {
         if (SingleDateMode)
         {
             // A field holds exactly one value: replace rather than toggle (so tapping the
@@ -505,10 +552,12 @@ public sealed partial class MultiMonthDateNavigator : UserControl
             var selected = _selected.Contains(date);
             var isToday = date == DateTime.Today;
             var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            var isFocus = _keyboardFocused && date == _focusDate;
 
             cell.Background = selected ? accent : outOfScope ? outOfScopeFill : transparent;
-            cell.BorderBrush = isToday ? accent : transparent;
-            cell.BorderThickness = new Thickness(isToday ? 1.5 : 0);
+            // The keyboard focus cell outlines in the primary text color; it outranks the today outline.
+            cell.BorderBrush = isFocus ? palette.HeaderForeground : isToday ? accent : transparent;
+            cell.BorderThickness = new Thickness(isFocus ? 2 : isToday ? 1.5 : 0);
 
             if (cell.Child is TextBlock tb)
             {
@@ -536,8 +585,100 @@ public sealed partial class MultiMonthDateNavigator : UserControl
 
     private DateTime StartOfWeek(DateTime date)
     {
-        var diff = (7 + (int)date.DayOfWeek - (int)_firstDayOfWeek) % 7;
+        var diff = (7 + (int)date.DayOfWeek - (int)FirstDayOfWeek) % 7;
         return date.Date.AddDays(-diff);
+    }
+
+    // ---- Keyboard ------------------------------------------------------------------------------
+
+    private void OnGridGotFocus(object sender, RoutedEventArgs e)
+    {
+        _keyboardFocused = DayGridFocus.FocusState == FocusState.Keyboard;
+        if (_focusDate is null || !IsVisibleMonth(_focusDate.Value))
+        {
+            // Start on the earliest visible selected day, else today when visible, else the 1st shown.
+            var visibleSelected = _selected.Where(IsVisibleMonth).OrderBy(d => d).ToList();
+            _focusDate = visibleSelected.Count > 0 ? visibleSelected[0]
+                       : IsVisibleMonth(DateTime.Today) ? DateTime.Today
+                       : _baseMonth;
+        }
+        ApplyHighlight();
+    }
+
+    private void OnGridLostFocus(object sender, RoutedEventArgs e)
+    {
+        _keyboardFocused = false;
+        _ctrlDown = _shiftDown = false;
+        ApplyHighlight();
+    }
+
+    private void OnGridKeyUp(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key is VirtualKey.Control or VirtualKey.LeftControl or VirtualKey.RightControl) _ctrlDown = false;
+        if (e.Key is VirtualKey.Shift or VirtualKey.LeftShift or VirtualKey.RightShift) _shiftDown = false;
+    }
+
+    private void OnGridKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case VirtualKey.Control or VirtualKey.LeftControl or VirtualKey.RightControl:
+                _ctrlDown = true;
+                return;
+            case VirtualKey.Shift or VirtualKey.LeftShift or VirtualKey.RightShift:
+                _shiftDown = true;
+                return;
+        }
+
+        var focus = _focusDate ?? DateTime.Today;
+        DateTime? next = e.Key switch
+        {
+            VirtualKey.Left => focus.AddDays(-1),
+            VirtualKey.Right => focus.AddDays(1),
+            VirtualKey.Up => focus.AddDays(-7),
+            VirtualKey.Down => focus.AddDays(7),
+            VirtualKey.PageUp => focus.AddMonths(-1),
+            VirtualKey.PageDown => focus.AddMonths(1),
+            VirtualKey.Home => StartOfWeek(focus),
+            VirtualKey.End => StartOfWeek(focus).AddDays(6),
+            _ => null,
+        };
+
+        if (next is { } moved)
+        {
+            e.Handled = true;
+            _keyboardFocused = true;
+            _focusDate = moved;
+            if (!IsVisibleMonth(moved))
+            {
+                // Scroll just far enough: the focus month becomes the first or the last tile.
+                var count = Math.Max(1, _cols * _rows);
+                var month = new DateTime(moved.Year, moved.Month, 1);
+                _baseMonth = moved < _baseMonth ? month : month.AddMonths(-(count - 1));
+                RenderMonths(force: true);
+            }
+            else
+            {
+                ApplyHighlight();
+            }
+            return;
+        }
+
+        if (e.Key is VirtualKey.Enter or VirtualKey.Space)
+        {
+            e.Handled = true;
+            _keyboardFocused = true;
+            _focusDate = focus;
+            Pick(focus, _ctrlDown, _shiftDown);
+        }
+    }
+
+    // True when the date's month is one of the tiles on screen.
+    private bool IsVisibleMonth(DateTime date)
+    {
+        var count = Math.Max(1, _cols * _rows);
+        var month = new DateTime(date.Year, date.Month, 1);
+        return month >= _baseMonth && month < _baseMonth.AddMonths(count);
     }
 
     // The month to open on: the anchor's month, or — when more than one month is visible AND the anchor sits

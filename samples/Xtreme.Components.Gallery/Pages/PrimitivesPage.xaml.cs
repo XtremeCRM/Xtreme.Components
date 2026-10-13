@@ -17,17 +17,18 @@ public sealed partial class PrimitivesPage : UserControl
                 "M12,2 L15,9 L22,9.5 L16.5,14.5 L18,22 L12,18 L6,22 L7.5,14.5 L2,9.5 L9,9 Z")
             : null;
 
-        // Chip picker: items are plain records; SaveAsync receives the picked set when the dialog closes.
+        // Chip picker: items are plain records; SaveAsync runs when the user saves the dialog.
         Chips.Title = "Tags";
         Chips.Items =
         [
             new ChipItem { ChipId = 1, Name = "Residential", GroupName = "Customer" },
             new ChipItem { ChipId = 2, Name = "Commercial", GroupName = "Customer" },
-            new ChipItem { ChipId = 3, Name = "Battery plan", GroupName = "Service", IsSelected = true },
+            // CanRemove = false: selected and locked in, so its checkbox in the dialog is disabled.
+            new ChipItem { ChipId = 3, Name = "Battery plan", GroupName = "Service", IsSelected = true, CanRemove = false },
             new ChipItem { ChipId = 4, Name = "Monitoring", GroupName = "Service" },
             new ChipItem { ChipId = 5, Name = "Past due", GroupName = "Billing", BackgroundColor = Color.FromArgb(0xFF, 0xF4, 0xC7, 0xC3) },
         ];
-        // The dialog hands back its whole working list; IsSelected marks the picks.
+        // SaveAsync always receives the whole list (from the dialog or a CustomPickAsync picker); IsSelected marks the picks.
         Chips.SaveAsync = items =>
         {
             var picked = items.Where(i => i.IsSelected).ToList();
@@ -40,16 +41,19 @@ public sealed partial class PrimitivesPage : UserControl
         Criteria.Fields.Add(Labelled(new TextBox { PlaceholderText = "Any part" }, "Email"));
         Criteria.Fields.Add(Labelled(new ComboBox { ItemsSource = new[] { "Any", "Active", "Inactive" }, SelectedIndex = 0 }, "Status"));
         Criteria.Fields.Add(Labelled(new CheckBox { Content = "Has open orders" }, ""));
+        Criteria.FieldValueChanged += (_, field) => CriteriaEcho.Text = $"Changed: {(CriteriaPanel.GetLabel(field) is { Length: > 0 } label ? label : field.GetType().Name)}";
 
-        // Paging: CurrentPage and PageSize are dependency properties; watch them for a read-out.
+        // Paging: CurrentPageChanged / PageSizeChanged fire for every change; ShownLayout says which arrangement is on screen.
         Pager.TotalItemCount = 137;
-        Pager.PageSize = 25;
-        void EchoPager() => PagerEcho.Text = $"Page {Pager.CurrentPage}, {Pager.PageSize} per page of {Pager.TotalItemCount}";
-        Pager.RegisterPropertyChangedCallback(PagingControl.CurrentPageProperty, (_, _) => EchoPager());
-        Pager.RegisterPropertyChangedCallback(PagingControl.PageSizeProperty, (_, _) => EchoPager());
+        Pager.DefaultPageSize = 25;
+        void EchoPager() => PagerEcho.Text = $"Page {Pager.CurrentPage}, {Pager.PageSize} per page of {Pager.TotalItemCount} ({Pager.ShownLayout})";
+        Pager.CurrentPageChanged += (_, _) => EchoPager();
+        Pager.PageSizeChanged += (_, _) => EchoPager();
+        Pager.RegisterPropertyChangedCallback(PagingControl.ShownLayoutProperty, (_, _) => EchoPager());
         EchoPager();
 
-        DateTime.ValueChanged += (_, _) => { };
+        DateTime.ValueChanged += (_, _) => DateTimeEcho.Text = $"Value: {DateTime.Date?.ToString() ?? "no date"} {DateTime.Time?.ToString() ?? ""}";
+        Month.SelectedDateChanged += (_, month) => MonthEcho.Text = $"Selected: {month:yyyy-MM-dd}";
 
         foreach (var word in new[] { "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta", "Iota", "Kappa" })
             Wrap.Children.Add(new Border

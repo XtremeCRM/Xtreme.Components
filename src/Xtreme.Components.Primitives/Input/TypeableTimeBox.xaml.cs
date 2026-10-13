@@ -128,59 +128,12 @@ public sealed partial class TypeableTimeBox : UserControl
     }
 
     /// <summary>
-    /// Parse user input. Accepts: "4", "4p", "4pm", "4 pm", "4:03", "4:03 pm", "16:03",
-    /// "1603" (treated as HH:mm when length is 4 and hour valid). Case-insensitive on AM/PM.
+    /// Parse user input. Accepts, case-insensitively: "4", "4p", "4pm", "4 pm", "4:03", "4:03 pm",
+    /// "16:03", "930" / "930p" (three digits = h:mm), "1603" / "1130p" (four digits = HH:mm), plus
+    /// anything <see cref="TimeOnly.TryParse(string, IFormatProvider, DateTimeStyles, out TimeOnly)"/>
+    /// accepts in the current culture. Digits without an AM/PM marker read the way a 24-hour clock
+    /// would ("4" and "930" are morning, "1603" is afternoon). See <see cref="TimeInputParser"/>.
     /// </summary>
     public static bool TryParseTime(string input, out TimeOnly result)
-    {
-        result = default;
-        if (string.IsNullOrWhiteSpace(input)) return false;
-
-        var s = input.Trim().ToUpperInvariant();
-
-        // Standard formats first.
-        string[] formats =
-        {
-            "h:mm tt", "h:mmtt", "h tt", "htt",
-            "H:mm", "HH:mm",
-            "h:mm", "h",
-            "h tt", "htt"
-        };
-
-        if (TimeOnly.TryParseExact(s, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
-            return true;
-
-        if (TimeOnly.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.None, out result))
-            return true;
-
-        // Heuristic 1: bare hour with am/pm marker, possibly without space ("4p", "4P", "4pm", "4PM", "11A").
-        var amPmMatch = System.Text.RegularExpressions.Regex.Match(s, @"^(\d{1,2})(?::(\d{1,2}))?\s*([AP])M?$");
-        if (amPmMatch.Success)
-        {
-            int hour = int.Parse(amPmMatch.Groups[1].Value);
-            int minute = amPmMatch.Groups[2].Success ? int.Parse(amPmMatch.Groups[2].Value) : 0;
-            bool pm = amPmMatch.Groups[3].Value == "P";
-            if (hour is >= 1 and <= 12 && minute is >= 0 and < 60)
-            {
-                if (hour == 12) hour = pm ? 12 : 0;
-                else if (pm) hour += 12;
-                result = new TimeOnly(hour, minute);
-                return true;
-            }
-        }
-
-        // Heuristic 2: 4-digit "1603" -> 16:03.
-        if (s.Length == 4 && int.TryParse(s, out var hhmm))
-        {
-            int hour = hhmm / 100;
-            int minute = hhmm % 100;
-            if (hour is >= 0 and < 24 && minute is >= 0 and < 60)
-            {
-                result = new TimeOnly(hour, minute);
-                return true;
-            }
-        }
-
-        return false;
-    }
+        => TimeInputParser.TryParse(input, out result);
 }

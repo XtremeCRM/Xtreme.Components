@@ -10,6 +10,30 @@
         <ResourceDictionary Source="ms-appx:///Xtreme.Components.Core/Themes/Generic.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
+    <!-- Package tokens, theme-keyed. Override any of them in App.xaml after the merge (inside the
+         matching ThemeDictionaries entry for a per-theme value).
+           XcExcludedBrush        the NOT (exclude) marks in ChipPickerControl / ChipPickerDialog
+           XcChipBackgroundBrush  pill fill for a ChipItem with no BackgroundColor
+           XcChipForegroundBrush  pill text for a ChipItem with no ForegroundColor -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="XcExcludedBrush" Color="#FFD13438" />
+            <SolidColorBrush x:Key="XcChipBackgroundBrush" Color="#FFE1E1E1" />
+            <SolidColorBrush x:Key="XcChipForegroundBrush" Color="#FF000000" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="XcExcludedBrush" Color="#FFFF6B6B" />
+            <!-- The neutral gray pill reads on dark surfaces too, so dark keeps the light values. -->
+            <SolidColorBrush x:Key="XcChipBackgroundBrush" Color="#FFE1E1E1" />
+            <SolidColorBrush x:Key="XcChipForegroundBrush" Color="#FF000000" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="XcExcludedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="XcChipBackgroundBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="XcChipForegroundBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
     <!-- Converters the default templates below use. Keyed under the library's own names so an
          app's converters of the same type never collide. -->
     <xc:MultiplyConverter x:Key="XcMultiplyConverter" />
@@ -45,21 +69,21 @@
                             Margin="1.5"
                             IsHitTestVisible="False" />
 
-                        <!-- Front overlay (badge) -->
+                        <!-- Front overlay (badge). Width/Height and the glyph's FontSize are set in
+                             code from Size x FrontSizeRatio (OverlayGlyphIcon.ApplyBadgeSize). -->
                         <Border
-                            Width="{Binding Size, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource XcMultiplyConverter}, ConverterParameter=0.5}"
-                            Height="{Binding Size, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource XcMultiplyConverter}, ConverterParameter=0.5}"
+                            x:Name="PART_Badge"
                             Background="{TemplateBinding FrontBackground}"
                             CornerRadius="999"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Bottom"
                             IsHitTestVisible="False">
                             <FontIcon
+                                x:Name="PART_FrontGlyph"
                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontWeight="ExtraBlack"
                                 Glyph="{TemplateBinding FrontGlyph}"
                                 Foreground="{TemplateBinding FrontForeground}"
-                                FontSize="{Binding Size, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource XcMultiplyConverter}, ConverterParameter=0.4}"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center" />
                         </Border>

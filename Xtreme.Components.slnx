@@ -8,6 +8,9 @@
     <Project Path="src/Xtreme.Components.TableView/Xtreme.Components.TableView.csproj" />
     <Project Path="src/Xtreme.Components/Xtreme.Components.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Xtreme.Components.Primitives.Tests/Xtreme.Components.Primitives.Tests.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Xtreme.Components.Gallery/Xtreme.Components.Gallery.csproj" />
   </Folder>

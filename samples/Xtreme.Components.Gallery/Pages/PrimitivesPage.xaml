@@ -9,13 +9,15 @@
         <TextBlock Text="Input" Style="{ThemeResource SubtitleTextBlockStyle}" />
         <xc:MaskedTextBox Header="Phone (mask ###-###-####)" Mask="###-###-####" PlaceholderText="555-010-2030" />
         <xc:MaskedTextBox Header="ZIP+4 (mask #####-####)" Mask="#####-####" />
-        <TextBlock Text="Typeable time: type 9, 930, 9:30p or 21:30 then Tab" Style="{StaticResource XcFieldLabelStyle}" />
+        <xc:MaskedTextBox Header="Canadian postal code (mask A#A #A#, upper-cased)" Mask="A#A #A#" CharacterCasing="Upper" />
+        <TextBlock Text="Typeable time: type 9, 930, 930p, 9:30p or 21:30 then Tab" Style="{StaticResource XcFieldLabelStyle}" />
         <xc:TypeableTimeBox x:Name="TimeBox" TimeCommitted="TimeBox_TimeCommitted" />
         <TextBlock x:Name="TimeEcho" Opacity="0.7" />
-        <TextBlock Text="Date and time" Style="{StaticResource XcFieldLabelStyle}" />
-        <xc:DateTimePicker x:Name="DateTime" />
+        <xc:DateTimePicker x:Name="DateTime" Header="Date and time" />
+        <TextBlock x:Name="DateTimeEcho" Opacity="0.7" />
         <TextBlock Text="Month and year" Style="{StaticResource XcFieldLabelStyle}" />
-        <xc:MonthYearPicker />
+        <xc:MonthYearPicker x:Name="Month" />
+        <TextBlock x:Name="MonthEcho" Opacity="0.7" />
         <TextBlock Text="Compact calendar date" Style="{StaticResource XcFieldLabelStyle}" />
         <xc:CompactCalendarDatePicker />
       </StackPanel>
@@ -43,6 +45,7 @@
 
         <TextBlock Text="Criteria panel" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
         <xc:CriteriaPanel x:Name="Criteria" Title="Customer" />
+        <TextBlock x:Name="CriteriaEcho" Opacity="0.7" TextWrapping="Wrap" />
       </StackPanel>
 
       <StackPanel Spacing="8" Margin="0,0,16,16">
