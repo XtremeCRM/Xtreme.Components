@@ -201,7 +201,7 @@ public sealed partial class SchedulerToolbar : UserControl
         CustomButtonPanel.Children.Clear();
         foreach (var model in buttons)
         {
-            CustomButtonPanel.Children.Add(BuildCustomButton(model));
+            CustomButtonPanel.Children.Add(BuildToolbarButton(model, RaiseCustom));
         }
 
         // Custom buttons usually arrive after the first layout pass; re-evaluate overflow against the
@@ -209,7 +209,23 @@ public sealed partial class SchedulerToolbar : UserControl
         ApplyResponsiveLayout(ActualWidth);
     }
 
-    private Button BuildCustomButton(SchedulerToolbarButton model)
+    // Run the entry's command, then raise the custom-button click for it.
+    private void RaiseCustom(SchedulerToolbarButton model)
+    {
+        model.Command?.Execute(model.CommandParameter);
+        CustomButtonClicked?.Invoke(this, model);
+    }
+
+    // Run the entry's command, then raise the adornment click for it.
+    private void RaiseAdornment(SchedulerToolbarButton model)
+    {
+        model.Command?.Execute(model.CommandParameter);
+        AdornmentClicked?.Invoke(this, model);
+    }
+
+    // One inline toolbar button for a host model (custom or adornment group): icon/label, tooltip, the pressed
+    // accent look for a checked toggle, and either a drop-down of MenuItems or a click that runs `raise`.
+    private Button BuildToolbarButton(SchedulerToolbarButton model, Action<SchedulerToolbarButton> raise)
     {
         var button = new Button
         {
@@ -236,20 +252,46 @@ public sealed partial class SchedulerToolbar : UserControl
             var menu = new MenuFlyout { Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedLeft };
             foreach (var entry in items)
             {
-                menu.Items.Add(BuildMenuEntry(entry));
+                menu.Items.Add(BuildMenuEntry(entry, raise));
             }
             button.Flyout = menu;
         }
         else
         {
-            button.Click += OnCustomButtonClick;
+            button.Click += (_, _) => raise(model);
         }
         return button;
     }
 
-    // One menu entry for a custom button's MenuItems (inline dropdown or overflow submenu): clicking it runs
-    // its command and raises CustomButtonClicked with the entry itself.
-    private MenuFlyoutItem BuildMenuEntry(SchedulerToolbarButton entry)
+    // A host model as a menu item (the narrow adornment drop-down, the overflow menu): a submenu for a
+    // MenuItems button, a check-mark item for a toggle, else a plain item. Picking one runs `raise`.
+    private MenuFlyoutItemBase BuildMenuItem(SchedulerToolbarButton model, Action<SchedulerToolbarButton> raise)
+    {
+        var text = string.IsNullOrEmpty(model.Label) ? (model.Tooltip ?? string.Empty) : model.Label;
+        if (model.MenuItems is { Count: > 0 } items)
+        {
+            var sub = new MenuFlyoutSubItem { Text = text, IsEnabled = model.IsEnabled, Icon = BuildMenuIcon(model) };
+            foreach (var entry in items)
+            {
+                sub.Items.Add(BuildMenuEntry(entry, raise));
+            }
+            return sub;
+        }
+
+        var item = model.IsToggle
+            ? new ToggleMenuFlyoutItem { IsChecked = model.IsChecked }
+            : new MenuFlyoutItem();
+        item.Text = text;
+        item.IsEnabled = model.IsEnabled;
+        item.Tag = model;
+        item.Icon = BuildMenuIcon(model);
+        item.Click += (_, _) => raise(model);
+        return item;
+    }
+
+    // One menu entry for a button's MenuItems (inline dropdown or overflow submenu): clicking it runs `raise`
+    // with the entry itself (its command, then the click event).
+    private MenuFlyoutItem BuildMenuEntry(SchedulerToolbarButton entry, Action<SchedulerToolbarButton> raise)
     {
         var item = new MenuFlyoutItem
         {
@@ -264,11 +306,7 @@ public sealed partial class SchedulerToolbar : UserControl
                 Glyph = entry.Glyph!,
             };
         }
-        item.Click += (_, _) =>
-        {
-            entry.Command?.Execute(entry.CommandParameter);
-            CustomButtonClicked?.Invoke(this, entry);
-        };
+        item.Click += (_, _) => raise(entry);
         return item;
     }
 
@@ -311,7 +349,10 @@ public sealed partial class SchedulerToolbar : UserControl
     public event EventHandler<SchedulerToolbarButton>? AdornmentClicked;
 
     /// <summary>Render the adornment toggle group: a button row (wide) + a dropdown menu (narrow), one
-    /// entry per template. Clicking either raises <see cref="AdornmentClicked"/>. Empty hides the group.</summary>
+    /// entry per template. Each entry honors the same <see cref="SchedulerToolbarButton"/> members as the
+    /// custom buttons: a checked toggle shows pressed (a check mark in the menu), <c>MenuItems</c> make a
+    /// drop-down (a submenu in the menu), and a click runs <c>Command</c> and then raises
+    /// <see cref="AdornmentClicked"/> with the clicked entry. Empty hides the group.</summary>
     public void SetAdornmentButtons(IReadOnlyList<SchedulerToolbarButton> buttons)
     {
         _adornments = buttons;
@@ -320,43 +361,14 @@ public sealed partial class SchedulerToolbar : UserControl
 
         foreach (var model in buttons)
         {
-            var button = new Button
-            {
-                Tag = model,
-                IsEnabled = model.IsEnabled,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                Content = BuildButtonContent(model),
-            };
-            if (!string.IsNullOrEmpty(model.Tooltip))
-            {
-                ToolTipService.SetToolTip(button, model.Tooltip);
-            }
-            button.Click += OnAdornmentClick;
-            AdornmentGroupPanel.Children.Add(button);
-
-            var item = new MenuFlyoutItem
-            {
-                Text = string.IsNullOrEmpty(model.Label) ? (model.Tooltip ?? string.Empty) : model.Label,
-                IsEnabled = model.IsEnabled,
-                Tag = model,
-                Icon = BuildMenuIcon(model),
-            };
-            item.Click += OnAdornmentClick;
-            AdornmentMenu.Items.Add(item);
+            AdornmentGroupPanel.Children.Add(BuildToolbarButton(model, RaiseAdornment));
+            AdornmentMenu.Items.Add(BuildMenuItem(model, RaiseAdornment));
         }
 
         ApplyResponsiveLayout(ActualWidth);
     }
 
-    private void OnAdornmentClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: SchedulerToolbarButton model })
-        {
-            AdornmentClicked?.Invoke(this, model);
-        }
-    }
-
-    // The dropdown menu item's icon: the adornment template's image as an ImageIcon (null for text-only).
+    // A menu item's icon: the model's image as an ImageIcon, else its glyph, else none.
     private static IconElement? BuildMenuIcon(SchedulerToolbarButton model)
     {
         if (model.Image is { Length: > 0 } bytes)
@@ -365,16 +377,15 @@ public sealed partial class SchedulerToolbar : UserControl
             _ = LoadIconAsync(bmp, bytes);
             return new ImageIcon { Source = bmp };
         }
-        return null;
-    }
-
-    private void OnCustomButtonClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: SchedulerToolbarButton model })
+        if (!string.IsNullOrEmpty(model.Glyph))
         {
-            model.Command?.Execute(model.CommandParameter);
-            CustomButtonClicked?.Invoke(this, model);
+            return new FontIcon
+            {
+                FontFamily = (FontFamily)Application.Current.Resources["SymbolThemeFontFamily"],
+                Glyph = model.Glyph!,
+            };
         }
+        return null;
     }
 
     // A small (16px) image icon from raw bytes for an image-backed custom button (e.g. adornment template).
@@ -531,42 +542,11 @@ public sealed partial class SchedulerToolbar : UserControl
             today.Click += (_, _) => TodayClicked?.Invoke(this, EventArgs.Empty);
             OverflowMenu.Items.Insert(0, today); // Today reads first, above the custom commands
         }
-        else if (item is Button { Tag: SchedulerToolbarButton { MenuItems.Count: > 0 } menuModel })
-        {
-            // A menu button folds into a submenu of the same entries.
-            var sub = new MenuFlyoutSubItem
-            {
-                Text = string.IsNullOrEmpty(menuModel.Label) ? (menuModel.Tooltip ?? string.Empty) : menuModel.Label,
-                IsEnabled = menuModel.IsEnabled,
-            };
-            foreach (var entry in menuModel.MenuItems!)
-            {
-                sub.Items.Add(BuildMenuEntry(entry));
-            }
-            OverflowMenu.Items.Add(sub);
-        }
         else if (item is Button { Tag: SchedulerToolbarButton model })
         {
-            // A toggle keeps its pressed state visible in the overflow menu as a check mark.
-            var entry = model.IsToggle
-                ? new ToggleMenuFlyoutItem { IsChecked = model.IsChecked }
-                : new MenuFlyoutItem();
-            entry.Text = string.IsNullOrEmpty(model.Label) ? (model.Tooltip ?? string.Empty) : model.Label;
-            entry.IsEnabled = model.IsEnabled;
-            if (!string.IsNullOrEmpty(model.Glyph))
-            {
-                entry.Icon = new FontIcon
-                {
-                    FontFamily = (FontFamily)Application.Current.Resources["SymbolThemeFontFamily"],
-                    Glyph = model.Glyph!,
-                };
-            }
-            entry.Click += (_, _) =>
-            {
-                model.Command?.Execute(model.CommandParameter);
-                CustomButtonClicked?.Invoke(this, model);
-            };
-            OverflowMenu.Items.Add(entry);
+            // A menu button folds into a submenu of the same entries; a toggle keeps its pressed state as a
+            // check mark.
+            OverflowMenu.Items.Add(BuildMenuItem(model, RaiseCustom));
         }
         else if (ReferenceEquals(item, ViewCombo) || ReferenceEquals(item, ViewSegmented))
         {

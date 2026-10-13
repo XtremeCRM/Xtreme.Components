@@ -1,3 +1,5 @@
+using Xtreme.Components.Scheduler.Contracts;
+using Xtreme.Components.Scheduler.Interaction;
 using Xtreme.Components.Scheduler.Models;
 using Xtreme.Components.Scheduler.Rendering;
 
@@ -6,13 +8,35 @@ namespace Xtreme.Components.Scheduler.Controls;
 /// <summary>
 /// A flat, date-grouped list of appointments from the anchor date forward. Each date is a
 /// section header followed by its events (time range, accent bar, subject, resource names).
-/// Read-only.
+/// A row raises click (select), double-click (edit request) and right-click (context); there are no
+/// empty slots, so the Agenda never creates.
 /// </summary>
-public sealed partial class AgendaView : UserControl
+internal sealed partial class AgendaView : UserControl, ISelectionView
 {
+    private readonly List<SelectionFrame> _frames = new();
+    private IReadOnlyCollection<AppointmentModel> _selected = Array.Empty<AppointmentModel>();
+    private readonly TapInteraction _taps;
+
+    public event EventHandler<AppointmentClickArgs>? AppointmentClicked;
+    public event EventHandler<AppointmentModel>? AppointmentDoubleClicked;
+    public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextMenuRequested;
+
     public AgendaView()
     {
         InitializeComponent();
+        _taps = new TapInteraction
+        {
+            Click = (a, ctrl) => AppointmentClicked?.Invoke(this, new AppointmentClickArgs { Appointment = a, WithCtrl = ctrl }),
+            DoubleClick = a => AppointmentDoubleClicked?.Invoke(this, a),
+            Context = (a, pos) => AppointmentContextMenuRequested?.Invoke(this, new AppointmentContextRequestedArgs { Appointment = a, Position = pos }),
+        };
+    }
+
+    /// <summary>Outline the selected rows' chips without a re-render.</summary>
+    public void ApplySelection(IReadOnlyCollection<AppointmentModel>? selected)
+    {
+        _selected = selected ?? Array.Empty<AppointmentModel>();
+        SelectionFrame.Apply(_frames, _selected);
     }
 
     internal void SetData(
@@ -24,6 +48,7 @@ public sealed partial class AgendaView : UserControl
         AppointmentTemplating templating)
     {
         Root.Children.Clear();
+        _frames.Clear();
 
         var names = new Dictionary<object, string>();
         foreach (var r in resources)
@@ -59,6 +84,7 @@ public sealed partial class AgendaView : UserControl
                 Root.Children.Add(BuildRow(appt, names, palette, templating));
             }
         }
+        SelectionFrame.Apply(_frames, _selected);
     }
 
     /// <summary>
@@ -75,6 +101,7 @@ public sealed partial class AgendaView : UserControl
         AppointmentTemplating templating)
     {
         Root.Children.Clear();
+        _frames.Clear();
 
         var names = new Dictionary<object, string>();
         foreach (var r in resources)
@@ -115,6 +142,7 @@ public sealed partial class AgendaView : UserControl
                 Root.Children.Add(BuildRow(appt, names, palette, templating));
             }
         }
+        SelectionFrame.Apply(_frames, _selected);
     }
 
     private static Border BuildDateHeader(DateTime date, SchedulerPalette palette)
@@ -143,7 +171,7 @@ public sealed partial class AgendaView : UserControl
         };
     }
 
-    private static Border BuildRow(AppointmentModel appt, IReadOnlyDictionary<object, string> names, SchedulerPalette palette, AppointmentTemplating templating)
+    private Border BuildRow(AppointmentModel appt, IReadOnlyDictionary<object, string> names, SchedulerPalette palette, AppointmentTemplating templating)
     {
         var grid = new Grid { Padding = new Thickness(16, 8, 16, 8), ColumnSpacing = 10 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(132) });
@@ -165,9 +193,11 @@ public sealed partial class AgendaView : UserControl
         // accent + status indicators), so the Agenda matches Day/Week/Month rather than a plain text row.
         var chip = EventBlockFactory.CreateChip(appt, palette, templating);
         chip.HorizontalAlignment = HorizontalAlignment.Stretch;
+        var frame = new SelectionFrame(chip, appt, 3);
+        _frames.Add(frame);
 
         var detail = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
-        detail.Children.Add(chip);
+        detail.Children.Add(frame);
 
         var resourceNames = appt.ResourceIds
             .Select(id => names.TryGetValue(id, out var n) ? n : null)
@@ -189,13 +219,17 @@ public sealed partial class AgendaView : UserControl
         grid.Children.Add(time);
         grid.Children.Add(detail);
 
-        return new Border
+        // The whole row is the gesture target; Transparent (not null) keeps its empty area hit-testable.
+        var row = new Border
         {
             BorderBrush = palette.AgendaRule,
             BorderThickness = new Thickness(0, 0, 0, 1),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             Child = grid,
             DataContext = appt,
             Tag = appt,
         };
+        _taps.AttachAppointment(row, appt);
+        return row;
     }
 }

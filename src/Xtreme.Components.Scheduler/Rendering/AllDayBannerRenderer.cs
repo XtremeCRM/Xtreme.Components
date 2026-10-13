@@ -3,7 +3,7 @@ using Xtreme.Components.Scheduler.Models;
 namespace Xtreme.Components.Scheduler.Rendering;
 
 /// <summary>The built banner element and how many stacked rows it needs (for height).</summary>
-public readonly record struct AllDayBanner(FrameworkElement Element, int RowCount);
+internal readonly record struct AllDayBanner(FrameworkElement Element, int RowCount);
 
 /// <summary>
 /// Lays out all-day and multi-day-spanning events as horizontal strips across the visible

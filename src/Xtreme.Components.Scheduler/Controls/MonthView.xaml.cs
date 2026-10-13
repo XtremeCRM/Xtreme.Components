@@ -1,3 +1,5 @@
+using Xtreme.Components.Scheduler.Contracts;
+using Xtreme.Components.Scheduler.Interaction;
 using Xtreme.Components.Scheduler.Models;
 using Xtreme.Components.Scheduler.Rendering;
 
@@ -6,9 +8,11 @@ namespace Xtreme.Components.Scheduler.Controls;
 /// <summary>
 /// Calendar month grid: a weekday header plus a 6×7 grid of day cells. Each cell shows its
 /// date and up to a few event chips with a "+N more" overflow. Days outside the anchor month
-/// are dimmed. Read-only rendering for Phase 2.
+/// are dimmed. Chips raise click (select), double-click (edit request) and right-click (context);
+/// an empty part of a day cell raises an all-day empty-slot click, and a double-click there an all-day
+/// create (suppressed when read-only).
 /// </summary>
-public sealed partial class MonthView : UserControl
+internal sealed partial class MonthView : UserControl, ISelectionView
 {
     private const int MaxChipsPerCell = 3;
 
@@ -16,6 +20,16 @@ public sealed partial class MonthView : UserControl
     private IReadOnlyList<AppointmentModel> _appointments = Array.Empty<AppointmentModel>();
     private SchedulerPalette _palette = SchedulerPalette.For(ElementTheme.Default);
     private AppointmentTemplating _templating = AppointmentTemplating.None;
+    private bool _isReadOnly;
+    private IReadOnlyCollection<AppointmentModel> _selected = Array.Empty<AppointmentModel>();
+    private readonly List<SelectionFrame> _frames = new();
+    private TapInteraction _taps = new();
+
+    public event EventHandler<AppointmentClickArgs>? AppointmentClicked;
+    public event EventHandler<AppointmentModel>? AppointmentDoubleClicked;
+    public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextMenuRequested;
+    public event EventHandler<EmptySlotSelectedArgs>? EmptySlotClicked;
+    public event EventHandler<EmptySlotSelectedArgs>? EmptySlotDoubleClicked;
 
     public MonthView()
     {
@@ -23,13 +37,28 @@ public sealed partial class MonthView : UserControl
     }
 
     /// <summary>Supply the anchor month (any date within it), appointments, and style.</summary>
-    internal void SetData(DateTime anchor, IReadOnlyList<AppointmentModel> appointments, SchedulerPalette palette, AppointmentTemplating templating)
+    internal void SetData(
+        DateTime anchor,
+        IReadOnlyList<AppointmentModel> appointments,
+        SchedulerPalette palette,
+        AppointmentTemplating templating,
+        bool isReadOnly = false,
+        IReadOnlyCollection<AppointmentModel>? selected = null)
     {
         _anchor = anchor;
         _appointments = appointments;
         _palette = palette;
         _templating = templating;
+        _isReadOnly = isReadOnly;
+        _selected = selected ?? Array.Empty<AppointmentModel>();
         Render();
+    }
+
+    /// <summary>Outline the selected chips without a re-render.</summary>
+    public void ApplySelection(IReadOnlyCollection<AppointmentModel>? selected)
+    {
+        _selected = selected ?? Array.Empty<AppointmentModel>();
+        SelectionFrame.Apply(_frames, _selected);
     }
 
     private void Render()
@@ -37,6 +66,15 @@ public sealed partial class MonthView : UserControl
         Root.Children.Clear();
         Root.RowDefinitions.Clear();
         Root.ColumnDefinitions.Clear();
+        _frames.Clear();
+        _taps = new TapInteraction
+        {
+            Click = (a, ctrl) => AppointmentClicked?.Invoke(this, new AppointmentClickArgs { Appointment = a, WithCtrl = ctrl }),
+            DoubleClick = a => AppointmentDoubleClicked?.Invoke(this, a),
+            Context = (a, pos) => AppointmentContextMenuRequested?.Invoke(this, new AppointmentContextRequestedArgs { Appointment = a, Position = pos }),
+            EmptyClick = _isReadOnly ? null : e => EmptySlotClicked?.Invoke(this, e),
+            EmptyDoubleClick = _isReadOnly ? null : e => EmptySlotDoubleClicked?.Invoke(this, e),
+        };
 
         Root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // weekday header
         for (var r = 0; r < 6; r++)
@@ -86,6 +124,8 @@ public sealed partial class MonthView : UserControl
                 Root.Children.Add(cell);
             }
         }
+
+        SelectionFrame.Apply(_frames, _selected);
     }
 
     private Border BuildCell(DateTime date)
@@ -117,7 +157,10 @@ public sealed partial class MonthView : UserControl
         {
             var chip = EventBlockFactory.CreateChip(a, _palette, _templating, showTime: !a.IsAllDay);
             chip.Height = 18;
-            stack.Children.Add(chip);
+            var frame = new SelectionFrame(chip, a, 3);
+            _taps.AttachAppointment(frame, a);
+            _frames.Add(frame);
+            stack.Children.Add(frame);
         }
         if (dayEvents.Count > MaxChipsPerCell)
         {
@@ -130,13 +173,16 @@ public sealed partial class MonthView : UserControl
             });
         }
 
-        return new Border
+        var cell = new Border
         {
             BorderBrush = _palette.MinorLine,
             BorderThickness = new Thickness(0, 0, 1, 1),
-            Background = isToday ? _palette.TodayHighlight : null,
+            // Transparent (not null) so the empty part of the cell is hit-testable for clicks.
+            Background = isToday ? _palette.TodayHighlight : new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             Child = stack,
         };
+        _taps.AttachEmptyDay(cell, date, resourceId: null);
+        return cell;
     }
 
     private static bool OnDate(AppointmentModel a, DateTime date) =>

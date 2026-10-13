@@ -186,8 +186,14 @@ internal static class EventBlockFactory
             VerticalAlignment = VerticalAlignment.Bottom,
         };
 
-        // Name on top; when the event has a note, a divider then the note below it.
+        // Name on top; when the event has a note, a divider then the note below it. Top / Bottom tiles
+        // ride as rows above the subject / below the note.
         var info = new StackPanel { VerticalAlignment = VerticalAlignment.Top };
+        if (BuildTiles(ctx, TileSide.Top, multiLine: true, 10) is { } topTiles)
+        {
+            topTiles.Margin = new Thickness(0, 0, 0, 2);
+            info.Children.Add(topTiles);
+        }
         info.Children.Add(subject);
         if (!string.IsNullOrWhiteSpace(ctx.Note))
         {
@@ -208,17 +214,23 @@ internal static class EventBlockFactory
                 TextTrimming = TextTrimming.CharacterEllipsis,
             });
         }
+        if (BuildTiles(ctx, TileSide.Bottom, multiLine: true, 10) is { } bottomTiles)
+        {
+            bottomTiles.Margin = new Thickness(0, 2, 0, 0);
+            info.Children.Add(bottomTiles);
+        }
 
         // Name/divider/note flow from the top; the compact time stays pinned bottom-right.
         var content = new Grid { Margin = new Thickness(5, 2, 4, 2) };
         content.Children.Add(info);
         content.Children.Add(timePill);
-        Grid.SetColumn(content, 2);
+        Grid.SetColumn(content, 3);
         FitShortBlock(content, subject, timePill, ctx.Subject);
 
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // accent bar
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // icon gutter (left)
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // tile gutter (left)
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // content
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // tile gutter (right)
         grid.Children.Add(barRect);
@@ -235,12 +247,17 @@ internal static class EventBlockFactory
             grid.Children.Add(indicators);
         }
 
-        // Data tiles live in a RIGHT gutter (vertical strip), opposite the left status icons.
-        if (BuildTiles(ctx, 10, Orientation.Vertical) is { } tiles)
+        // Data tiles: vertical gutter strips at the left (after the status icons) and the right.
+        if (BuildTiles(ctx, TileSide.Left, multiLine: true, 10) is { } leftTiles)
         {
-            tiles.VerticalAlignment = VerticalAlignment.Top;
+            leftTiles.Margin = new Thickness(3, 3, 0, 3);
+            Grid.SetColumn(leftTiles, 2);
+            grid.Children.Add(leftTiles);
+        }
+        if (BuildTiles(ctx, TileSide.Right, multiLine: true, 10) is { } tiles)
+        {
             tiles.Margin = new Thickness(2, 3, 3, 3);
-            Grid.SetColumn(tiles, 3);
+            Grid.SetColumn(tiles, 4);
             grid.Children.Add(tiles);
         }
 
@@ -290,11 +307,12 @@ internal static class EventBlockFactory
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap,
         };
-        Grid.SetColumn(text, 2);
+        Grid.SetColumn(text, 3);
 
         var grid = new Grid { Margin = new Thickness(3, 1, 5, 1) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // tiles (left)
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // tiles (right)
         grid.Children.Add(dot);
@@ -308,15 +326,28 @@ internal static class EventBlockFactory
             grid.Children.Add(indicators);
         }
 
-        if (BuildTiles(ctx, 9, Orientation.Horizontal) is { } tiles)
-        {
-            tiles.VerticalAlignment = VerticalAlignment.Center;
-            tiles.Margin = new Thickness(4, 0, 0, 0);
-            Grid.SetColumn(tiles, 3);
-            grid.Children.Add(tiles);
-        }
+        AddLineTiles(grid, ctx, leftColumn: 2, rightColumn: 4);
 
         return Shell(ctx, grid);
+    }
+
+    // Tiles on a single-line surface (chip, bar): a left strip before the text and a right strip after it.
+    private static void AddLineTiles(Grid grid, AppointmentContext ctx, int leftColumn, int rightColumn)
+    {
+        if (BuildTiles(ctx, TileSide.Left, multiLine: false, 9) is { } left)
+        {
+            left.VerticalAlignment = VerticalAlignment.Center;
+            left.Margin = new Thickness(0, 0, 4, 0);
+            Grid.SetColumn(left, leftColumn);
+            grid.Children.Add(left);
+        }
+        if (BuildTiles(ctx, TileSide.Right, multiLine: false, 9) is { } right)
+        {
+            right.VerticalAlignment = VerticalAlignment.Center;
+            right.Margin = new Thickness(4, 0, 0, 0);
+            Grid.SetColumn(right, rightColumn);
+            grid.Children.Add(right);
+        }
     }
 
     private static FrameworkElement DefaultBar(AppointmentContext ctx)
@@ -335,11 +366,12 @@ internal static class EventBlockFactory
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap,
         };
-        Grid.SetColumn(text, 2);
+        Grid.SetColumn(text, 3);
 
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // tiles (left)
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // tiles (right)
         grid.Children.Add(barRect);
@@ -353,13 +385,7 @@ internal static class EventBlockFactory
             grid.Children.Add(indicators);
         }
 
-        if (BuildTiles(ctx, 9, Orientation.Horizontal) is { } tiles)
-        {
-            tiles.VerticalAlignment = VerticalAlignment.Center;
-            tiles.Margin = new Thickness(4, 0, 0, 0);
-            Grid.SetColumn(tiles, 3);
-            grid.Children.Add(tiles);
-        }
+        AddLineTiles(grid, ctx, leftColumn: 2, rightColumn: 4);
 
         return Shell(ctx, grid);
     }
@@ -698,50 +724,118 @@ internal static class EventBlockFactory
         return $"{m}m";
     }
 
-    // ---- Tile strip (right gutter) -------------------------------------------------------------
+    // ---- Tiles -----------------------------------------------------------------------------------
 
-    // The data-driven tiles (host "tile" feature) shown in the block's RIGHT gutter — opposite the left
-    // status-icon strip. Each tile is a small pill (colored text) or an image. Null when there are none or
-    // tiles are hidden ("Show tiles" off).
-    private static StackPanel? BuildTiles(AppointmentContext ctx, double defaultSize, Orientation orientation = Orientation.Vertical)
+    // The data-driven tiles (host "tile" feature) on one side of the block (see TileLayout for where each
+    // Position lands). One strip per alignment group, overlaid in the same cell and aligned along the strip
+    // (Near / Middle / Far). Null when there are none on that side or tiles are hidden ("Show tiles" off).
+    private static FrameworkElement? BuildTiles(AppointmentContext ctx, TileSide side, bool multiLine, double defaultSize)
     {
         if (!ctx.ShowTiles || ctx.Tiles.Count == 0)
         {
             return null;
         }
 
-        var strip = new StackPanel { Orientation = orientation, Spacing = 2 };
-        foreach (var t in ctx.Tiles)
+        var vertical = TileLayout.IsVertical(side, multiLine);
+        var host = new Grid();
+        foreach (var (alignment, tiles) in TileLayout.Groups(ctx.Tiles, side, multiLine))
         {
-            FrameworkElement? el =
-                t.Image is { Length: > 0 } bytes ? TileImage(bytes)
-                : !string.IsNullOrWhiteSpace(t.Text) ? TileText(t, ctx, defaultSize)
-                : null;
-            if (el is not null) strip.Children.Add(el);
+            var strip = new StackPanel { Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, Spacing = 2 };
+            if (vertical)
+            {
+                strip.VerticalAlignment = alignment switch
+                {
+                    DecorationAlignment.Far => VerticalAlignment.Bottom,
+                    DecorationAlignment.Middle => VerticalAlignment.Center,
+                    _ => VerticalAlignment.Top,
+                };
+            }
+            else
+            {
+                strip.HorizontalAlignment = alignment switch
+                {
+                    DecorationAlignment.Far => HorizontalAlignment.Right,
+                    DecorationAlignment.Middle => HorizontalAlignment.Center,
+                    _ => HorizontalAlignment.Left,
+                };
+            }
+
+            foreach (var t in tiles)
+            {
+                if (Tile(t, ctx, defaultSize) is not { } el)
+                {
+                    continue;
+                }
+                // In a vertical gutter, pills hug the block's outer edge.
+                if (vertical)
+                {
+                    el.HorizontalAlignment = side == TileSide.Left ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+                }
+                if (t.OffsetX != 0 || t.OffsetY != 0)
+                {
+                    el.RenderTransform = new TranslateTransform { X = t.OffsetX, Y = t.OffsetY };
+                }
+                if (!string.IsNullOrEmpty(t.Tooltip))
+                {
+                    ToolTipService.SetToolTip(el, t.Tooltip);
+                }
+                strip.Children.Add(el);
+            }
+            if (strip.Children.Count > 0)
+            {
+                host.Children.Add(strip);
+            }
         }
-        return strip.Children.Count > 0 ? strip : null;
+        return host.Children.Count > 0 ? host : null;
     }
 
-    private static FrameworkElement TileText(AppointmentDecoration t, AppointmentContext ctx, double defaultSize)
+    // One tile: its image, or a pill with its glyph and/or text side by side. Null when it has none of them.
+    private static FrameworkElement? Tile(AppointmentDecoration t, AppointmentContext ctx, double defaultSize)
     {
-        var text = new TextBlock
+        if (t.Image is { Length: > 0 } bytes)
         {
-            Text = t.Text,
-            FontSize = t.FontSize > 0 ? t.FontSize : defaultSize,
-            FontWeight = t.Bold ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
-            Foreground = t.ForeColor is Color c ? new SolidColorBrush(c) : GlyphDark,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            TextWrapping = TextWrapping.NoWrap,
-        };
-        // A neutral pill (the same grey as the time/icon chips) so coloured balance text stays legible on
-        // any block fill.
+            return TileImage(bytes);
+        }
+        var hasGlyph = !string.IsNullOrEmpty(t.Glyph);
+        var hasText = !string.IsNullOrWhiteSpace(t.Text);
+        if (!hasGlyph && !hasText)
+        {
+            return null;
+        }
+
+        var size = t.FontSize > 0 ? t.FontSize : defaultSize;
+        var foreground = t.ForeColor is Color c ? new SolidColorBrush(c) : GlyphDark;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+        if (hasGlyph)
+        {
+            var icon = new FontIcon { Glyph = t.Glyph!, FontSize = size, Foreground = foreground, VerticalAlignment = VerticalAlignment.Center };
+            if (t.GlyphFontFamily is not null) icon.FontFamily = t.GlyphFontFamily;
+            row.Children.Add(icon);
+        }
+        if (hasText)
+        {
+            row.Children.Add(new TextBlock
+            {
+                Text = t.Text,
+                FontSize = size,
+                FontWeight = t.Bold ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
+                Foreground = foreground,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.NoWrap,
+            });
+        }
+
+        // The tile's own fill/border when set; otherwise a neutral pill (the same grey as the time/icon
+        // chips) so colored text stays legible on any block fill.
         return new Border
         {
-            Child = text,
-            Background = TimePillBackBrush,
+            Child = row,
+            Background = t.BackColor is Color bc ? new SolidColorBrush(bc) : TimePillBackBrush,
+            BorderBrush = t.BorderColor is Color brc ? new SolidColorBrush(brc) : null,
+            BorderThickness = t.BorderColor is null ? new Thickness(0) : new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(5, 1, 5, 1),
-            HorizontalAlignment = HorizontalAlignment.Right,
         };
     }
 

@@ -14,10 +14,10 @@ Namespaces:
 
 | Namespace | Contains |
 |---|---|
-| `Xtreme.Components.Scheduler.Controls` | `SchedulerControl`, `SchedulerToolbar`, the view controls |
+| `Xtreme.Components.Scheduler.Controls` | `SchedulerControl`, `SchedulerToolbar` |
 | `Xtreme.Components.Scheduler.Models` | `AppointmentModel`, `ResourceModel`, decorations, enums, toolbar models |
 | `Xtreme.Components.Scheduler.Contracts` | Event argument types, `ISchedulerDroppable` |
-| `Xtreme.Components.Scheduler.Rendering` | `AppointmentContext` (the template / renderer data context) |
+| `Xtreme.Components.Scheduler.Rendering` | `AppointmentContext` (the template / renderer data context), `EventBlockLayout` |
 | `Xtreme.Components.Scheduler.Interaction` | `ExternalDropHandler` (external drag-drop bridge) |
 | `Xtreme.Components.Scheduler.Utilities` | `SchedulerTimeFormatter`, `TimeZoneConverter` |
 
@@ -33,8 +33,9 @@ screen.
 
 The same rule extends to UI the control could be expected to own but does not:
 
-- **No context menu.** Right-click raises `AppointmentContextRequested`; the host builds the menu.
-- **No appointment editor.** Double-click raises `AppointmentEditRequested`; the host shows its own form.
+- **No context menu.** Right-click raises `AppointmentContextRequested` (in every view); the host builds the menu.
+- **No appointment editor.** Double-click raises `AppointmentEditRequested` (in every view); the host shows its
+  own form. An unhandled request does nothing.
 - **No resource picker.** The host filters `SchedulerResources`.
 - **No persistence.** Settings the user changes in the toolbar (view, time scale, work hours...) are
   written back to the control's dependency properties; saving them is the host's job.
@@ -78,6 +79,8 @@ Merge the theme dictionaries first; see [theming.md, section 1](theming.md#1-mer
 ### AppointmentModel
 
 A plain, domain-agnostic class. Map your own entities onto it; carry the original in `Tag`.
+`Clone()` returns a copy with every property carried over and its own collection lists (the items and
+`Tag` are shared), which is handy for "duplicate" commands.
 
 | Property | Type | Default | Notes |
 |---|---|---|---|
@@ -85,16 +88,16 @@ A plain, domain-agnostic class. Map your own entities onto it; carry the origina
 | `Subject` | `string` | `""` | Block title. |
 | `Description` | `string?` | `null` | Shown as the note in the default tooltip (exposed as `AppointmentContext.Note`). |
 | `Memo` | `string?` | `null` | Secondary "Internal memo" section in the default tooltip. |
-| `Start` / `End` | `DateTime` | | See [Times and time zones](#times-and-time-zones). `End` must be >= `Start`. |
+| `Start` / `End` | `DateTime` | | Wall-clock times, drawn as given (UTC only in a zoned Planner lane). See [Times and time zones](#times-and-time-zones). `End` must be >= `Start`. |
 | `IsAllDay` | `bool` | `false` | Renders in the all-day banner; never time-zone shifted. |
 | `ResourceIds` | `IList<object>` | empty list | Resource ids this appointment belongs to. One block is drawn per matching resource lane. Empty = unassigned. |
 | `BarColor` | `Color?` | `null` | Left accent bar. Null = theme default. |
-| `BackColor` | `Color?` | `null` | Block fill. Null = theme default. Text colour is auto-contrasted against it. |
+| `BackColor` | `Color?` | `null` | Block fill. Null = theme default. Text color is auto-contrasted against it. |
 | `RecurrenceRule` | `string?` | `null` | Any non-blank value shows the recurrence glyph. The control does **not** expand occurrences; supply each occurrence as its own appointment. |
 | `RecurrenceException` | `string?` | `null` | Carried, not interpreted. |
 | `IsRecurring` | `bool` (read-only) | | `RecurrenceRule` is non-blank. |
 | `Duration` | `TimeSpan` (read-only) | | `End - Start`. |
-| `IsLocked` | `bool` | `false` | Lock strip; cannot be selected, moved, resized or deleted. Right-click still raises the context event. |
+| `IsLocked` | `bool` | `false` | Lock strip; cannot be selected, moved, resized, deleted or edited (no edit request). Right-click still raises the context event. |
 | `IsComplete`, `IsConfirmed`, `IsCancelled`, `IsTentative` | `bool` | `false` | Each shows a built-in status glyph. |
 | `Indicators` | `IList<AppointmentIndicator>` | empty | Extra status glyphs. See [section 8](#8-icons-and-adornments). |
 | `Tiles` | `IList<AppointmentDecoration>` | empty | Data tiles. See [section 7](#7-tiles). |
@@ -108,23 +111,27 @@ A plain, domain-agnostic class. Map your own entities onto it; carry the origina
 |---|---|---|---|
 | `Id` | `object` | `0` | Matched against `AppointmentModel.ResourceIds` by value equality. |
 | `Name` | `string` | `""` | Lane / column header. |
-| `Color` | `Color?` | `null` | Header chip colour. |
-| `TimeZoneId` | `string?` | `null` | IANA id such as `"America/New_York"`. Used by the Planner only (below). |
+| `Color` | `Color?` | `null` | Header chip color. |
+| `TimeZoneId` | `string?` | `null` | IANA id such as `"America/New_York"`. Used by the Planner only, and changes how that lane reads the times (below). |
 
 ### Times and time zones
 
-`AppointmentModel` documents `Start`/`End` as UTC instants, but the control only converts in one
-place:
+The contract, in one rule: **`Start` and `End` are wall-clock times, drawn exactly as given**, with a
+single exception.
 
-- **Planner view, resource with `TimeZoneId`**: the value is treated as UTC and shown in that zone's
-  wall-clock (`TimeZoneConverter.ToZone`). Times reported back by Planner gestures in that lane are
-  converted back to UTC (`TimeZoneConverter.FromZone`).
-- **Everywhere else** (Day, Week, Month, Agenda, and Planner lanes with no `TimeZoneId`): the
-  `DateTime` value is drawn as-is. There is no UTC-to-local conversion, and event args report times
-  on the same basis.
+- **Every view by default** (Day, Week, Month, Agenda, and Planner lanes whose resource has no
+  `TimeZoneId`): no conversion at all. Pass the times you want the viewer to see, typically the viewer's
+  local time. Event args report times on the same basis. `DateTime.Kind` is never inspected.
+- **The exception: a Planner lane whose resource sets `TimeZoneId`.** That lane reads `Start`/`End` as
+  **UTC instants** and draws them in the resource's zone (`TimeZoneConverter.ToZone`). Times reported by
+  gestures in that lane (move, resize, create, drop, empty-slot click) are converted back to UTC
+  (`TimeZoneConverter.FromZone`). The appointment in the args is still your own instance.
+- All-day appointments are never shifted, in any view.
 
-In practice: if you do not use `TimeZoneId`, pass the wall-clock times you want displayed (the gallery
-uses local times). If you do use it, keep in mind that Day/Week will still draw the raw value.
+So only set `TimeZoneId` when you store that resource's appointments in UTC, and keep in mind that
+Day/Week/Month/Agenda draw those UTC values unconverted. The common setup is to leave `TimeZoneId` unset
+and pass local times everywhere, which is what the gallery does. A host that wants zoned lanes in the
+Planner and local times elsewhere converts the list it assigns when it switches view.
 
 `TimeZoneConverter.ShortLabel(ianaId)` returns the last segment of an id ("New York") for your own
 headers.
@@ -157,14 +164,18 @@ view switcher writes the same property.
 
 | View | Shows | Interaction |
 |---|---|---|
-| `Day` | `VisibleDays` consecutive days (default 1) from `SelectedDate`, or the `SelectedDates` set | Full: select, multi-select, move, resize, create, external drop, context menu, hover tooltip |
+| `Day` | `VisibleDays` consecutive days (default 1) from `SelectedDate`, or the `SelectedDates` set | Full: select, multi-select, edit request, move, resize (incl. multi-selection), create, external drop, context menu, hover tooltip. The all-day row (shown when the range has all-day items) adds select / edit / context on its chips and an all-day create on its empty cells. |
 | `Week` | 7 days starting on `FirstDayOfWeek` | Same as Day |
-| `Month` | The month containing `SelectedDate`, as day cells with chips | Display only (chip tooltips) |
-| `Agenda` | Date-grouped list over `VisibleDays` or `SelectedDates` | Display only |
-| `Planner` | One week of horizontal resource lanes | Move (including across lanes), resize, drag-create, external drop, context menu. No click-select, edit request or multi-select. Interaction exists for `GroupMode.ByResource` only and not when read-only; `ByDay` is display-only. |
+| `Month` | The month containing `SelectedDate`, as day cells with chips | Select, multi-select, edit request, context menu, chip tooltips; an empty part of a day cell reports `EmptySlotSelected` and creates an all-day appointment on double-click |
+| `Agenda` | Date-grouped list over `VisibleDays` or `SelectedDates` | Select, multi-select, edit request, context menu (anywhere on a row). No empty slots, so no create. |
+| `Planner` | One week of horizontal resource lanes | Select, multi-select, edit request, move (including across lanes), resize, drag-create, empty-slot click / double-click create, external drop, context menu, hover tooltip. Moves and resizes act on one appointment (no group drag). Works in both group modes; in `ByDay` a drag released over a day-header row snaps to the nearest lane, and each lane keeps the full-week time axis, so dragging a bar into another day moves it into that day's group. |
+
+Read-only (`IsReadOnly`) keeps selection, edit requests, right-click and tooltips in every view and removes
+everything that changes data (move, resize, create, external drop, Delete, empty-slot clicks).
 
 In Day and Week, resources become side-by-side columns within each day (or days within each
-resource, per `GroupMode`) when `SchedulerResources` is non-empty.
+resource, per `GroupMode`) when `SchedulerResources` is non-empty. Day/Week edits only through the
+time grid's own gestures; the all-day row, Month and Agenda use tap gestures, so they also work with touch.
 
 ### Dependency properties
 
@@ -174,17 +185,17 @@ resource, per `GroupMode`) when `SchedulerResources` is non-empty.
 | `SchedulerResources` | `IReadOnlyList<ResourceModel>?` | `null` | Resource lanes / columns. Named to avoid clashing with `FrameworkElement.Resources`. |
 | `CurrentView` | `SchedulerView` | `Week` | Active view. |
 | `SelectedDate` | `DateTimeOffset` | today (set in the constructor) | Anchor date. Time part is ignored. Prev/Next/Today write it. |
-| `SelectedDates` | `IReadOnlyList<DateTime>?` | `null` | Non-contiguous dates shown side by side (e.g. "the next four Saturdays"). Honoured by Day and Agenda only; switching to Week/Month/Planner clears it. Overrides `SelectedDate` + `VisibleDays`. |
+| `SelectedDates` | `IReadOnlyList<DateTime>?` | `null` | Non-contiguous dates shown side by side (e.g. "the next four Saturdays"). Honored by Day and Agenda only; switching to Week/Month/Planner clears it. Overrides `SelectedDate` + `VisibleDays`. |
 | `VisibleDays` | `int` | `1` | Day count for Day and Agenda. |
 | `FirstDayOfWeek` | `DayOfWeek` | `Sunday` | First day for Week and Planner. The toolbar offers Sunday or Monday. |
-| `GroupMode` | `SchedulerGroupMode` | `ByResource` | Header hierarchy: `ByResource` (resource, then day) or `ByDay` (day, then resource). |
-| `HideIdleResources` | `bool` | `false` | Hide resource columns with nothing in the visible range (Day/Week). |
+| `GroupMode` | `SchedulerGroupMode` | `ByResource` | Header hierarchy in Day, Week and Planner: `ByResource` (resource, then day) or `ByDay` (day, then resource). |
+| `HideIdleResources` | `bool` | `false` | Hide resources with nothing in the visible range: Day/Week columns, and Planner lanes with no timed appointment that week (all-day items are not drawn in the Planner). |
 | `WorkDayStart` | `TimeSpan` | `08:00` | Start of the shaded working-hours band (Day/Week). |
 | `WorkDayEnd` | `TimeSpan` | `17:00` | End of the band. |
-| `TimeIncrement` | `TimeIncrementConfig` | `null` (treated as `TimeIncrementConfig.Default`) | Time scale for Day/Week/Planner. |
+| `TimeIncrement` | `TimeIncrementConfig` | a fresh `TimeIncrementConfig.Default` per control | Time scale for Day/Week, and the drag snap step in Day/Week/Planner. Setting `null` falls back to the default scale. |
 | `ColumnMinWidth` | `double` | `80` | Minimum column width (px) in Day/Week. Narrower than this, the body scrolls horizontally. |
-| `IsReadOnly` | `bool` | `false` | Disables move, resize, create, external drop and Delete. Click-select, tooltips and right-click still work. |
-| `SingleClickCreates` | `bool` | `false` | Quick-add: a single click on an empty Day/Week slot raises `AppointmentCreateRequested` (normally a double-click). |
+| `IsReadOnly` | `bool` | `false` | Disables move, resize, create, external drop, Delete and empty-slot clicks in every view. Click-select, edit requests, tooltips and right-click still work. |
+| `SingleClickCreates` | `bool` | `false` | Quick-add: a single click on an empty slot (Day/Week, all-day row, Planner lane, Month cell) raises `AppointmentCreateRequested` (normally a double-click). |
 | `SelectedAppointment` | `AppointmentModel?` | `null` | The single selected appointment; null when zero or several are selected. Settable (set null to clear). |
 | `SelectedAppointments` | `IReadOnlyList<AppointmentModel>?` | `null` | Full selection set. Read-only to the host. |
 | `ShowTiles` | `bool` | `true` | Whether `AppointmentModel.Tiles` render. |
@@ -194,7 +205,7 @@ resource, per `GroupMode`) when `SchedulerResources` is non-empty.
 | `AppointmentBarTemplate` | `DataTemplate?` | `null` | Planner bar template. |
 | `AppointmentTooltipTemplate` | `DataTemplate?` | `null` | Hover popup template. |
 
-`TimeIncrementConfig` has `MajorTick` (default 1 h, labelled lines), `MinorTick` (default 30 min,
+`TimeIncrementConfig` has `MajorTick` (default 1 h, labeled lines), `MinorTick` (default 30 min,
 gridlines and drag snap), `PixelsPerMinute` (default 0.8, so one hour is 48 px), plus the computed
 `MinorSlotHeight`, `MajorSlotHeight` and `DayHeight`.
 
@@ -225,7 +236,8 @@ Scheduler.SelectedDates = Enumerable.Range(0, 4).Select(i => nextSaturday.AddDay
 
 The toolbar Settings flyout edits `GroupMode`, `HideIdleResources`, `TimeIncrement`,
 `ColumnMinWidth`, `AppointmentCornerRadius`, `ShowTiles`, `FirstDayOfWeek` and the work hours, and
-writes the values straight into these properties. Read them back when you want to persist the user's
+writes the values straight into these properties. (Per-tile toggles live in a separate "Visible tiles"
+toolbar button; see [Tiles](#7-tiles).) Read them back when you want to persist the user's
 choices.
 
 ---
@@ -276,8 +288,9 @@ _scheduler.AppointmentResizeRequested += (_, e) =>
 };
 ```
 
-In a Planner lane whose resource has a `TimeZoneId`, the `Appointment` in the args is a shifted copy,
-not your instance. Resolve your record by `Appointment.Id` rather than by reference.
+`Appointment` in every move, resize, edit and context arg is your own instance from `Appointments`, in
+every view. In a Planner lane whose resource has a `TimeZoneId` the lane draws a shifted copy, but the
+args map it back to your instance, with `NewStart`/`NewEnd` converted back to UTC.
 
 ### Create
 
@@ -285,12 +298,16 @@ not your instance. Resolve your record by `Appointment.Id` rather than by refere
 `Position`) is raised by:
 
 - dragging across empty time (Day/Week/Planner): a ranged create;
-- double-clicking an empty Day/Week slot: a 60-minute create at that slot;
-- a single click on an empty Day/Week slot when `SingleClickCreates` is true.
+- double-clicking an empty Day/Week slot or Planner lane: a 60-minute create at that slot;
+- double-clicking an empty cell of the Day/Week all-day row, or an empty part of a Month day cell: an
+  all-day create, with `IsAllDay = true`, `Start` = that midnight and `End` = the next midnight;
+- a single click on any of those empty slots when `SingleClickCreates` is true.
 
-`EmptySlotSelected` (`EmptySlotSelectedArgs`: `Start`, `ResourceId`, `Position`) is raised on every
-single click of an empty Day/Week slot, before any create. Use it to track "the selected resource" for
-a New button, or to anchor a popup at `Position`.
+It is never raised when `IsReadOnly` is true. The Agenda has no empty slots and never creates.
+
+`EmptySlotSelected` (`EmptySlotSelectedArgs`: `Start`, `ResourceId`, `IsAllDay`, `Position`) is raised on
+every single click of an empty slot (the same places), before any create. Use it to track "the selected
+resource" for a New button, or to anchor a popup at `Position`.
 
 ```csharp
 _scheduler.AppointmentCreateRequested += (_, e) =>
@@ -343,9 +360,10 @@ _scheduler.ExternalAppointmentDropped += (_, e) =>
 
 ### Selection and delete
 
-Selection is owned by the control (Day/Week click; right-click in any interactive view):
+Selection is owned by the control and works the same in every view (click, or right-click):
 
 - click selects one appointment; Ctrl+click toggles it in or out of a multi-selection;
+- the selection is outlined in red in every view (Day/Week blocks also lift slightly);
 - locked appointments cannot be selected;
 - `SelectionChanged` (`IReadOnlyList<AppointmentModel>`) fires on every change;
 - `SelectedAppointment` is the single selection (null for none or several); setting it from code
@@ -371,11 +389,11 @@ deleteButton.Click += (_, _) => _scheduler.DeleteSelected();
 
 ## 5. Context menu
 
-`AppointmentContextRequested` (`AppointmentContextRequestedArgs`: `Appointment`, `Position`) is raised
-on right-click in Day and Week (also when `IsReadOnly` is true) and in the Planner (only when it is
-interactive: not read-only, `GroupMode.ByResource`). It is raised for locked appointments too; any
-other appointment is selected first. The control ships no menu: build any
-`FlyoutBase` you like, with whatever items your domain needs.
+`AppointmentContextRequestedArgs` (`Appointment`, `Position`) comes with `AppointmentContextRequested`,
+raised on right-click (or press-and-hold on touch in Month, Agenda and the all-day row) in every view,
+also when `IsReadOnly` is true. It is raised for locked appointments too; any other appointment is
+selected first. The control ships no menu: build any `FlyoutBase` you like, with whatever items your
+domain needs.
 
 `Position` is relative to the **window root** (`XamlRoot.Content`), not to the scheduler.
 `ShowAt(target, options)` expects a position relative to `target`, so transform it first. This is the
@@ -434,10 +452,11 @@ coordinates; apply the same transform to anchor a popup at an empty-slot click.
 
 ## 6. Appointment editor
 
-The Scheduler has **no editor**. A double-click on an appointment raises `AppointmentEditRequested`
-(`AppointmentEditRequestedArgs`: `Appointment`, `Handled`); set `Handled = true` when you open your
-own. (The args' documentation mentions a default editor fallback; it is not implemented, so an
-unhandled request does nothing.) Use any UI: a side pane, a `ContentDialog`, a separate page.
+The Scheduler has **no editor**. A double-click (double-tap) on a non-locked appointment, in any view,
+selects it and raises `AppointmentEditRequested` (`AppointmentEditRequestedArgs`: `Appointment`,
+`Handled`). A single click only selects. An unhandled request does nothing. `Handled` is not read by the
+control; it lets several subscribers coordinate (the one that opened an editor sets it). Use any UI: a
+side pane, a `ContentDialog`, a separate page.
 
 The gallery opens a side pane built from other packages in this repository: a `SectionCard`
 (`Xtreme.Components.Cards`) holding text boxes, two `DateTimePicker`s and an `EditorActionBar`
@@ -524,11 +543,24 @@ editor closes if you want the highlight cleared.
 
 ## 7. Tiles
 
-Tiles are small data labels drawn in the right-hand gutter of a block (and repeated in the default
-tooltip). They come from `AppointmentModel.Tiles`, a list of `AppointmentDecoration`. The host
-computes them; the control only draws them. A tile renders its `Image` if set, otherwise its `Text`
-as a pill using `ForeColor`, `FontSize` and `Bold`. Tiles are laid out as a strip; `Position`,
-`Alignment`, offsets and `Glyph` do not affect where or how a tile is drawn in the block.
+Tiles are small data labels drawn on a block (and repeated in the default tooltip). They come from
+`AppointmentModel.Tiles`, a list of `AppointmentDecoration`. The host computes them; the control only
+draws them. A tile renders its `Image` if set, otherwise a pill with its `Glyph` and/or `Text` side by
+side, styled by `ForeColor`, `BackColor` (default: a neutral gray pill), `BorderColor`, `FontSize` and
+`Bold`, with `Tooltip` on hover.
+
+Unlike adornments, tiles never cover the subject: they flow in strips, and `Position` picks the strip.
+
+| `Position` | Timed block (Day/Week) | Chip (Month, all-day row, Agenda) and Planner bar |
+|---|---|---|
+| `Left`, `FloatLeft` (the default) | A vertical strip at the left, after the status icons | A strip before the subject |
+| `Right`, `FloatRight` | A vertical strip at the right | A strip after the subject |
+| `Top` | A row above the subject | The strip after the subject (one line, no room above) |
+| `Bottom`, `FloatCenter` | A row below the subject and note | The strip after the subject |
+
+`Alignment` places a tile along its strip (`Near` = top / left, `Middle` = center, `Far` = bottom /
+right), and `OffsetX` / `OffsetY` nudge it by pixels. Tiles on the same strip and alignment keep the
+order of the list.
 
 `ShowTiles` (default `true`, also a switch in the Settings flyout) hides or shows all tiles.
 
@@ -567,12 +599,13 @@ private void Refresh()
 private IEnumerable<AppointmentDecoration> Tiles(int id)
 {
     if (_tileKeys.Contains("status"))
-        yield return new AppointmentDecoration { Text = id % 2 == 0 ? "Scheduled" : "Confirmed", Tooltip = "Status tile" };
+        yield return new AppointmentDecoration { Text = id % 2 == 0 ? "Scheduled" : "Confirmed", Position = DecorationPosition.Bottom, Tooltip = "Status tile" };
 
     if (_tileKeys.Contains("balance") && CustomerBalances.TryGetValue(id, out var due))
         yield return new AppointmentDecoration
         {
             Text = due > 0 ? $"{due:C0} due" : "Paid up",
+            Position = DecorationPosition.Bottom,
             Bold = due > 0,
             ForeColor = due > 0 ? Microsoft.UI.Colors.Firebrick : Microsoft.UI.Colors.DarkGreen,
             Tooltip = "Customer balance, looked up by event id",
@@ -606,8 +639,8 @@ a.Indicators = [new AppointmentIndicator { Glyph = "", Tooltip = "Site photos
 ### Adornments
 
 `AppointmentModel.Adornments` are badges overlaid on the block at a position. Each is an
-`AppointmentDecoration`, rendered in priority order `Image`, then `Glyph` (`GlyphFontFamily`), then
-`Text`, and anchored by:
+`AppointmentDecoration`: its `Image` when set, otherwise a pill with its `Glyph` (`GlyphFontFamily`) and/or
+`Text` side by side, anchored by:
 
 - `Position` (`DecorationPosition`): `Left`, `Top`, `Right`, `Bottom`, `FloatLeft` (default),
   `FloatCenter`, `FloatRight`. All values currently overlay; edge positions do not reserve space.
@@ -650,9 +683,26 @@ _scheduler.AdornmentToggleRequested += (_, button) =>
 };
 ```
 
-The adornment group uses `Id`, `Glyph`, `Image`, `Label`, `Tooltip` and `IsEnabled`. `IsToggle`,
-`IsChecked`, `Command` and `MenuItems` have no effect there; they apply to `ToolbarButtons`
-([section 11](#11-toolbar-and-the-view-controls)).
+The adornment group honors every `SchedulerToolbarButton` member, the same way `ToolbarButtons` do
+([section 11](#11-toolbar-and-the-view-controls)): a click runs `Command` (with `CommandParameter`) and then
+raises `AdornmentToggleRequested`; a checked `IsToggle` button shows pressed (a check mark in the narrow
+drop-down); `MenuItems` turn a button into a drop-down (a submenu when narrow) whose picked entry is
+reported. The buttons are init-only, so to reflect state, replace them. The gallery re-supplies its
+toggles on every selection change, checked when the selected appointment carries that adornment:
+
+```csharp
+private void UpdateAdornmentButtons()
+{
+    var target = _scheduler.SelectedAppointment;
+    bool Has(string id) => target?.Adornments.Any(a => a.Tooltip == id) == true;
+
+    _scheduler.ToolbarAdornments.Clear();
+    _scheduler.ToolbarAdornments.Add(new SchedulerToolbarButton { Id = "urgent", Label = "Urgent", IsToggle = true, IsChecked = Has("urgent") });
+    _scheduler.ToolbarAdornments.Add(new SchedulerToolbarButton { Id = "paid",   Label = "Paid",   IsToggle = true, IsChecked = Has("paid") });
+}
+
+_scheduler.SelectionChanged += (_, _) => UpdateAdornmentButtons();
+```
 
 ---
 
@@ -661,8 +711,8 @@ The adornment group uses `Id`, `Glyph`, `Image`, `Label`, `Tooltip` and `IsEnabl
 Every appointment has a hover popup. The default one shows the subject (with the status glyphs), the
 date, the time range with duration, then, when present, `Details` rows (`Label: Value`, rows with a
 blank value are skipped), the `Description`, the `Memo` under "Internal memo", and the tiles and
-adornments. In Day/Week the popup is driven by the pointer overlay and clamped to the visible area;
-in the other views it is a standard `ToolTip`.
+adornments. In Day/Week and the Planner the popup is driven by the pointer overlay and clamped to the
+visible area; in Month, Agenda and the all-day row it is a standard `ToolTip`.
 
 Override it, in priority order:
 
@@ -833,9 +883,9 @@ _scheduler.ToolbarButtonClicked += (_, b) =>
 `SetWorkHours`, `SetResourceOptionsVisible`, `SetCustomButtons`, `SetAdornmentButtons`) and events for
 each user action. Most applications should use the toolbar built into `SchedulerControl`.
 
-`TimeGridView`, `PlannerView`, `MonthView` and `AgendaView` are public classes with public events, but
-their data-loading method is internal, so they cannot be populated outside `SchedulerControl`. Treat
-them as implementation detail and use `SchedulerControl` with `CurrentView`.
+The views themselves (Day/Week time grid, Planner, Month, Agenda) are internal: `SchedulerControl` with
+`CurrentView` is the entry point, and it owns the selection, double-click detection and the public events
+the views feed. The same goes for the rendering panels behind them.
 
 ---
 
@@ -907,11 +957,11 @@ every DP listed and are omitted.
 | `AppointmentsResizeArgs` | `Items` (`AppointmentResizeItem`: `Appointment`, `NewStart`, `NewEnd`), `WithShift` |
 | `AppointmentsDeleteArgs` | `Appointments`, `WithShift` |
 | `AppointmentCreateArgs` | `Start`, `End`, `ResourceId`, `IsAllDay`, `Position` |
-| `EmptySlotSelectedArgs` | `Start`, `ResourceId`, `Position` |
+| `EmptySlotSelectedArgs` | `Start`, `ResourceId`, `IsAllDay`, `Position` |
 | `ExternalDropArgs` | `Item`, `Start`, `End`, `ResourceId` |
-| `AppointmentEditRequestedArgs` | `Appointment`, `Handled` (settable) |
+| `AppointmentEditRequestedArgs` | `Appointment`, `Handled` (settable, not read by the control) |
 | `AppointmentContextRequestedArgs` | `Appointment`, `Position` |
-| `AppointmentClickArgs` | `Appointment`, `WithCtrl` (raised by `TimeGridView`; `SchedulerControl` consumes it) |
+| `AppointmentClickArgs` | `Appointment`, `WithCtrl` (how the internal views report a click to `SchedulerControl`; no public event carries it) |
 | `ISchedulerDroppable` | `Subject`, `DefaultDuration`, `Payload` |
 
 `Position` values are `Windows.Foundation.Point?` relative to `XamlRoot.Content`.
@@ -920,7 +970,7 @@ every DP listed and are omitted.
 
 | Type | Members |
 |---|---|
-| `AppointmentModel` | `Id`, `Subject`, `Description`, `Memo`, `Start`, `End`, `IsAllDay`, `ResourceIds`, `BarColor`, `BackColor`, `RecurrenceRule`, `RecurrenceException`, `IsRecurring`, `Duration`, `IsLocked`, `IsComplete`, `IsConfirmed`, `IsCancelled`, `IsTentative`, `Indicators`, `Details`, `Tiles`, `Adornments`, `Tag` |
+| `AppointmentModel` | `Id`, `Subject`, `Description`, `Memo`, `Start`, `End`, `IsAllDay`, `ResourceIds`, `BarColor`, `BackColor`, `RecurrenceRule`, `RecurrenceException`, `IsRecurring`, `Duration`, `IsLocked`, `IsComplete`, `IsConfirmed`, `IsCancelled`, `IsTentative`, `Indicators`, `Details`, `Tiles`, `Adornments`, `Tag`, `Clone()` |
 | `ResourceModel` | `Id`, `Name`, `Color`, `TimeZoneId` |
 | `AppointmentIndicator` | `Glyph`, `Color`, `Tooltip`, `FontFamily` |
 | `AppointmentDetail` | `Label`, `Value`; constructors `()` and `(label, value)` |
@@ -944,6 +994,5 @@ every DP listed and are omitted.
 | `TimeZoneConverter` | `ToZone(DateTime utc, string? ianaId)`, `FromZone(DateTime zoned, string? ianaId)`, `ShortLabel(string? ianaId)` |
 | `EventBlockLayout` / `EventLayout` | Pure overlap-packing used by the views: `Layout(day, appointments, minVisibleMinutes)`, `LayoutRange(...)`, `DefaultMinVisibleMinutes`. Usable for custom renderers or tests. |
 
-Also public but internal in spirit (rendering building blocks, not needed by consumers):
-`DayColumnPanel`, `TimelineLanePanel`, `AllDayBanner`, `ResizeGrip`, and the view controls described in
-[section 11](#11-toolbar-and-the-view-controls).
+Everything else (the views, `DayColumnPanel`, `TimelineLanePanel`, the all-day banner, the toolbar's
+resize grip) is internal.

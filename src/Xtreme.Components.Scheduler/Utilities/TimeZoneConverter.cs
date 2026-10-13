@@ -1,3 +1,5 @@
+using Xtreme.Components.Scheduler.Models;
+
 namespace Xtreme.Components.Scheduler.Utilities;
 
 /// <summary>
@@ -49,6 +51,19 @@ public static class TimeZoneConverter
         }
 
         return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(zoned, DateTimeKind.Unspecified), tz);
+    }
+
+    /// <summary>
+    /// A <see cref="AppointmentModel.Clone"/> of <paramref name="appointment"/> with Start/End read as UTC and
+    /// shown in <paramref name="ianaId"/>'s wall-clock: what a zoned Planner lane draws. Every other field
+    /// is carried over. Null/blank/unknown id = an unshifted copy.
+    /// </summary>
+    internal static AppointmentModel ToZone(AppointmentModel appointment, string? ianaId)
+    {
+        var shown = appointment.Clone();
+        shown.Start = ToZone(appointment.Start, ianaId);
+        shown.End = ToZone(appointment.End, ianaId);
+        return shown;
     }
 
     /// <summary>A short display abbreviation for the zone (the IANA id's last segment), or null.</summary>

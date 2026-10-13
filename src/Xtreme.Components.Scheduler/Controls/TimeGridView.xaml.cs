@@ -15,7 +15,7 @@ namespace Xtreme.Components.Scheduler.Controls;
 /// readable: columns never shrink below <c>ColumnMinWidth</c> and the body scrolls horizontally
 /// when they don't all fit.
 /// </summary>
-public sealed partial class TimeGridView : UserControl
+internal sealed partial class TimeGridView : UserControl, ISelectionView
 {
     private IReadOnlyList<DateTime> _dates = Array.Empty<DateTime>();
     private IReadOnlyList<AppointmentModel> _appointments = Array.Empty<AppointmentModel>();
@@ -48,13 +48,11 @@ public sealed partial class TimeGridView : UserControl
     private readonly List<Border> _selectionShadows = new();
 
     // The pointer overlay covers the blocks, so hover popups are driven from it (not per-block).
-    // A ToolTip can't be positioned in Uno (PlacementTarget is unimplemented), so we host the
-    // popup content in a Popup we place ourselves at the hover point.
     private Canvas? _overlay;
-    private Microsoft.UI.Xaml.Controls.Primitives.Popup? _hoverPopup;
-    // The body scroller, so OnHover can clamp the popup to the visible viewport (the overlay spans the
-    // whole scrollable content, so a naive pointer-relative offset bleeds off-screen near the edges).
-    private ScrollViewer? _bodyScroll;
+    private HoverCard? _hover;
+
+    // All-day row chips, wrapped so selection can outline them without a re-render.
+    private readonly List<SelectionFrame> _allDayFrames = new();
 
     private TimeGridInteraction? _interaction;
 
@@ -70,6 +68,8 @@ public sealed partial class TimeGridView : UserControl
     public event EventHandler<AppointmentsResizeArgs>? ResizeManyRequested;
     public event EventHandler<ExternalDropArgs>? ExternalDropRequested;
     public event EventHandler<AppointmentClickArgs>? AppointmentClicked;
+    public event EventHandler<AppointmentModel>? AppointmentDoubleClicked;
+    public event EventHandler<EmptySlotSelectedArgs>? EmptySlotDoubleClicked;
     public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextMenuRequested;
     public event EventHandler<(double V, double H)>? ScrollOffsetChanged;
 
@@ -123,11 +123,9 @@ public sealed partial class TimeGridView : UserControl
         _adornedBlocks.Clear();
         _adornmentLayer = null;
         _selectionShadows.Clear();
-        if (_hoverPopup is not null)
-        {
-            _hoverPopup.IsOpen = false;
-            _hoverPopup = null;
-        }
+        _allDayFrames.Clear();
+        _hover?.Hide();
+        _hover = null;
 
         if (_dates.Count == 0)
         {
@@ -340,8 +338,7 @@ public sealed partial class TimeGridView : UserControl
 
         // Hover popup lives in the overlay (a Canvas) so its offsets are in the same coordinate
         // space as the pointer positions the interaction reports.
-        _hoverPopup = new Microsoft.UI.Xaml.Controls.Primitives.Popup();
-        overlay.Children.Add(_hoverPopup);
+        _hover = new HoverCard(overlay, _palette, _templating);
 
         _interaction = new TimeGridInteraction(
             overlay, timeColumns, columnLayouts, fixedColumnWidth: null, _increment, _palette, _isReadOnly,
@@ -351,7 +348,7 @@ public sealed partial class TimeGridView : UserControl
             onExternalDrop: a => ExternalDropRequested?.Invoke(this, a),
             onClick: (a, ctrl) => AppointmentClicked?.Invoke(this, new AppointmentClickArgs { Appointment = a, WithCtrl = ctrl }),
             onContext: (a, pos) => AppointmentContextMenuRequested?.Invoke(this, new AppointmentContextRequestedArgs { Appointment = a, Position = pos }),
-            onHover: OnHover,
+            onHover: (a, pt) => _hover?.Show(a, pt),
             isResizable: IsResizable,
             onCursor: overlay.SetCursorShape,
             getSelection: () => _selectedSet,
@@ -371,7 +368,7 @@ public sealed partial class TimeGridView : UserControl
         Grid.SetRow(bodyScroll, 1);
         Grid.SetColumn(bodyScroll, 1);
         Root.Children.Add(bodyScroll);
-        _bodyScroll = bodyScroll;
+        _hover.Scroll = bodyScroll;
 
         // Freeze the header + gutter to the body's scroll offsets, and report the offset so the host
         // can restore it after a re-render (live upsert) instead of snapping back to business hours.
@@ -414,69 +411,9 @@ public sealed partial class TimeGridView : UserControl
         ApplySelection(_selectedSet);
     }
 
-    // Show/hide the hover popup for the appointment under the pointer (reported by the overlay,
-    // since it covers the blocks). Positioned at the pointer, offset right so it doesn't sit under it.
-    private void OnHover(AppointmentModel? appt, Point pt)
-    {
-        if (_hoverPopup is null)
-        {
-            return;
-        }
-        if (appt is null)
-        {
-            _hoverPopup.IsOpen = false;
-            return;
-        }
-
-        // The popup has no chrome of its own, so wrap the content in a themed card.
-        var card = new Border
-        {
-            Background = _palette.SurfaceBackground,
-            BorderBrush = _palette.EventBorder,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(10, 8, 10, 8),
-            MaxWidth = 360,
-            Child = EventBlockFactory.BuildTooltipContent(appt, _palette, _templating),
-        };
-        _hoverPopup.Child = card;
-
-        // Default placement is down-and-right of the pointer. The overlay spans the entire scrollable
-        // content, so place against the visible viewport (offsets are in the same content coordinate
-        // space as the pointer): if the card would spill past the right/bottom edge, flip it to the
-        // other side of the pointer, then clamp so it stays fully on screen.
-        card.Measure(new Size(card.MaxWidth, double.PositiveInfinity));
-        var size = card.DesiredSize;
-
-        var viewLeft = _bodyScroll?.HorizontalOffset ?? 0;
-        var viewTop = _bodyScroll?.VerticalOffset ?? 0;
-        var viewW = _bodyScroll is { ViewportWidth: > 0 } ? _bodyScroll.ViewportWidth : _overlay?.ActualWidth ?? size.Width;
-        var viewH = _bodyScroll is { ViewportHeight: > 0 } ? _bodyScroll.ViewportHeight : _overlay?.ActualHeight ?? size.Height;
-
-        const double gap = 16;
-        var x = pt.X + gap;
-        if (x + size.Width > viewLeft + viewW)
-        {
-            x = pt.X - gap - size.Width; // flip to the left of the pointer
-        }
-        x = Math.Max(viewLeft + 2, Math.Min(x, viewLeft + viewW - size.Width - 2));
-
-        var y = pt.Y + 8;
-        if (y + size.Height > viewTop + viewH)
-        {
-            y = pt.Y - 8 - size.Height; // flip above the pointer
-        }
-        y = Math.Max(viewTop + 2, Math.Min(y, viewTop + viewH - size.Height - 2));
-
-        _hoverPopup.HorizontalOffset = x;
-        _hoverPopup.VerticalOffset = y;
-        _hoverPopup.IsOpen = true;
-    }
-
     /// <summary>Two appointments are the same logical event — the same instance, or the same host Id
     /// (a multi-resource event renders once per lane but shares one Id).</summary>
-    internal static bool SameAppointment(AppointmentModel a, AppointmentModel b) =>
-        ReferenceEquals(a, b) || (a.Id is not null && Equals(a.Id, b.Id));
+    internal static bool SameAppointment(AppointmentModel a, AppointmentModel b) => AppointmentIdentity.Same(a, b);
 
     /// <summary>Resize is allowed only on a selected appointment, so two touching events are never
     /// ambiguous at their shared edge (8a). In a multi-selection any selected block is resizable
@@ -487,9 +424,10 @@ public sealed partial class TimeGridView : UserControl
 
     /// <summary>Apply the "selected" visual (slight enlarge + shadow, raised above neighbours) to every
     /// matching block and clear it from the others — no re-render, so the scroll position is kept.</summary>
-    internal void ApplySelection(IReadOnlyCollection<AppointmentModel>? selected)
+    public void ApplySelection(IReadOnlyCollection<AppointmentModel>? selected)
     {
         _selectedSet = selected as IReadOnlyList<AppointmentModel> ?? selected?.ToArray() ?? Array.Empty<AppointmentModel>();
+        SelectionFrame.Apply(_allDayFrames, _selectedSet);
 
         // Drop the previous faux shadows; we rebuild them for the current selection below.
         foreach (var s in _selectionShadows)
@@ -558,7 +496,7 @@ public sealed partial class TimeGridView : UserControl
         }
     }
 
-    private static readonly Color SelectionRed = Color.FromArgb(0xFF, 0xCC, 0x10, 0x10);
+    private static readonly Color SelectionRed = SelectionFrame.SelectionRed;
 
     // Selected blocks are left-pinned (grow rightward) and centre-scaled vertically by this modest
     // factor — just enough to lift them off the grid without growing off-screen.
@@ -757,6 +695,17 @@ public sealed partial class TimeGridView : UserControl
             return null;
         }
 
+        // The all-day row has no pointer overlay: chips and empty cells use tap gestures. A double-tap on an
+        // empty cell creates an all-day appointment for that day (and lane).
+        var taps = new TapInteraction
+        {
+            Click = (a, ctrl) => AppointmentClicked?.Invoke(this, new AppointmentClickArgs { Appointment = a, WithCtrl = ctrl }),
+            DoubleClick = a => AppointmentDoubleClicked?.Invoke(this, a),
+            Context = (a, pos) => AppointmentContextMenuRequested?.Invoke(this, new AppointmentContextRequestedArgs { Appointment = a, Position = pos }),
+            EmptyClick = _isReadOnly ? null : e => EmptySlotClicked?.Invoke(this, e),
+            EmptyDoubleClick = _isReadOnly ? null : e => EmptySlotDoubleClicked?.Invoke(this, e),
+        };
+
         var grid = new Grid { MaxHeight = 76 };
         for (var i = 0; i < columns.Count; i++)
         {
@@ -777,15 +726,20 @@ public sealed partial class TimeGridView : UserControl
             foreach (var a in chips)
             {
                 any = true;
-                stack.Children.Add(EventBlockFactory.CreateChip(a, _palette, _templating, showTime: false));
+                var frame = new SelectionFrame(EventBlockFactory.CreateChip(a, _palette, _templating, showTime: false), a, 3);
+                taps.AttachAppointment(frame, a);
+                _allDayFrames.Add(frame);
+                stack.Children.Add(frame);
             }
 
             var cell = new Border
             {
                 BorderBrush = _palette.MinorLine,
                 BorderThickness = new Thickness(i == 0 ? 0 : 1, 0, 0, 1),
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), // hit-testable empty area
                 Child = stack,
             };
+            taps.AttachEmptyDay(cell, col.Date, col.Resource?.Id);
             Grid.SetColumn(cell, i);
             grid.Children.Add(cell);
         }

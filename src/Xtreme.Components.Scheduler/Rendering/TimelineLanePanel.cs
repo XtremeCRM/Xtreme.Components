@@ -8,7 +8,7 @@ namespace Xtreme.Components.Scheduler.Rendering;
 /// (the timeline is a fixed-width, horizontally-scrolling surface), so no width reactivity is
 /// needed — positioning is identical under Skia and Native.
 /// </summary>
-public sealed partial class TimelineLanePanel : Panel
+internal sealed partial class TimelineLanePanel : Panel
 {
     private const double Gap = 2;
 

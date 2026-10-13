@@ -19,9 +19,10 @@ public sealed class ResourceModel
     public Color? Color { get; set; }
 
     /// <summary>
-    /// IANA timezone id (e.g. <c>"America/New_York"</c>) used to render this resource's
-    /// appointments in its local wall-clock. Null = render in the control's local timezone.
-    /// Wired into rendering in Phase 7.
+    /// IANA time zone id (e.g. <c>"America/New_York"</c>). Used by the Planner only: when set, this
+    /// resource's lane reads <see cref="AppointmentModel.Start"/>/<see cref="AppointmentModel.End"/> as UTC,
+    /// draws them in this zone, and reports gesture times back as UTC. Null (the default) = the lane draws
+    /// the times as given, like every other view. See the remarks on <see cref="AppointmentModel"/>.
     /// </summary>
     public string? TimeZoneId { get; set; }
 }

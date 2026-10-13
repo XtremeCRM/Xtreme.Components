@@ -31,6 +31,9 @@ public sealed partial class SchedulerControl : UserControl
         // compile-time-stable, so "today" is assigned here rather than in Register()).
         SelectedDate = new DateTimeOffset(DateTime.Today);
 
+        // A fresh scale per control (not a shared DP default instance a host could mutate for everyone).
+        TimeIncrement = TimeIncrementConfig.Default;
+
         Toolbar.PreviousClicked += (_, _) => Navigate(-1);
         Toolbar.NextClicked += (_, _) => Navigate(+1);
         Toolbar.TodayClicked += (_, _) =>
@@ -72,7 +75,7 @@ public sealed partial class SchedulerControl : UserControl
         _toolbarAdornments.CollectionChanged += (_, _) => Toolbar.SetAdornmentButtons(_toolbarAdornments);
         Toolbar.AdornmentClicked += (_, b) => AdornmentToggleRequested?.Invoke(this, b);
 
-        // Host-supplied per-tile on/off options in the Settings flyout; bubble toggles up to the host.
+        // Host-supplied per-tile on/off options in the "Visible tiles" menu; bubble toggles up to the host.
         Toolbar.TileOptionToggled += (_, o) => TileOptionToggled?.Invoke(this, o);
 
         Loaded += (_, _) => { _lastRenderedTheme = ActualTheme; RenderActiveView(); };
@@ -119,23 +122,31 @@ public sealed partial class SchedulerControl : UserControl
 
     private readonly ObservableCollection<SchedulerToolbarButton> _toolbarAdornments = new();
 
-    /// <summary>Raised when an adornment group button is clicked (the host runs the toggle + confirmation).</summary>
+    /// <summary>Raised when an adornment group entry is clicked (after its own <c>Command</c> runs, if any); for
+    /// an entry with <c>MenuItems</c>, raised with the picked item. The host runs the toggle. The group honors
+    /// the same <see cref="SchedulerToolbarButton"/> members as <see cref="ToolbarButtons"/>: a checked
+    /// <c>IsToggle</c> entry shows pressed, so re-supply it with the new <c>IsChecked</c> to reflect state.</summary>
     public event EventHandler<SchedulerToolbarButton>? AdornmentToggleRequested;
 
-    /// <summary>Set the per-tile on/off options shown in the Settings flyout under "Show tiles". The host
-    /// supplies the available tiles (with their current enabled state); the library renders the toggles and
-    /// raises <see cref="TileOptionToggled"/> when one changes. Pass an empty list to clear them.</summary>
+    /// <summary>Set the per-tile on/off options listed by the toolbar's "Visible tiles" button. The host
+    /// supplies the available tiles (with their current enabled state); the library renders one toggle per
+    /// option and raises <see cref="TileOptionToggled"/> when one changes. It does not filter tiles itself.
+    /// Pass an empty list to hide the button.</summary>
     public void SetTileOptions(IReadOnlyList<SchedulerTileOption> options) => Toolbar?.SetTileOptions(options);
 
-    /// <summary>Raised when the user toggles a per-tile option in the Settings flyout (carries the new state).</summary>
+    /// <summary>Raised when the user toggles a "Visible tiles" option (carries the new state). Rebuild
+    /// <see cref="AppointmentModel.Tiles"/> from the enabled keys and re-assign <see cref="Appointments"/>.</summary>
     public event EventHandler<SchedulerTileOption>? TileOptionToggled;
 
-    /// <summary>Raised when the user clicks/drag-selects an empty slot. The host creates the appointment.</summary>
+    /// <summary>Raised when the user double-clicks an empty slot (Day/Week time slot or all-day cell, Planner
+    /// lane, Month day cell), single-clicks one when <see cref="SingleClickCreates"/> is true, or drags across
+    /// empty time (Day/Week/Planner). Never raised when <see cref="IsReadOnly"/>. The host creates the appointment.</summary>
     public event EventHandler<AppointmentCreateArgs>? AppointmentCreateRequested;
 
-    /// <summary>Raised on a single click of an empty Day/Week slot. Selecting a slot does NOT create —
-    /// the host uses this to track the clicked lane as the "selected resource" for new appointments.
-    /// A second click within the double-click window raises <see cref="AppointmentCreateRequested"/>.</summary>
+    /// <summary>Raised on a single click of an empty slot (Day/Week time slot or all-day cell, Planner lane,
+    /// Month day cell). Selecting a slot does NOT create; the host uses this to track the clicked lane as the
+    /// "selected resource" for new appointments. A double-click raises <see cref="AppointmentCreateRequested"/>.
+    /// Not raised when <see cref="IsReadOnly"/>.</summary>
     public event EventHandler<EmptySlotSelectedArgs>? EmptySlotSelected;
 
     /// <summary>Raised when the user drags an appointment to a new time/resource. The host persists it.</summary>
@@ -148,10 +159,9 @@ public sealed partial class SchedulerControl : UserControl
     public event EventHandler<ExternalDropArgs>? ExternalAppointmentDropped;
 
     /// <summary>
-    /// Raised when the user clicks/taps an appointment. The control selects it (visual) regardless;
-    /// this is the hook for opening an editor. Set <see cref="AppointmentEditRequestedArgs.Handled"/>
-    /// to true to run your own editor (the editor lives outside this control); if no handler does,
-    /// the control shows its own default editor. Clicking another appointment raises this again.
+    /// Raised when the user double-clicks (double-taps) a non-locked appointment, in any view. The control
+    /// selects it first. The control ships no editor: open your own here (side pane, dialog, page). A single
+    /// click only selects (see <see cref="SelectionChanged"/>).
     /// </summary>
     public event EventHandler<AppointmentEditRequestedArgs>? AppointmentEditRequested;
 
@@ -209,8 +219,18 @@ public sealed partial class SchedulerControl : UserControl
     private DateTime _lastEmptyClickStart;
     private object? _lastEmptyClickResourceId;
 
-    // A single click of an empty Day/Week slot: report the lane (for selected-resource tracking) and, on a
-    // second click of the SAME slot within the double-click window, raise a create instead.
+    // The last create raised, so the two routes a double-click can take (two single clicks inside the window,
+    // or the platform's DoubleTapped in the tap-driven views) never create twice for one gesture.
+    private long _lastCreateTick;
+    private DateTime _lastCreateStart;
+    private object? _lastCreateResourceId;
+
+    // The last edit request raised, de-duplicated the same way.
+    private long _lastEditTick;
+    private AppointmentModel? _lastEditAppt;
+
+    // A single click of an empty slot: report the lane (for selected-resource tracking) and, on a second
+    // click of the SAME slot within the double-click window, raise a create instead.
     private void OnViewEmptySlotClicked(object? sender, EmptySlotSelectedArgs e)
     {
         EmptySlotSelected?.Invoke(this, e);
@@ -242,14 +262,44 @@ public sealed partial class SchedulerControl : UserControl
         RaiseSlotCreate(e);
     }
 
-    private void RaiseSlotCreate(EmptySlotSelectedArgs e)
-        => AppointmentCreateRequested?.Invoke(this, new AppointmentCreateArgs
+    // The platform DoubleTapped on an empty all-day / Month cell (tap-driven views). In quick-add mode the
+    // first tap already created; otherwise create (de-duplicated against the two-click route above).
+    private void OnViewEmptySlotDoubleClicked(object? sender, EmptySlotSelectedArgs e)
+    {
+        _lastEmptyClickTick = 0;
+        if (SingleClickCreates)
         {
-            Start = e.Start,
-            End = e.Start.AddMinutes(DefaultCreateMinutes),
+            return;
+        }
+        RaiseSlotCreate(e);
+    }
+
+    // A create from a click gesture: a 60-minute slot, or whole days from the all-day row / a Month cell.
+    private void RaiseSlotCreate(EmptySlotSelectedArgs e)
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+        var start = e.IsAllDay ? e.Start.Date : e.Start;
+        var now = Environment.TickCount64;
+        if (now - _lastCreateTick <= DoubleClickMs && _lastCreateStart == start && Equals(_lastCreateResourceId, e.ResourceId))
+        {
+            return; // the same gesture already created (the other double-click route)
+        }
+        _lastCreateTick = now;
+        _lastCreateStart = start;
+        _lastCreateResourceId = e.ResourceId;
+
+        AppointmentCreateRequested?.Invoke(this, new AppointmentCreateArgs
+        {
+            Start = start,
+            End = e.IsAllDay ? start.AddDays(1) : start.AddMinutes(DefaultCreateMinutes),
             ResourceId = e.ResourceId,
+            IsAllDay = e.IsAllDay,
             Position = e.Position,
         });
+    }
 
     private void OnViewAppointmentClicked(object? sender, AppointmentClickArgs e)
     {
@@ -301,13 +351,39 @@ public sealed partial class SchedulerControl : UserControl
             return;
         }
         _lastClickAppt = null; // consume, so a quick third click starts a fresh single-click
+        RaiseEdit(appt);
+    }
 
-        var args = new AppointmentEditRequestedArgs { Appointment = appt };
-        AppointmentEditRequested?.Invoke(this, args);
-        if (!args.Handled)
+    // The platform DoubleTapped on an appointment (tap-driven views: Month, Agenda, the all-day row). Select
+    // it if the first tap didn't, then ask the host to edit it. Locked appointments stay non-interactive.
+    private void OnViewAppointmentDoubleClicked(object? sender, AppointmentModel appt)
+    {
+        if (appt.IsLocked)
         {
-            ShowDefaultEditor(appt);
+            return;
         }
+        if (_selection.Count != 1 || !TimeGridView.SameAppointment(_selection[0], appt))
+        {
+            _selection.Clear();
+            _selection.Add(appt);
+            CommitSelection();
+            GrabKeyboardFocus();
+        }
+        _lastClickAppt = null;
+        RaiseEdit(appt);
+    }
+
+    // Raise the edit request, once per gesture (both double-click routes may report the same one).
+    private void RaiseEdit(AppointmentModel appt)
+    {
+        var now = Environment.TickCount64;
+        if (_lastEditAppt is not null && TimeGridView.SameAppointment(_lastEditAppt, appt) && now - _lastEditTick <= DoubleClickMs)
+        {
+            return;
+        }
+        _lastEditTick = now;
+        _lastEditAppt = appt;
+        AppointmentEditRequested?.Invoke(this, new AppointmentEditRequestedArgs { Appointment = appt });
     }
 
     // Right-click on an appointment: select it (highlight) so the menu targets the same event, then surface
@@ -340,18 +416,11 @@ public sealed partial class SchedulerControl : UserControl
         SelectedAppointment = _selection.Count == 1 ? _selection[0] : null;
         _selectionSyncing = false;
 
-        if (ViewHost?.Child is TimeGridView grid)
+        if (ViewHost?.Child is ISelectionView view)
         {
-            grid.ApplySelection(_selection);
+            view.ApplySelection(_selection);
         }
         SelectionChanged?.Invoke(this, SelectedAppointments ?? Array.Empty<AppointmentModel>());
-    }
-
-    // Fallback editor when no host handled AppointmentEditRequested. Deferred: a built-in default
-    // editor popup is planned; for now the host is expected to handle the event.
-    private void ShowDefaultEditor(AppointmentModel appt)
-    {
-        // TODO: built-in default event editor popup (see AppointmentEditRequested).
     }
 
     private void ForwardMove(object? sender, AppointmentMoveArgs a) => AppointmentMoveRequested?.Invoke(this, a);
@@ -621,7 +690,8 @@ public sealed partial class SchedulerControl : UserControl
 
     #region IsReadOnly
 
-    /// <summary>When true, all interaction (move/resize/create/drop) is suppressed.</summary>
+    /// <summary>When true, editing gestures (move, resize, create, external drop, Delete) are suppressed in
+    /// every view. Click-select, double-click edit requests, right-click and tooltips still work.</summary>
     public bool IsReadOnly
     {
         get => (bool)GetValue(IsReadOnlyProperty);
@@ -639,7 +709,8 @@ public sealed partial class SchedulerControl : UserControl
 
     #region SingleClickCreates
 
-    /// <summary>Quick-add mode: when true, a single click on an empty Day/Week slot raises
+    /// <summary>Quick-add mode: when true, a single click on an empty slot (Day/Week, the all-day row, a
+    /// Planner lane or a Month day cell) raises
     /// <see cref="AppointmentCreateRequested"/> immediately instead of waiting for a double-click. The second
     /// click of a double-click is swallowed, so a double-click never creates twice. Default false.</summary>
     public bool SingleClickCreates
@@ -659,7 +730,10 @@ public sealed partial class SchedulerControl : UserControl
 
     #region TimeIncrement
 
-    /// <summary>Vertical time-scale configuration for the time-grid views.</summary>
+    /// <summary>Time-scale configuration: the Day/Week grid's height and gridlines, and the drag snap step
+    /// (<see cref="TimeIncrementConfig.MinorTick"/>) in Day, Week and the Planner. Defaults to a fresh
+    /// <see cref="TimeIncrementConfig.Default"/> (1 h major, 30 min minor, 0.8 px per minute); setting null
+    /// falls back to the same scale.</summary>
     public TimeIncrementConfig TimeIncrement
     {
         get => (TimeIncrementConfig)GetValue(TimeIncrementProperty);
@@ -677,7 +751,8 @@ public sealed partial class SchedulerControl : UserControl
 
     #region GroupMode
 
-    /// <summary>Planner header hierarchy (resource-major vs day-major).</summary>
+    /// <summary>Header hierarchy when resources are shown (Day, Week and the Planner): resource then day
+    /// (<see cref="SchedulerGroupMode.ByResource"/>) or day then resource (<see cref="SchedulerGroupMode.ByDay"/>).</summary>
     public SchedulerGroupMode GroupMode
     {
         get => (SchedulerGroupMode)GetValue(GroupModeProperty);
@@ -695,7 +770,8 @@ public sealed partial class SchedulerControl : UserControl
 
     #region HideIdleResources
 
-    /// <summary>When true, resource lanes/columns with no events in the visible range are hidden.</summary>
+    /// <summary>When true, resources with nothing in the visible range are hidden: Day/Week columns, and
+    /// Planner lanes with no timed appointment in the week (all-day items are not drawn in the Planner).</summary>
     public bool HideIdleResources
     {
         get => (bool)GetValue(HideIdleResourcesProperty);
@@ -1003,6 +1079,8 @@ public sealed partial class SchedulerControl : UserControl
                 view.ResizeManyRequested += ForwardResizeMany;
                 view.ExternalDropRequested += ForwardExternalDrop;
                 view.AppointmentClicked += OnViewAppointmentClicked;
+                view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
+                view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
@@ -1022,6 +1100,8 @@ public sealed partial class SchedulerControl : UserControl
                 view.ResizeManyRequested += ForwardResizeMany;
                 view.ExternalDropRequested += ForwardExternalDrop;
                 view.AppointmentClicked += OnViewAppointmentClicked;
+                view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
+                view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
@@ -1033,13 +1113,22 @@ public sealed partial class SchedulerControl : UserControl
             case SchedulerView.Month:
             {
                 var view = new MonthView();
-                view.SetData(anchor, appointments, palette, templating);
+                view.AppointmentClicked += OnViewAppointmentClicked;
+                view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
+                view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
+                view.EmptySlotClicked += OnViewEmptySlotClicked;
+                view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
+                view.SetData(anchor, appointments, palette, templating, IsReadOnly, _selection);
                 ViewHost.Child = view;
                 break;
             }
             case SchedulerView.Agenda:
             {
                 var view = new AgendaView();
+                view.AppointmentClicked += OnViewAppointmentClicked;
+                view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
+                view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
+                view.ApplySelection(_selection);
                 if (multiDates.Count > 0)
                 {
                     view.SetData(multiDates, appointments, resources, palette, templating);
@@ -1055,11 +1144,13 @@ public sealed partial class SchedulerControl : UserControl
             {
                 var view = new PlannerView();
                 view.CreateRequested += ForwardCreate;
+                view.EmptySlotClicked += OnViewEmptySlotClicked;
                 view.MoveRequested += ForwardMove;
                 view.ResizeRequested += ForwardResize;
                 view.ExternalDropRequested += ForwardExternalDrop;
+                view.AppointmentClicked += OnViewAppointmentClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
-                view.SetData(anchor, appointments, resources, increment, palette, GroupMode, FirstDayOfWeek, IsReadOnly, templating);
+                view.SetData(anchor, appointments, resources, increment, palette, GroupMode, FirstDayOfWeek, IsReadOnly, templating, HideIdleResources, _selection);
                 ViewHost.Child = view;
                 break;
             }

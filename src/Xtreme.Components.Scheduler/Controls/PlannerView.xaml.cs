@@ -12,10 +12,16 @@ namespace Xtreme.Components.Scheduler.Controls;
 /// Resource timeline: every resource is a horizontal lane (rows), and one continuous time axis
 /// runs left→right across the whole selected week. Events are bars positioned by their absolute
 /// time; overlapping events within a lane stack as sub-rows. The time header (top) and resource
-/// gutter (left) are frozen and scroll-synced to the 2D-scrolling body. Read-only for now —
-/// horizontal drag/resize is the planned follow-up.
+/// gutter (left) are frozen and scroll-synced to the 2D-scrolling body. A full-covering pointer overlay
+/// drives click-select, double-click edit, empty-lane clicks, drag-to-create, move (across lanes too),
+/// resize, external drop, right-click and the hover card, in both group modes.
 /// </summary>
-public sealed partial class PlannerView : UserControl
+/// <remarks>
+/// A lane whose resource sets <see cref="ResourceModel.TimeZoneId"/> draws a shifted COPY of each
+/// appointment (<see cref="AppointmentModel.Clone"/> with the times converted to the zone). Every event this
+/// view raises maps the copy back to the host's original instance, with times converted back to UTC.
+/// </remarks>
+internal sealed partial class PlannerView : UserControl, ISelectionView
 {
     private const double GutterWidth = 160;
     private const double PixelsPerMinute = 0.6;   // 1h = 36px, 1 day = 864px
@@ -32,10 +38,19 @@ public sealed partial class PlannerView : UserControl
     private DayOfWeek _firstDayOfWeek = DayOfWeek.Sunday;
     private TimeIncrementConfig _increment = TimeIncrementConfig.Default;
     private bool _isReadOnly;
+    private bool _hideIdleResources;
+    private IReadOnlyCollection<AppointmentModel> _selected = Array.Empty<AppointmentModel>();
+
+    // Displayed (zone-shifted) copy -> the host's original instance. Unshifted lanes draw the original.
+    private readonly Dictionary<AppointmentModel, AppointmentModel> _originals = new(ReferenceEqualityComparer.Instance);
+    private readonly List<SelectionFrame> _frames = new();
 
     private PlannerTimelineInteraction? _interaction;
+    private HoverCard? _hover;
 
     public event EventHandler<AppointmentCreateArgs>? CreateRequested;
+    public event EventHandler<EmptySlotSelectedArgs>? EmptySlotClicked;
+    public event EventHandler<AppointmentClickArgs>? AppointmentClicked;
     public event EventHandler<AppointmentMoveArgs>? MoveRequested;
     public event EventHandler<AppointmentResizeArgs>? ResizeRequested;
     public event EventHandler<ExternalDropArgs>? ExternalDropRequested;
@@ -55,7 +70,9 @@ public sealed partial class PlannerView : UserControl
         SchedulerGroupMode groupMode,
         DayOfWeek firstDayOfWeek,
         bool isReadOnly,
-        AppointmentTemplating templating)
+        AppointmentTemplating templating,
+        bool hideIdleResources = false,
+        IReadOnlyCollection<AppointmentModel>? selected = null)
     {
         _anchor = anchor;
         _appointments = appointments;
@@ -66,8 +83,21 @@ public sealed partial class PlannerView : UserControl
         _increment = increment; // horizontal scale stays fixed; MinorTick is reused as the drag snap step
         _isReadOnly = isReadOnly;
         _templating = templating;
+        _hideIdleResources = hideIdleResources;
+        _selected = selected ?? Array.Empty<AppointmentModel>();
         Render();
     }
+
+    /// <summary>Outline the selected bars (matched by instance or host Id) without a re-render.</summary>
+    public void ApplySelection(IReadOnlyCollection<AppointmentModel>? selected)
+    {
+        _selected = selected ?? Array.Empty<AppointmentModel>();
+        SelectionFrame.Apply(_frames, _selected);
+    }
+
+    /// <summary>The host's instance behind a displayed bar (itself unless the lane is zone-shifted).</summary>
+    private AppointmentModel Original(AppointmentModel shown) =>
+        _originals.TryGetValue(shown, out var original) ? original : shown;
 
     private readonly record struct Lane(ResourceModel? Resource, DateTime? DayHeader, IReadOnlyList<EventLayout> Layout, int RowCount);
 
@@ -76,23 +106,35 @@ public sealed partial class PlannerView : UserControl
         Root.Children.Clear();
         Root.RowDefinitions.Clear();
         Root.ColumnDefinitions.Clear();
+        _originals.Clear();
+        _frames.Clear();
+        _hover?.Hide();
+        _hover = null;
 
-        if (_resources.Count == 0)
+        var weekStart = StartOfWeek(_anchor);
+        var rangeStart = weekStart;
+        var rangeEnd = weekStart.AddDays(7);
+        var totalWidth = (rangeEnd - rangeStart).TotalMinutes * PixelsPerMinute;
+
+        // Hide-idle: drop resources with nothing drawn in this week (all-day items never draw here).
+        var resources = _resources;
+        if (_hideIdleResources && resources.Count > 0)
+        {
+            resources = resources.Where(r => BuildLane(r, rangeStart, rangeEnd, rangeStart, rangeEnd).Layout.Count > 0).ToList();
+            _originals.Clear();
+        }
+
+        if (resources.Count == 0)
         {
             Root.Children.Add(new TextBlock
             {
-                Text = "No resources to plan",
+                Text = _resources.Count == 0 ? "No resources to plan" : "Nothing scheduled this week",
                 Foreground = _palette.SecondaryForeground,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             });
             return;
         }
-
-        var weekStart = StartOfWeek(_anchor);
-        var rangeStart = weekStart;
-        var rangeEnd = weekStart.AddDays(7);
-        var totalWidth = (rangeEnd - rangeStart).TotalMinutes * PixelsPerMinute;
 
         // ---- Lanes: one per resource (ByResource), or per (day, resource) with day headers (ByDay) ----
         var lanes = new List<Lane>();
@@ -101,7 +143,7 @@ public sealed partial class PlannerView : UserControl
             for (var d = 0; d < 7; d++)
             {
                 lanes.Add(new Lane(null, weekStart.AddDays(d), Array.Empty<EventLayout>(), 1));
-                foreach (var r in _resources)
+                foreach (var r in resources)
                 {
                     lanes.Add(BuildLane(r, rangeStart, rangeEnd, weekStart.AddDays(d), weekStart.AddDays(d + 1)));
                 }
@@ -109,7 +151,7 @@ public sealed partial class PlannerView : UserControl
         }
         else
         {
-            foreach (var r in _resources)
+            foreach (var r in resources)
             {
                 lanes.Add(BuildLane(r, rangeStart, rangeEnd, rangeStart, rangeEnd));
             }
@@ -162,6 +204,11 @@ public sealed partial class PlannerView : UserControl
         Grid.SetRow(bodyScroll, 1);
         Grid.SetColumn(bodyScroll, 1);
         Root.Children.Add(bodyScroll);
+        if (_hover is not null)
+        {
+            _hover.Scroll = bodyScroll;
+        }
+        SelectionFrame.Apply(_frames, _selected);
 
         // Freeze header + gutter to the body's scroll offsets.
         bodyScroll.ViewChanged += (_, _) =>
@@ -189,7 +236,7 @@ public sealed partial class PlannerView : UserControl
         var tz = r.TimeZoneId;
         var laneEvents = _appointments
             .Where(a => !AllDayBannerRenderer.IsBannerEvent(a) && a.ResourceIds.Any(id => Equals(id, r.Id)))
-            .Select(a => string.IsNullOrEmpty(tz) ? a : ShiftToZone(a, tz))
+            .Select(a => string.IsNullOrEmpty(tz) ? a : ShiftToZone(a, tz!))
             .Where(a => a.End > clipStart && a.Start < clipEnd);
 
         var layout = EventBlockLayout.LayoutRange(rangeStart, rangeEnd, laneEvents);
@@ -380,7 +427,9 @@ public sealed partial class PlannerView : UserControl
                 };
                 foreach (var el in lane.Layout)
                 {
-                    var bar = EventBlockFactory.CreateBar(el.Appointment, _palette, _templating);
+                    // Wrapped so selection can outline the bar; the frame carries the host's instance.
+                    var bar = new SelectionFrame(EventBlockFactory.CreateBar(el.Appointment, _palette, _templating), Original(el.Appointment), 3);
+                    _frames.Add(bar);
                     TimelineLanePanel.SetStartMinutes(bar, el.StartMinutes);
                     TimelineLanePanel.SetDurationMinutes(bar, el.EndMinutes - el.StartMinutes);
                     TimelineLanePanel.SetSubRow(bar, el.ColumnIndex);
@@ -402,13 +451,15 @@ public sealed partial class PlannerView : UserControl
 
         // A full-covering, hit-testable overlay is the single pointer surface (and ghost host) for
         // the whole timeline body — see PlannerTimelineInteraction for why bubbling from bars is
-        // unused. Wired for ByResource only; ByDay (per-day-clipped lanes) interaction is a follow-up.
-        if (!_isReadOnly && _groupMode == SchedulerGroupMode.ByResource && bands.Count > 0)
+        // unused. Present in read-only too (clicks, right-click and hover still work) and in ByDay, where
+        // the day-header rows between lanes snap a drag to the nearest lane.
+        if (bands.Count > 0)
         {
             var overlay = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
             Grid.SetRow(overlay, 0);
             Grid.SetRowSpan(overlay, lanes.Count);
             grid.Children.Add(overlay);
+            _hover = new HoverCard(overlay, _palette, _templating);
 
             _interaction = new PlannerTimelineInteraction(
                 overlay,
@@ -421,7 +472,7 @@ public sealed partial class PlannerView : UserControl
                 _isReadOnly,
                 onMove: (appt, fromId, toId, startMin, endMin, isCopy, withShift) => MoveRequested?.Invoke(this, new AppointmentMoveArgs
                 {
-                    Appointment = appt,
+                    Appointment = Original(appt),
                     NewStart = ToDateTime(toId, startMin),
                     NewEnd = ToDateTime(toId, endMin),
                     FromResourceId = fromId,
@@ -431,16 +482,17 @@ public sealed partial class PlannerView : UserControl
                 }),
                 onResize: (appt, resourceId, startMin, endMin, withShift) => ResizeRequested?.Invoke(this, new AppointmentResizeArgs
                 {
-                    Appointment = appt,
+                    Appointment = Original(appt),
                     NewStart = ToDateTime(resourceId, startMin),
                     NewEnd = ToDateTime(resourceId, endMin),
                     WithShift = withShift,
                 }),
-                onCreate: (resourceId, startMin, endMin) => CreateRequested?.Invoke(this, new AppointmentCreateArgs
+                onCreate: (resourceId, startMin, endMin, pos) => CreateRequested?.Invoke(this, new AppointmentCreateArgs
                 {
                     Start = ToDateTime(resourceId, startMin),
                     End = ToDateTime(resourceId, endMin),
                     ResourceId = resourceId,
+                    Position = pos,
                 }),
                 onExternalDrop: (item, resourceId, startMin, endMin) => ExternalDropRequested?.Invoke(this, new ExternalDropArgs
                 {
@@ -449,7 +501,15 @@ public sealed partial class PlannerView : UserControl
                     End = ToDateTime(resourceId, endMin),
                     ResourceId = resourceId,
                 }),
-                onContext: (a, pos) => AppointmentContextMenuRequested?.Invoke(this, new AppointmentContextRequestedArgs { Appointment = a, Position = pos }));
+                onContext: (a, pos) => AppointmentContextMenuRequested?.Invoke(this, new AppointmentContextRequestedArgs { Appointment = Original(a), Position = pos }),
+                onClick: (a, ctrl) => AppointmentClicked?.Invoke(this, new AppointmentClickArgs { Appointment = Original(a), WithCtrl = ctrl }),
+                onEmptyClick: (resourceId, startMin, pos) => EmptySlotClicked?.Invoke(this, new EmptySlotSelectedArgs
+                {
+                    Start = ToDateTime(resourceId, startMin),
+                    ResourceId = resourceId,
+                    Position = pos,
+                }),
+                onHover: (a, pt) => _hover?.Show(a is null ? null : Original(a), pt));
         }
 
         return grid;
@@ -468,20 +528,14 @@ public sealed partial class PlannerView : UserControl
         return string.IsNullOrEmpty(tz) ? display : TimeZoneConverter.FromZone(display, tz);
     }
 
-    private static AppointmentModel ShiftToZone(AppointmentModel a, string tz) => new()
+    // A full copy of the appointment (every field: tiles, adornments, flags, Tag...) with its times shown in
+    // the lane's zone. The copy is remembered so events report the host's original instance.
+    private AppointmentModel ShiftToZone(AppointmentModel a, string tz)
     {
-        Id = a.Id,
-        Subject = a.Subject,
-        Description = a.Description,
-        Start = TimeZoneConverter.ToZone(a.Start, tz),
-        End = TimeZoneConverter.ToZone(a.End, tz),
-        IsAllDay = a.IsAllDay,
-        ResourceIds = a.ResourceIds,
-        BarColor = a.BarColor,
-        BackColor = a.BackColor,
-        RecurrenceRule = a.RecurrenceRule,
-        RecurrenceException = a.RecurrenceException,
-    };
+        var shown = TimeZoneConverter.ToZone(a, tz);
+        _originals[shown] = a;
+        return shown;
+    }
 
     private DateTime StartOfWeek(DateTime date)
     {

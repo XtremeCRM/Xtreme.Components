@@ -10,11 +10,12 @@ namespace Xtreme.Components.Scheduler.Rendering;
 
 /// <summary>
 /// Renders an appointment's positioned <em>adornments</em> (<see cref="AppointmentModel.Adornments"/>) — the
-/// host's user/template badge feature — as an overlay pinned over the block. Each shows an image, a glyph, or
-/// a text pill at its <see cref="DecorationPosition"/>/<see cref="DecorationAlignment"/> plus pixel offset.
+/// host's user/template badge feature — as an overlay pinned over the block. Each shows an image, or a pill
+/// with its glyph and/or text, at its <see cref="DecorationPosition"/>/<see cref="DecorationAlignment"/> plus
+/// pixel offset.
 /// The overlay is non-hit-testable so it never interferes with the view's drag/selection overlay.
-/// (Data-driven <em>tiles</em> are rendered separately by <see cref="EventBlockFactory"/> in the block's
-/// right gutter column — opposite the left status-icon strip.)
+/// (Data-driven <em>tiles</em> are rendered separately by <see cref="EventBlockFactory"/> as flowing strips;
+/// see <see cref="TileLayout"/>.)
 /// </summary>
 internal static class DecorationFactory
 {
@@ -74,8 +75,7 @@ internal static class DecorationFactory
         var (h, v) = Anchor(d.Position, d.Alignment);
         FrameworkElement? content =
             d.Image is { Length: > 0 } bytes ? BuildImage(bytes)
-            : !string.IsNullOrEmpty(d.Glyph) ? BuildGlyph(d, ctx, h, v)
-            : !string.IsNullOrWhiteSpace(d.Text) ? BuildText(d, ctx, h, v)
+            : !string.IsNullOrEmpty(d.Glyph) || !string.IsNullOrWhiteSpace(d.Text) ? BuildLabel(d, ctx, h, v)
             : null;
 
         if (content is null)
@@ -112,29 +112,31 @@ internal static class DecorationFactory
         }
     }
 
-    private static FrameworkElement BuildGlyph(AppointmentDecoration d, AppointmentContext ctx, HorizontalAlignment h, VerticalAlignment v)
+    // A glyph and/or text, side by side, in a pill.
+    private static FrameworkElement BuildLabel(AppointmentDecoration d, AppointmentContext ctx, HorizontalAlignment h, VerticalAlignment v)
     {
-        var icon = new FontIcon
+        var foreground = d.ForeColor is Color fc ? new SolidColorBrush(fc) : ctx.Foreground;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+        if (!string.IsNullOrEmpty(d.Glyph))
         {
-            Glyph = d.Glyph ?? string.Empty,
-            FontSize = d.FontSize,
-            Foreground = d.ForeColor is Color fc ? new SolidColorBrush(fc) : ctx.Foreground,
-        };
-        if (d.GlyphFontFamily is not null) icon.FontFamily = d.GlyphFontFamily;
-        return Chip(icon, d, h, v);
-    }
-
-    private static FrameworkElement BuildText(AppointmentDecoration d, AppointmentContext ctx, HorizontalAlignment h, VerticalAlignment v)
-    {
-        var text = new TextBlock
+            var icon = new FontIcon { Glyph = d.Glyph!, FontSize = d.FontSize, Foreground = foreground, VerticalAlignment = VerticalAlignment.Center };
+            if (d.GlyphFontFamily is not null) icon.FontFamily = d.GlyphFontFamily;
+            row.Children.Add(icon);
+        }
+        if (!string.IsNullOrWhiteSpace(d.Text))
         {
-            Text = d.Text,
-            FontSize = d.FontSize,
-            Foreground = d.ForeColor is Color fc ? new SolidColorBrush(fc) : ctx.Foreground,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            TextWrapping = TextWrapping.NoWrap,
-        };
-        return Chip(text, d, h, v);
+            row.Children.Add(new TextBlock
+            {
+                Text = d.Text,
+                FontSize = d.FontSize,
+                FontWeight = d.Bold ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
+                Foreground = foreground,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.NoWrap,
+            });
+        }
+        return Chip(row, d, h, v);
     }
 
     // A brush that holds full opacity over the pill's INNER side (the part above its OWNING appointment) and
