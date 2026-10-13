@@ -4,6 +4,10 @@
     <PackageTags>uno;uno-platform;winui;cards;card-docking;layout;cross-platform;skia</PackageTags>
   </PropertyGroup>
   <ItemGroup>
+    <!-- The layout rules (CardDockerLayoutRules) are internal; the headless tests exercise them directly. -->
+    <InternalsVisibleTo Include="Xtreme.Components.Cards.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
   </ItemGroup>
 </Project>

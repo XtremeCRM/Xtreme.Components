@@ -26,11 +26,23 @@ public sealed class CardDockerPanel
 {
     public required string Id { get; init; }
 
-    /// <summary>Zero-based column. Clamped to the control's <c>ColumnCount</c> on load.</summary>
+    /// <summary>
+    /// Zero-based column. Clamped to the control's <c>ColumnCount</c> on load; a clamped panel
+    /// remembers where it came from in <see cref="PreferredColumn"/>.
+    /// </summary>
     public int Column { get; set; }
 
     /// <summary>Top-to-bottom position within the column. Rewritten densely after every change.</summary>
     public int Sort { get; set; }
+
+    /// <summary>
+    /// The column this panel returns to once the control has enough columns again, or null when it
+    /// already sits where it belongs. Set by the control when lowering <c>ColumnCount</c> parks the
+    /// panel in the last column; cleared when the count rises far enough (the panel goes home) or
+    /// when the user moves the panel explicitly. A host rarely sets it, but it is part of the
+    /// layout so the memory survives a <c>Layout</c> round trip and persistence.
+    /// </summary>
+    public int? PreferredColumn { get; set; }
 
     /// <summary>Card ids, left to right — the order they appear inside the panel.</summary>
     public List<string> CardIds { get; init; } = new();
@@ -67,6 +79,7 @@ public sealed class CardDockerLayout
                 Id = p.Id,
                 Column = p.Column,
                 Sort = p.Sort,
+                PreferredColumn = p.PreferredColumn,
                 MinHeight = p.MinHeight,
                 CardIds = new List<string>(p.CardIds),
             })

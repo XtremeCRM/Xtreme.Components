@@ -9,6 +9,7 @@
     <Project Path="src/Xtreme.Components/Xtreme.Components.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Xtreme.Components.Cards.Tests/Xtreme.Components.Cards.Tests.csproj" />
     <Project Path="tests/Xtreme.Components.Docking.Tests/Xtreme.Components.Docking.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
