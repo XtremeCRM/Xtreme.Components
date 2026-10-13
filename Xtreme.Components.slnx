@@ -11,6 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Xtreme.Components.Cards.Tests/Xtreme.Components.Cards.Tests.csproj" />
     <Project Path="tests/Xtreme.Components.Docking.Tests/Xtreme.Components.Docking.Tests.csproj" />
+    <Project Path="tests/Xtreme.Components.Primitives.Tests/Xtreme.Components.Primitives.Tests.csproj" />
     <Project Path="tests/Xtreme.Components.Scheduler.Tests/Xtreme.Components.Scheduler.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">

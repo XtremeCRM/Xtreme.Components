@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Data;
 
 namespace Xtreme.Components.Primitives;
 
@@ -55,6 +56,11 @@ public sealed partial class ChipPickerDialog : ContentDialog
         if (sender is CheckBox { IsChecked: false } cb && cb.DataContext is ChipItem vm && vm.IsExcluded)
         {
             vm.IsExcluded = false;
+            RebuildRows();
+        }
+        // A CanRemove = false item locks as soon as it is selected; re-render so its row disables.
+        else if (sender is CheckBox { IsChecked: true, DataContext: ChipItem { CanRemove: false } })
+        {
             RebuildRows();
         }
 
@@ -120,6 +126,19 @@ public sealed partial class ChipPickerDialog : ContentDialog
         protected override DataTemplate SelectTemplateCore(object item, DependencyObject container)
             => SelectTemplateCore(item);
     }
+}
+
+/// <summary>
+/// Enables a dialog row unless its <see cref="ChipItem"/> is selected and cannot be removed
+/// (<see cref="ChipItem.CanRemove"/> = false).
+/// </summary>
+internal sealed class ChipRemovableConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+        => value is not ChipItem { IsSelected: true, CanRemove: false };
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotSupportedException();
 }
 
 /// <summary>

@@ -14,7 +14,6 @@ static readonly Xtreme.Components.Primitives.ChipPickerControl.SaveAsyncProperty
 static readonly Xtreme.Components.Primitives.ChipPickerControl.SelectedItemsProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.ChipPickerControl.ShowTitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.ChipPickerControl.TitleProperty -> Microsoft.UI.Xaml.DependencyProperty!
-static readonly Xtreme.Components.Primitives.ChipPickerControl.WorkingItemsProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.ColumnFlowPanel.ColumnSpacingProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.ColumnFlowPanel.MaxColumnsProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.ColumnFlowPanel.MinColumnWidthProperty -> Microsoft.UI.Xaml.DependencyProperty!
@@ -44,12 +43,14 @@ static readonly Xtreme.Components.Primitives.EditorActionBar.SaveTextProperty ->
 static readonly Xtreme.Components.Primitives.EditorActionBar.ShowDeleteProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.EditorActionBar.ShowSaveCancelProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.ExpanderClipFix.IsEnabledProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MaskedTextBox.CharacterCasingProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MaskedTextBox.HeaderProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MaskedTextBox.MaskProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MaskedTextBox.PlaceholderTextProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MaskedTextBox.TextProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MonthYearPicker.IncrementMonthsProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MonthYearPicker.SelectedDateProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.MultiMonthDateNavigator.FirstDayOfWeekProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.MultiMonthDateNavigator.SingleDateModeProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.BackDataProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.OverlayGlyphIcon.BackForegroundProperty -> Microsoft.UI.Xaml.DependencyProperty!
@@ -66,6 +67,7 @@ static readonly Xtreme.Components.Primitives.PagingControl.CurrentPageProperty -
 static readonly Xtreme.Components.Primitives.PagingControl.DefaultPageSizeProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.IsCompactProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.IsOverflowProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.LayoutModeProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.MaxNumberedPagesProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.OverflowThresholdProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.PageSizeOptionsProperty -> Microsoft.UI.Xaml.DependencyProperty!
@@ -74,6 +76,7 @@ static readonly Xtreme.Components.Primitives.PagingControl.ShowAllOptionProperty
 static readonly Xtreme.Components.Primitives.PagingControl.ShowFirstButtonProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.ShowJumpToPageProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.ShowLastButtonProperty -> Microsoft.UI.Xaml.DependencyProperty!
+static readonly Xtreme.Components.Primitives.PagingControl.ShownLayoutProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.ShowNumberedPagesProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.ShowPageSizeSelectorProperty -> Microsoft.UI.Xaml.DependencyProperty!
 static readonly Xtreme.Components.Primitives.PagingControl.ShowSummaryProperty -> Microsoft.UI.Xaml.DependencyProperty!
@@ -91,6 +94,7 @@ static Xtreme.Components.Primitives.ExpanderClipFix.Apply(Microsoft.UI.Xaml.Cont
 static Xtreme.Components.Primitives.ExpanderClipFix.GetIsEnabled(Microsoft.UI.Xaml.DependencyObject! obj) -> bool
 static Xtreme.Components.Primitives.ExpanderClipFix.SetIsEnabled(Microsoft.UI.Xaml.DependencyObject! obj, bool value) -> void
 static Xtreme.Components.Primitives.InputMask.ExtractDigits(string? raw, int max) -> string!
+static Xtreme.Components.Primitives.InputMask.ExtractSlots(string? raw, string? mask) -> string!
 static Xtreme.Components.Primitives.InputMask.Format(string? raw, string? mask) -> string!
 static Xtreme.Components.Primitives.InputMask.FormatTemplate(string? raw, string? mask, char placeholder) -> string!
 static Xtreme.Components.Primitives.InputMask.HasMask(string? mask) -> bool
@@ -152,8 +156,6 @@ Xtreme.Components.Primitives.ChipPickerControl.ShowTitle.get -> bool
 Xtreme.Components.Primitives.ChipPickerControl.ShowTitle.set -> void
 Xtreme.Components.Primitives.ChipPickerControl.Title.get -> string!
 Xtreme.Components.Primitives.ChipPickerControl.Title.set -> void
-Xtreme.Components.Primitives.ChipPickerControl.WorkingItems.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Primitives.ChipItem!>?
-Xtreme.Components.Primitives.ChipPickerControl.WorkingItems.set -> void
 Xtreme.Components.Primitives.ChipPickerDialog
 Xtreme.Components.Primitives.ChipPickerDialog.ChipPickerDialog() -> void
 Xtreme.Components.Primitives.ClipboardHelper
@@ -186,13 +188,14 @@ Xtreme.Components.Primitives.CopyButton.ToolTipText.set -> void
 Xtreme.Components.Primitives.CriteriaPanel
 Xtreme.Components.Primitives.CriteriaPanel.CriteriaPanel() -> void
 Xtreme.Components.Primitives.CriteriaPanel.Fields.get -> System.Collections.ObjectModel.ObservableCollection<Microsoft.UI.Xaml.FrameworkElement!>!
+Xtreme.Components.Primitives.CriteriaPanel.FieldValueChanged -> System.EventHandler<Microsoft.UI.Xaml.FrameworkElement!>?
 Xtreme.Components.Primitives.CriteriaPanel.Title.get -> string!
 Xtreme.Components.Primitives.CriteriaPanel.Title.set -> void
 Xtreme.Components.Primitives.DateTimePicker
 Xtreme.Components.Primitives.DateTimePicker.Date.get -> System.DateOnly?
 Xtreme.Components.Primitives.DateTimePicker.Date.set -> void
 Xtreme.Components.Primitives.DateTimePicker.DateTimePicker() -> void
-Xtreme.Components.Primitives.DateTimePicker.Header.get -> string!
+Xtreme.Components.Primitives.DateTimePicker.Header.get -> object?
 Xtreme.Components.Primitives.DateTimePicker.Header.set -> void
 Xtreme.Components.Primitives.DateTimePicker.MinuteStep.get -> int
 Xtreme.Components.Primitives.DateTimePicker.MinuteStep.set -> void
@@ -233,6 +236,8 @@ Xtreme.Components.Primitives.EditorActionBar.ShowSaveCancel.set -> void
 Xtreme.Components.Primitives.ExpanderClipFix
 Xtreme.Components.Primitives.InputMask
 Xtreme.Components.Primitives.MaskedTextBox
+Xtreme.Components.Primitives.MaskedTextBox.CharacterCasing.get -> Microsoft.UI.Xaml.Controls.CharacterCasing
+Xtreme.Components.Primitives.MaskedTextBox.CharacterCasing.set -> void
 Xtreme.Components.Primitives.MaskedTextBox.Header.get -> object?
 Xtreme.Components.Primitives.MaskedTextBox.Header.set -> void
 Xtreme.Components.Primitives.MaskedTextBox.Mask.get -> string?
@@ -248,8 +253,11 @@ Xtreme.Components.Primitives.MonthYearPicker.IncrementMonths.set -> void
 Xtreme.Components.Primitives.MonthYearPicker.MonthYearPicker() -> void
 Xtreme.Components.Primitives.MonthYearPicker.SelectedDate.get -> System.DateTimeOffset
 Xtreme.Components.Primitives.MonthYearPicker.SelectedDate.set -> void
+Xtreme.Components.Primitives.MonthYearPicker.SelectedDateChanged -> System.EventHandler<System.DateTimeOffset>?
 Xtreme.Components.Primitives.MultiMonthDateNavigator
 Xtreme.Components.Primitives.MultiMonthDateNavigator.ClearSelection() -> void
+Xtreme.Components.Primitives.MultiMonthDateNavigator.FirstDayOfWeek.get -> System.DayOfWeek
+Xtreme.Components.Primitives.MultiMonthDateNavigator.FirstDayOfWeek.set -> void
 Xtreme.Components.Primitives.MultiMonthDateNavigator.GetSelection() -> System.Collections.Generic.IReadOnlyList<System.DateTime>!
 Xtreme.Components.Primitives.MultiMonthDateNavigator.MultiMonthDateNavigator() -> void
 Xtreme.Components.Primitives.MultiMonthDateNavigator.SelectionChanged -> System.EventHandler?
@@ -287,18 +295,22 @@ Xtreme.Components.Primitives.PagingControl.CompactThreshold.get -> double
 Xtreme.Components.Primitives.PagingControl.CompactThreshold.set -> void
 Xtreme.Components.Primitives.PagingControl.CurrentPage.get -> uint
 Xtreme.Components.Primitives.PagingControl.CurrentPage.set -> void
+Xtreme.Components.Primitives.PagingControl.CurrentPageChanged -> System.EventHandler?
 Xtreme.Components.Primitives.PagingControl.DefaultPageSize.get -> uint
 Xtreme.Components.Primitives.PagingControl.DefaultPageSize.set -> void
 Xtreme.Components.Primitives.PagingControl.IsCompact.get -> bool
 Xtreme.Components.Primitives.PagingControl.IsCompact.set -> void
 Xtreme.Components.Primitives.PagingControl.IsOverflow.get -> bool
 Xtreme.Components.Primitives.PagingControl.IsOverflow.set -> void
+Xtreme.Components.Primitives.PagingControl.LayoutMode.get -> Xtreme.Components.Primitives.PagingLayoutMode
+Xtreme.Components.Primitives.PagingControl.LayoutMode.set -> void
 Xtreme.Components.Primitives.PagingControl.MaxNumberedPages.get -> int
 Xtreme.Components.Primitives.PagingControl.MaxNumberedPages.set -> void
 Xtreme.Components.Primitives.PagingControl.OverflowThreshold.get -> double
 Xtreme.Components.Primitives.PagingControl.OverflowThreshold.set -> void
 Xtreme.Components.Primitives.PagingControl.PageSize.get -> uint
 Xtreme.Components.Primitives.PagingControl.PageSize.set -> void
+Xtreme.Components.Primitives.PagingControl.PageSizeChanged -> System.EventHandler?
 Xtreme.Components.Primitives.PagingControl.PageSizeOptions.get -> System.Collections.Generic.IList<uint>?
 Xtreme.Components.Primitives.PagingControl.PageSizeOptions.set -> void
 Xtreme.Components.Primitives.PagingControl.PagingControl() -> void
@@ -310,6 +322,7 @@ Xtreme.Components.Primitives.PagingControl.ShowJumpToPage.get -> bool
 Xtreme.Components.Primitives.PagingControl.ShowJumpToPage.set -> void
 Xtreme.Components.Primitives.PagingControl.ShowLastButton.get -> bool
 Xtreme.Components.Primitives.PagingControl.ShowLastButton.set -> void
+Xtreme.Components.Primitives.PagingControl.ShownLayout.get -> Xtreme.Components.Primitives.PagingLayoutMode
 Xtreme.Components.Primitives.PagingControl.ShowNumberedPages.get -> bool
 Xtreme.Components.Primitives.PagingControl.ShowNumberedPages.set -> void
 Xtreme.Components.Primitives.PagingControl.ShowPageSizeSelector.get -> bool
@@ -320,6 +333,11 @@ Xtreme.Components.Primitives.PagingControl.SummaryFormat.get -> string!
 Xtreme.Components.Primitives.PagingControl.SummaryFormat.set -> void
 Xtreme.Components.Primitives.PagingControl.TotalItemCount.get -> uint
 Xtreme.Components.Primitives.PagingControl.TotalItemCount.set -> void
+Xtreme.Components.Primitives.PagingLayoutMode
+Xtreme.Components.Primitives.PagingLayoutMode.Auto = 0 -> Xtreme.Components.Primitives.PagingLayoutMode
+Xtreme.Components.Primitives.PagingLayoutMode.Compact = 3 -> Xtreme.Components.Primitives.PagingLayoutMode
+Xtreme.Components.Primitives.PagingLayoutMode.Inline = 1 -> Xtreme.Components.Primitives.PagingLayoutMode
+Xtreme.Components.Primitives.PagingLayoutMode.Overflow = 2 -> Xtreme.Components.Primitives.PagingLayoutMode
 Xtreme.Components.Primitives.ToastControl
 Xtreme.Components.Primitives.ToastControl.Show(string! message) -> void
 Xtreme.Components.Primitives.ToastControl.ToastControl() -> void

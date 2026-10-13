@@ -30,16 +30,40 @@ namespace Xtreme.Components.Primitives;
 /// Fields keep their own bindings and styles; only their labels move. Set the label with the
 /// attached <see cref="LabelProperty"/> instead of the control's own <c>Header</c>, or the label
 /// renders twice.
+///
+/// <see cref="FieldValueChanged"/> reports edits in any of the fields (for a live "Search" enable or a
+/// criteria summary), so a host does not have to wire every field itself.
 /// </summary>
 [ContentProperty(Name = nameof(Fields))]
 public sealed partial class CriteriaPanel : UserControl
 {
+    // One unhook action per hooked element (a field, or an input nested in a field's panel).
+    private readonly Dictionary<FrameworkElement, Action> _hooks = new();
+
     public CriteriaPanel()
     {
         InitializeComponent();
+        TitleText.Style = HeadingStyle();
         Fields.CollectionChanged += OnFieldsChanged;
         Loaded += (_, _) => Rebuild();
     }
+
+    /// <summary>
+    /// Raised when the value of a field in <see cref="Fields"/> changes; the argument is that field
+    /// (the element in <see cref="Fields"/>, also when the edit was in an input nested inside it).
+    /// Recognized inputs: TextBox, PasswordBox, AutoSuggestBox, ComboBox and other Selectors,
+    /// ToggleButton / CheckBox / RadioButton, ToggleSwitch, CalendarDatePicker, DatePicker, TimePicker,
+    /// NumberBox, RangeBase (Slider), and this package's MaskedTextBox, TypeableTimeBox, DateTimePicker,
+    /// MonthYearPicker and ChipPickerControl. Panels are searched for inputs (their Children, not
+    /// templated content) when the field is added. Other elements are laid out but not watched.
+    /// </summary>
+    public event EventHandler<FrameworkElement>? FieldValueChanged;
+
+    // BodyStrongTextBlockStyle comes from XamlControlsResources; without it, a local equivalent.
+    private Style HeadingStyle()
+        => Application.Current?.Resources.TryGetValue("BodyStrongTextBlockStyle", out var s) == true && s is Style style
+            ? style
+            : (Style)Resources["CriteriaHeadingFallbackStyle"];
 
     /// <summary>Heading shown above the group (e.g. "Name", "Address", "Dates").</summary>
     public string Title
@@ -103,7 +127,120 @@ public sealed partial class CriteriaPanel : UserControl
         DependencyProperty.RegisterAttached("Heading", typeof(string), typeof(CriteriaPanel),
             new PropertyMetadata(string.Empty));
 
-    private void OnFieldsChanged(object? sender, NotifyCollectionChangedEventArgs e) => Rebuild();
+    private void OnFieldsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        SyncHooks();
+        Rebuild();
+    }
+
+    // ---- Field change tracking ----
+
+    // Hook every field (and inputs nested in its panels) that is in Fields and not hooked yet; unhook
+    // whatever left. Re-run on every collection change, so Reset / Replace need no special casing.
+    private void SyncHooks()
+    {
+        var wanted = new Dictionary<FrameworkElement, FrameworkElement>(); // element -> owning field
+        foreach (var field in Fields)
+            Collect(field, field, wanted);
+
+        foreach (var gone in _hooks.Keys.Where(k => !wanted.ContainsKey(k)).ToList())
+        {
+            _hooks[gone]();
+            _hooks.Remove(gone);
+        }
+        foreach (var (element, owner) in wanted)
+        {
+            if (!_hooks.ContainsKey(element))
+                _hooks[element] = Hook(element, () => FieldValueChanged?.Invoke(this, owner));
+        }
+    }
+
+    private static void Collect(FrameworkElement element, FrameworkElement owner, Dictionary<FrameworkElement, FrameworkElement> into)
+    {
+        into.TryAdd(element, owner);
+        if (element is Panel panel)
+        {
+            foreach (var child in panel.Children.OfType<FrameworkElement>())
+                Collect(child, owner, into);
+        }
+    }
+
+    // Subscribes to the element's value-change event (if it is a recognized input) and returns the
+    // matching unsubscribe. Order matters where types derive from one another.
+    private static Action Hook(FrameworkElement element, Action raise)
+    {
+        switch (element)
+        {
+            case PasswordBox pb: // before TextBox: Uno's PasswordBox derives from it
+                RoutedEventHandler pw = (_, _) => raise();
+                pb.PasswordChanged += pw;
+                return () => pb.PasswordChanged -= pw;
+            case TextBox tb:
+                TextChangedEventHandler text = (_, _) => raise();
+                tb.TextChanged += text;
+                return () => tb.TextChanged -= text;
+            case AutoSuggestBox asb:
+                Windows.Foundation.TypedEventHandler<AutoSuggestBox, AutoSuggestBoxTextChangedEventArgs> suggest = (_, _) => raise();
+                asb.TextChanged += suggest;
+                return () => asb.TextChanged -= suggest;
+            case Microsoft.UI.Xaml.Controls.Primitives.Selector sel:
+                SelectionChangedEventHandler selection = (_, _) => raise();
+                sel.SelectionChanged += selection;
+                return () => sel.SelectionChanged -= selection;
+            case Microsoft.UI.Xaml.Controls.Primitives.ToggleButton toggle:
+                RoutedEventHandler check = (_, _) => raise();
+                toggle.Checked += check;
+                toggle.Unchecked += check;
+                toggle.Indeterminate += check;
+                return () => { toggle.Checked -= check; toggle.Unchecked -= check; toggle.Indeterminate -= check; };
+            case ToggleSwitch ts:
+                RoutedEventHandler toggled = (_, _) => raise();
+                ts.Toggled += toggled;
+                return () => ts.Toggled -= toggled;
+            case CalendarDatePicker cdp:
+                Windows.Foundation.TypedEventHandler<CalendarDatePicker, CalendarDatePickerDateChangedEventArgs> cdate = (_, _) => raise();
+                cdp.DateChanged += cdate;
+                return () => cdp.DateChanged -= cdate;
+            case DatePicker dp:
+                EventHandler<DatePickerValueChangedEventArgs> date = (_, _) => raise();
+                dp.DateChanged += date;
+                return () => dp.DateChanged -= date;
+            case TimePicker tp:
+                EventHandler<TimePickerValueChangedEventArgs> time = (_, _) => raise();
+                tp.TimeChanged += time;
+                return () => tp.TimeChanged -= time;
+            case NumberBox nb:
+                Windows.Foundation.TypedEventHandler<NumberBox, NumberBoxValueChangedEventArgs> number = (_, _) => raise();
+                nb.ValueChanged += number;
+                return () => nb.ValueChanged -= number;
+            case Microsoft.UI.Xaml.Controls.Primitives.RangeBase range:
+                Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventHandler ranged = (_, _) => raise();
+                range.ValueChanged += ranged;
+                return () => range.ValueChanged -= ranged;
+            case DateTimePicker dtp:
+                EventHandler value = (_, _) => raise();
+                dtp.ValueChanged += value;
+                return () => dtp.ValueChanged -= value;
+            case MonthYearPicker myp:
+                EventHandler<DateTimeOffset> month = (_, _) => raise();
+                myp.SelectedDateChanged += month;
+                return () => myp.SelectedDateChanged -= month;
+            case MaskedTextBox mtb:
+                return WatchProperty(mtb, MaskedTextBox.TextProperty, raise);
+            case TypeableTimeBox ttb:
+                return WatchProperty(ttb, TypeableTimeBox.TimeProperty, raise);
+            case ChipPickerControl chips:
+                return WatchProperty(chips, ChipPickerControl.ItemsProperty, raise);
+            default:
+                return static () => { };
+        }
+    }
+
+    private static Action WatchProperty(DependencyObject target, DependencyProperty property, Action raise)
+    {
+        var token = target.RegisterPropertyChangedCallback(property, (_, _) => raise());
+        return () => target.UnregisterPropertyChangedCallback(property, token);
+    }
 
     /// <summary>
     /// Rebuild the row grid from <see cref="Fields"/>. Cheap and idempotent: these panels hold a
@@ -131,7 +268,7 @@ public sealed partial class CriteriaPanel : UserControl
                 var head = new TextBlock
                 {
                     Text = heading,
-                    Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+                    Style = HeadingStyle(),
                     // Breathing room above every group but the first, so groups read as separated
                     // without a divider.
                     Margin = new Thickness(0, first ? 0 : 8, 0, 0),

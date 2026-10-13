@@ -49,6 +49,9 @@ public sealed partial class DateTimePicker : UserControl
     /// close from a stray click-away.</summary>
     private bool _closingDeliberately;
 
+    /// <summary>True while Save writes Date and Time, so the pair raises one ValueChanged, not two.</summary>
+    private bool _publishing;
+
     /// <summary>Last single-day set pushed into the navigator, so a selection change can be
     /// diffed to find which day the user actually just clicked.</summary>
     private IReadOnlyList<DateTime> _lastCalendarSelection = Array.Empty<DateTime>();
@@ -73,13 +76,21 @@ public sealed partial class DateTimePicker : UserControl
     private const double StackBelowWidth = 620;
 
     public static readonly DependencyProperty HeaderProperty = DependencyProperty.Register(
-        nameof(Header), typeof(string), typeof(DateTimePicker),
-        new PropertyMetadata(string.Empty));
+        nameof(Header), typeof(object), typeof(DateTimePicker),
+        new PropertyMetadata(null, OnHeaderChanged));
 
-    public string Header
+    /// <summary>Label above the button: text or any content (same shape as <c>TextBox.Header</c>).
+    /// Null or an empty string collapses the label row.</summary>
+    public object? Header
     {
-        get => (string)GetValue(HeaderProperty);
+        get => GetValue(HeaderProperty);
         set => SetValue(HeaderProperty, value);
+    }
+
+    private static void OnHeaderChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is DateTimePicker c)
+            c.PART_Header.Visibility = e.NewValue is null or "" ? Visibility.Collapsed : Visibility.Visible;
     }
 
     public static readonly DependencyProperty DateProperty = DependencyProperty.Register(
@@ -124,18 +135,26 @@ public sealed partial class DateTimePicker : UserControl
         set => SetValue(MinuteStepProperty, value);
     }
 
-    /// <summary>Raised whenever Date or Time changes (combined notification).</summary>
+    /// <summary>
+    /// Raised whenever <see cref="Date"/> or <see cref="Time"/> changes: once per Save that changed
+    /// either or both (one notification for the pair), and once per property written from code or a
+    /// binding with a different value. Hosts that load values into the field and only want user edits
+    /// should suppress their handler around the load.
+    /// </summary>
     public event EventHandler? ValueChanged;
 
     private static void OnValuePropChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not DateTimePicker c) return;
+        if (c._publishing) return; // Save raises a single ValueChanged for the pair itself
+
         // An external write (host loading an event) becomes the new baseline for the pending edit.
         c._editDate = c.Date;
         c._editTime = c.Time;
         c.UpdateDisplay();
         c.SyncPickersFromEdit();
         c.UpdateSaveEnabled();
+        c.ValueChanged?.Invoke(c, EventArgs.Empty);
     }
 
     private static void OnShowTimeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -458,9 +477,15 @@ public sealed partial class DateTimePicker : UserControl
 
         if (_editDate != Date || _editTime != Time)
         {
-            Date = _editDate;
-            Time = _editTime;
+            _publishing = true;
+            try
+            {
+                Date = _editDate;
+                Time = _editTime;
+            }
+            finally { _publishing = false; }
             UpdateDisplay();
+            UpdateSaveEnabled();
             ValueChanged?.Invoke(this, EventArgs.Empty); // one notification for the pair
         }
 

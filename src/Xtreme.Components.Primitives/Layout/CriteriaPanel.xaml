@@ -11,6 +11,13 @@
         <Style x:Key="CriteriaLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         </Style>
+
+        <!-- Used for the title and sub-headings only when the app has no BodyStrongTextBlockStyle
+             (XamlControlsResources not merged); see CriteriaPanel.HeadingStyle. -->
+        <Style x:Key="CriteriaHeadingFallbackStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{StaticResource XcFontSizeBody}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
     </UserControl.Resources>
 
     <!-- A titled group of search criteria. The rows are built in code-behind from Fields, so the
@@ -22,8 +29,8 @@
             Padding="12,8,12,10"
             Background="{ThemeResource LayerFillColorDefaultBrush}">
         <StackPanel Spacing="6">
+            <!-- Style is applied in code (HeadingStyle): BodyStrongTextBlockStyle when the app has it. -->
             <TextBlock x:Name="TitleText"
-                       Style="{ThemeResource BodyStrongTextBlockStyle}"
                        Text="{x:Bind Title, Mode=OneWay}" />
 
             <!-- Column 0 = labels (Auto), column 1 = fields (*). Rows are added per field. -->

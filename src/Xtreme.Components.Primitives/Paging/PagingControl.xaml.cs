@@ -11,10 +11,13 @@ public sealed partial class PagingControl : UserControl
     // Single suppression flag shared across all three combos (inline / overflow / compact).
     // Rebuilds are sequential and never run concurrently, so one flag is sufficient.
     private bool _suppressComboEvents;
-    private bool _isCompactExplicitlySet;
-    private bool _isOverflowExplicitlySet;
     private bool _effectiveCompact;
     private bool _effectiveOverflow;
+
+    // PageSize follows DefaultPageSize until anything else writes PageSize (the host, a binding, the
+    // size selector). _applyingDefault marks the control's own write so it does not count as "else".
+    private bool _pageSizeTouched;
+    private bool _applyingDefault;
 
     // True while the "All" page-size option is selected. In that mode PageSize tracks
     // TotalItemCount so the whole set renders on a single page; we re-apply it whenever
@@ -26,6 +29,20 @@ public sealed partial class PagingControl : UserControl
         this.InitializeComponent();
         Loaded += OnLoaded;
     }
+
+    /// <summary>
+    /// Raised after <see cref="CurrentPage"/> changes, whatever changed it: a page button, Go to, the
+    /// host, or the control itself (clamping to the page count, keeping the first row on screen after a
+    /// page-size change). Read <see cref="CurrentPage"/> in the handler.
+    /// </summary>
+    public event EventHandler? CurrentPageChanged;
+
+    /// <summary>
+    /// Raised after <see cref="PageSize"/> changes (the size selector, "All", the host, or
+    /// <see cref="DefaultPageSize"/>). A size change that also moves the current page raises
+    /// <see cref="CurrentPageChanged"/> first.
+    /// </summary>
+    public event EventHandler? PageSizeChanged;
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -48,7 +65,7 @@ public sealed partial class PagingControl : UserControl
 
     public static readonly DependencyProperty CurrentPageProperty = DependencyProperty.Register(
         nameof(CurrentPage), typeof(uint), typeof(PagingControl),
-        new PropertyMetadata(1u, OnAnyChanged));
+        new PropertyMetadata(1u, OnCurrentPageChanged));
 
     public uint CurrentPage
     {
@@ -60,6 +77,10 @@ public sealed partial class PagingControl : UserControl
         nameof(PageSize), typeof(uint), typeof(PagingControl),
         new PropertyMetadata(10u, OnPageSizeChanged));
 
+    /// <summary>
+    /// Rows per page. Starts at <see cref="DefaultPageSize"/> and follows it until something else sets
+    /// PageSize; from then on PageSize wins. Setting 0 snaps to <see cref="DefaultPageSize"/> (or 10).
+    /// </summary>
     public uint PageSize
     {
         get => (uint)GetValue(PageSizeProperty);
@@ -78,8 +99,13 @@ public sealed partial class PagingControl : UserControl
 
     public static readonly DependencyProperty DefaultPageSizeProperty = DependencyProperty.Register(
         nameof(DefaultPageSize), typeof(uint), typeof(PagingControl),
-        new PropertyMetadata(10u));
+        new PropertyMetadata(10u, OnDefaultPageSizeChanged));
 
+    /// <summary>
+    /// The starting page size. While <see cref="PageSize"/> has not been set by anything else (host
+    /// code, a binding, the user's pick), changing DefaultPageSize also moves PageSize; once PageSize
+    /// has been set, it wins and DefaultPageSize is only the value a PageSize of 0 snaps to.
+    /// </summary>
     public uint DefaultPageSize
     {
         get => (uint)GetValue(DefaultPageSizeProperty);
@@ -183,8 +209,12 @@ public sealed partial class PagingControl : UserControl
 
     public static readonly DependencyProperty IsCompactProperty = DependencyProperty.Register(
         nameof(IsCompact), typeof(bool), typeof(PagingControl),
-        new PropertyMetadata(false, OnIsCompactChanged));
+        new PropertyMetadata(false, OnAnyChanged));
 
+    /// <summary>
+    /// True forces compact mode (shorthand for <see cref="LayoutMode"/> = Compact, and it wins over
+    /// LayoutMode and <see cref="IsOverflow"/>). False forces nothing: <see cref="LayoutMode"/> decides.
+    /// </summary>
     public bool IsCompact
     {
         get => (bool)GetValue(IsCompactProperty);
@@ -203,12 +233,12 @@ public sealed partial class PagingControl : UserControl
 
     public static readonly DependencyProperty IsOverflowProperty = DependencyProperty.Register(
         nameof(IsOverflow), typeof(bool), typeof(PagingControl),
-        new PropertyMetadata(false, OnIsOverflowChanged));
+        new PropertyMetadata(false, OnAnyChanged));
 
     /// <summary>
-    /// Forces the intermediate "overflow" mode where the page-size selector and
-    /// Go-to-page jump field collapse into a flyout button while the navigation
-    /// buttons remain inline. When unset, the control auto-flips at OverflowThreshold.
+    /// True forces the intermediate "overflow" mode, where the page-size selector and Go-to-page
+    /// field collapse into a flyout button while the navigation buttons remain inline (shorthand for
+    /// <see cref="LayoutMode"/> = Overflow; <see cref="IsCompact"/> wins over it). False forces nothing.
     /// </summary>
     public bool IsOverflow
     {
@@ -228,6 +258,36 @@ public sealed partial class PagingControl : UserControl
     {
         get => (double)GetValue(OverflowThresholdProperty);
         set => SetValue(OverflowThresholdProperty, value);
+    }
+
+    public static readonly DependencyProperty LayoutModeProperty = DependencyProperty.Register(
+        nameof(LayoutMode), typeof(PagingLayoutMode), typeof(PagingControl),
+        new PropertyMetadata(PagingLayoutMode.Auto, OnAnyChanged));
+
+    /// <summary>
+    /// The requested arrangement. <see cref="PagingLayoutMode.Auto"/> (the default) picks by width at
+    /// <see cref="CompactThreshold"/> / <see cref="OverflowThreshold"/> and keeps re-picking as the
+    /// control resizes; any other value pins that mode. <see cref="IsCompact"/> or
+    /// <see cref="IsOverflow"/> set true override it. What is on screen is <see cref="ShownLayout"/>.
+    /// </summary>
+    public PagingLayoutMode LayoutMode
+    {
+        get => (PagingLayoutMode)GetValue(LayoutModeProperty);
+        set => SetValue(LayoutModeProperty, value);
+    }
+
+    public static readonly DependencyProperty ShownLayoutProperty = DependencyProperty.Register(
+        nameof(ShownLayout), typeof(PagingLayoutMode), typeof(PagingControl),
+        new PropertyMetadata(PagingLayoutMode.Inline));
+
+    /// <summary>
+    /// Read-only. The arrangement currently on screen (Inline, Overflow or Compact, never Auto),
+    /// whether requested or picked by width. Watch it with <c>RegisterPropertyChangedCallback</c>.
+    /// </summary>
+    public PagingLayoutMode ShownLayout
+    {
+        get => (PagingLayoutMode)GetValue(ShownLayoutProperty);
+        private set => SetValue(ShownLayoutProperty, value);
     }
 
     public static readonly DependencyProperty CompactIndicatorFormatProperty = DependencyProperty.Register(
@@ -250,9 +310,30 @@ public sealed partial class PagingControl : UserControl
         }
     }
 
+    private static void OnCurrentPageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not PagingControl ctl) return;
+        ctl.Refresh();
+        ctl.CurrentPageChanged?.Invoke(ctl, EventArgs.Empty);
+    }
+
+    private static void OnDefaultPageSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not PagingControl ctl || ctl._pageSizeTouched) return;
+        // A bound PageSize belongs to the host, even before the binding first changes it.
+        if (ctl.ReadLocalValue(PageSizeProperty) is Microsoft.UI.Xaml.Data.BindingExpression) return;
+        var size = (uint)e.NewValue;
+        if (size == 0 || size == ctl.PageSize) return;
+
+        ctl._applyingDefault = true;
+        try { ctl.PageSize = size; }
+        finally { ctl._applyingDefault = false; }
+    }
+
     private static void OnPageSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not PagingControl ctl) return;
+        if (!ctl._applyingDefault) ctl._pageSizeTouched = true;
 
         var oldSize = (uint)e.OldValue;
         var newSize = (uint)e.NewValue;
@@ -265,8 +346,9 @@ public sealed partial class PagingControl : UserControl
         }
 
         // Keep user near their current starting row when page size changes.
-        // Setting CurrentPage routes through OnAnyChanged → Refresh, so we only Refresh
+        // Setting CurrentPage routes through OnCurrentPageChanged → Refresh, so we only Refresh
         // here when the page didn't change.
+        var pageMoved = false;
         if (oldSize > 0 && ctl.CurrentPage > 0)
         {
             var startRow = (ctl.CurrentPage - 1) * oldSize; // 0-based
@@ -275,12 +357,16 @@ public sealed partial class PagingControl : UserControl
             {
                 ctl.SyncComboToPageSize();
                 ctl.CurrentPage = newPage;
-                return;
+                pageMoved = true;
             }
         }
 
-        ctl.SyncComboToPageSize();
-        ctl.Refresh();
+        if (!pageMoved)
+        {
+            ctl.SyncComboToPageSize();
+            ctl.Refresh();
+        }
+        ctl.PageSizeChanged?.Invoke(ctl, EventArgs.Empty);
     }
 
     private static void OnPageSizeOptionsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -307,23 +393,6 @@ public sealed partial class PagingControl : UserControl
         ctl.Refresh();
     }
 
-    private static void OnIsCompactChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is not PagingControl ctl) return;
-        // Any explicit set (even setting back to false from XAML) disables auto-flip.
-        // We can't distinguish "caller set false" from "default false", so we use the
-        // standard heuristic: any post-construction value change marks it explicit.
-        ctl._isCompactExplicitlySet = true;
-        ctl.Refresh();
-    }
-
-    private static void OnIsOverflowChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is not PagingControl ctl) return;
-        ctl._isOverflowExplicitlySet = true;
-        ctl.Refresh();
-    }
-
     private void SyncAllCombos()
     {
         SyncComboToPageSizeFor(PART_PageSizeCombo);
@@ -333,14 +402,25 @@ public sealed partial class PagingControl : UserControl
 
     private void OnRootSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        var width = e.NewSize.Width;
-        var newCompact = !_isCompactExplicitlySet && width > 0 && width < CompactThreshold;
-        var newOverflow = !_isOverflowExplicitlySet && !newCompact && width > 0 && width < OverflowThreshold;
-
-        if (newCompact != _effectiveCompact || newOverflow != _effectiveOverflow)
+        var layout = ResolveLayout(e.NewSize.Width);
+        if ((layout == PagingLayoutMode.Compact) != _effectiveCompact
+            || (layout == PagingLayoutMode.Overflow) != _effectiveOverflow)
         {
             Refresh();
         }
+    }
+
+    // The requested arrangement, with Auto resolved against the given width.
+    private PagingLayoutMode ResolveLayout(double width)
+    {
+        var requested = IsCompact ? PagingLayoutMode.Compact
+                      : IsOverflow ? PagingLayoutMode.Overflow
+                      : LayoutMode;
+        if (requested != PagingLayoutMode.Auto) return requested;
+
+        if (width > 0 && width < CompactThreshold) return PagingLayoutMode.Compact;
+        if (width > 0 && width < OverflowThreshold) return PagingLayoutMode.Overflow;
+        return PagingLayoutMode.Inline;
     }
 
     private uint EffectivePageSize => PageSize == 0 ? (DefaultPageSize == 0 ? 10u : DefaultPageSize) : PageSize;
@@ -481,31 +561,11 @@ public sealed partial class PagingControl : UserControl
             return; // OnAnyChanged will re-enter Refresh.
         }
 
-        // Decide layout mode (Compact > Overflow > Inline). Explicit IsCompact / IsOverflow
-        // win; otherwise auto-flip on width.
-        if (_isCompactExplicitlySet)
-        {
-            _effectiveCompact = IsCompact;
-        }
-        else
-        {
-            var width = ActualWidth;
-            _effectiveCompact = width > 0 && width < CompactThreshold;
-        }
-
-        if (_effectiveCompact)
-        {
-            _effectiveOverflow = false;
-        }
-        else if (_isOverflowExplicitlySet)
-        {
-            _effectiveOverflow = IsOverflow;
-        }
-        else
-        {
-            var width = ActualWidth;
-            _effectiveOverflow = width > 0 && width < OverflowThreshold;
-        }
+        // Decide layout mode: IsCompact / IsOverflow / LayoutMode request one, Auto picks by width.
+        var layout = ResolveLayout(ActualWidth);
+        _effectiveCompact = layout == PagingLayoutMode.Compact;
+        _effectiveOverflow = layout == PagingLayoutMode.Overflow;
+        ShownLayout = layout;
 
         PART_InlineRoot.Visibility = _effectiveCompact ? Visibility.Collapsed : Visibility.Visible;
         PART_CompactRoot.Visibility = _effectiveCompact ? Visibility.Visible : Visibility.Collapsed;
@@ -818,6 +878,8 @@ public sealed partial class PagingControl : UserControl
     {
         if (_suppressComboEvents) return;
         if (combo?.SelectedItem is not PageSizeItem p) return;
+
+        _pageSizeTouched = true; // the user's pick wins over DefaultPageSize from here on
 
         if (p.IsAll)
         {

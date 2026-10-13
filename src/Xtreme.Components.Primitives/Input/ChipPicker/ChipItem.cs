@@ -1,4 +1,3 @@
-using Microsoft.UI;
 using Windows.UI;
 
 namespace Xtreme.Components.Primitives;
@@ -19,6 +18,10 @@ public sealed record ChipItem
     /// </summary>
     public bool IsExcluded { get; set; } = false;
 
+    /// <summary>
+    /// False locks a selected item in: the picker dialog disables its checkbox (and its NOT toggle) once
+    /// it is selected, so the user can add it but not take it out again. Unselected items stay pickable.
+    /// </summary>
     public bool CanRemove { get; init; } = true;
 
     /// <summary>
@@ -37,9 +40,10 @@ public sealed record ChipItem
     /// <summary>The pill's text: <see cref="PillName"/> when set, else <see cref="Name"/>.</summary>
     public string PillText => string.IsNullOrEmpty(PillName) ? Name : PillName;
 
-    // CHANGE: store Colors, not Brushes (UI-safe)
-    // Default to a neutral grey pill (reads in both light and dark) when no color is supplied;
-    // callers that pass an explicit color override this.
-    public Color? BackgroundColor { get; init; } = Color.FromArgb(0xFF, 0xE1, 0xE1, 0xE1);
-    public Color? ForegroundColor { get; init; } = Colors.Black;
+    // Colors, not Brushes (UI-safe for a plain record).
+    /// <summary>Pill fill. Null (the default) uses the <c>XcChipBackgroundBrush</c> token (a neutral gray).</summary>
+    public Color? BackgroundColor { get; init; }
+
+    /// <summary>Pill text. Null (the default) uses the <c>XcChipForegroundBrush</c> token (black).</summary>
+    public Color? ForegroundColor { get; init; }
 }

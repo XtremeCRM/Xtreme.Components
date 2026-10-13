@@ -14,12 +14,14 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock x:Name="PART_Header"
-                   Grid.Row="0"
-                   Text="{x:Bind Header, Mode=OneWay}"
-                   Margin="0,0,0,4"
-                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                   FontSize="{StaticResource XcFontSizeBody}" />
+        <!-- Header is object (text or content); collapsed in code while it is null or empty. -->
+        <ContentPresenter x:Name="PART_Header"
+                          Grid.Row="0"
+                          Content="{x:Bind Header, Mode=OneWay}"
+                          Margin="0,0,0,4"
+                          Visibility="Collapsed"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                          FontSize="{StaticResource XcFontSizeBody}" />
 
         <Button x:Name="PART_Button"
                 Grid.Row="1"
