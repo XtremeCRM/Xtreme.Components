@@ -13,13 +13,14 @@ primitives only. Part of [Xtreme.Components](https://github.com/XtremeCRM/Xtreme
   (inner and outer bands, insert before/after, tab into), with a shaded landing preview.
 - **Auto-hide.** Pushpin collapses a pane to its edge rail; the flyout slides fully in and out.
   Below a configurable width panes auto-unpin (`DockNarrowBehavior.AutoHide`).
-- **Float to an OS window.** On desktop a pane tears out into a real window and drags back to
-  re-dock; on WASM and mobile it stays in-surface. All of it goes through
+- **Float to an OS window.** On Windows desktop a pane tears out into a real window and drags back
+  to re-dock; elsewhere (WASM, mobile, macOS, Linux) it stays in-surface. All of it goes through
   `IDockPlatformServices`. `Win32DockPlatformServices` is the shipped Windows implementation
   (window pool, owned windows, drag tracking, drag translucency), runtime-guarded so the same
   assembly runs everywhere; without it the host is docked-only.
-- **Persistence.** The whole layout (edges, layers, tab groups, ratios, pinned/open state) is a
-  versioned document saved through `IDockPersistence`.
+- **Persistence.** The whole layout (edges, layers, tab groups and their selected tab, ratios,
+  pinned/open state, floating windows and their bounds) is a versioned document saved through
+  `IDockPersistence`; closes are saved too, and the store can be assigned at any time.
 - **Theme-aware.** Follows `ActualTheme` live; high-contrast palettes override through the
   `Xc*` keys in `Xtreme.Components.Core`.
 
@@ -58,4 +59,4 @@ platform.CaptureShellWindowHandle(MainWindow.DispatcherQueue);   // owned float 
 platform.PrimePoolWhenIdle(MainWindow.DispatcherQueue);          // pre-built windows, off the click
 ```
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.
+Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.

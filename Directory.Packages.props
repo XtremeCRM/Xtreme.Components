@@ -8,5 +8,9 @@
     <PackageVersion Include="WinUI.TableView" Version="1.5.0-preview2" />
     <!-- Public API baseline: every public symbol is listed in PublicAPI.*.txt, so a break is a visible diff. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
+    <!-- Headless unit tests under tests/. -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 </Project>

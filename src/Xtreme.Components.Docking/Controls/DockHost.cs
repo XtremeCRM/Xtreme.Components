@@ -37,6 +37,11 @@ public partial class DockHost : ContentControl
 
     private enum WidthZone { Narrow, Wide }
 
+    // Declared ahead of every dependency property: static initializers run in textual order, and
+    // EdgePriorityProperty's default reads this.
+    private static readonly IReadOnlyList<DockEdge> DefaultEdgePriority =
+        Array.AsReadOnly(new[] { DockEdge.Top, DockEdge.Bottom, DockEdge.Left, DockEdge.Right });
+
     private readonly Grid _root = new();
     private readonly Grid _middle = new();
     private readonly ContentPresenter _documentHost = new();
@@ -46,6 +51,11 @@ public partial class DockHost : ContentControl
     private WidthZone _zone = WidthZone.Wide;
     private bool _zoneInitialized;
     private bool _rebuilding;
+    private bool _isLoaded;
+
+    // Open, pinned panes the narrow zone is hiding (DockNarrowBehavior.Hide), as of the last rebuild.
+    // The restore menu lists them so a hidden pane always has a way back.
+    private readonly List<DockItem> _narrowHidden = new();
 
     public DockHost()
     {
@@ -83,7 +93,7 @@ public partial class DockHost : ContentControl
         Loaded += OnHostLoaded;
         Unloaded += OnHostUnloaded;
 
-        // The chrome bakes per-theme colours at build time (ComponentTheme), so a live light/dark switch
+        // The chrome bakes per-theme colors at build time (ComponentTheme), so a live light/dark switch
         // just rebuilds — cheap, and it re-resolves every themed surface in one sweep.
         ActualThemeChanged += (_, _) => Rebuild();
     }
@@ -116,10 +126,23 @@ public partial class DockHost : ContentControl
     }
 
     public static readonly DependencyProperty PersistenceKeyProperty = DependencyProperty.Register(
-        nameof(PersistenceKey), typeof(string), typeof(DockHost), new PropertyMetadata(null));
+        nameof(PersistenceKey), typeof(string), typeof(DockHost),
+        new PropertyMetadata(null, OnPersistenceSourceChanged));
 
-    /// <summary>Host-supplied layout store. See <see cref="IDockPersistence"/> for why this is injected.</summary>
-    public IDockPersistence? Persistence { get; set; }
+    /// <summary>
+    /// Host-supplied layout store. See <see cref="IDockPersistence"/> for why this is injected. May be set
+    /// at any time: assigning it (or <see cref="PersistenceKey"/>) after the host has loaded restores the
+    /// stored layout at that point.
+    /// </summary>
+    public IDockPersistence? Persistence
+    {
+        get => (IDockPersistence?)GetValue(PersistenceProperty);
+        set => SetValue(PersistenceProperty, value);
+    }
+
+    public static readonly DependencyProperty PersistenceProperty = DependencyProperty.Register(
+        nameof(Persistence), typeof(IDockPersistence), typeof(DockHost),
+        new PropertyMetadata(null, OnPersistenceSourceChanged));
 
     /// <summary>
     /// Host-supplied platform capabilities. Defaults to docked-only, so a head that never opts in can
@@ -131,10 +154,10 @@ public partial class DockHost : ContentControl
     public bool IsNarrow => _zone == WidthZone.Narrow;
 
     /// <summary>
-    /// Whether the document-corner restore menu appears while panes are closed. Default true — a
-    /// closed pane must stay recoverable, because <see cref="DockItem.IsOpen"/> persists. Turn off
-    /// ONLY when the host app drives open/close programmatically and owns the way back itself
-    /// (the DockBlade <c>ShowPaneToggle=false</c> contract).
+    /// Whether the document-corner restore menu appears while panes are closed (or hidden by the narrow
+    /// zone's <see cref="DockNarrowBehavior.Hide"/>). Default true — a closed pane must stay recoverable,
+    /// because <see cref="DockItem.IsOpen"/> persists. Turn off ONLY when the host app drives open/close
+    /// programmatically and owns the way back itself.
     /// </summary>
     public bool ShowClosedPaneRestore
     {
@@ -157,15 +180,16 @@ public partial class DockHost : ContentControl
     /// <summary>
     /// Opens <paramref name="item"/>'s auto-hide flyout as if its rail tab were tapped — the
     /// programmatic "show the pane over the document" entry point. No-ops unless the item is
-    /// currently presented as auto-hidden (unpinned, or collapsed by the narrow zone).
+    /// currently presented as auto-hidden (unpinned, or collapsed by the narrow zone) or hidden by the
+    /// narrow zone (<see cref="DockNarrowBehavior.Hide"/>).
     /// </summary>
     public void OpenFlyout(DockItem item)
     {
         if (!Items.Contains(item) || !item.IsOpen || item.IsFloating) return;
 
-        var autoHidden = !item.IsPinned
-            || (_zone == WidthZone.Narrow && item.NarrowBehavior == DockNarrowBehavior.AutoHide);
-        if (autoHidden) OpenAutoHideFlyout(item);
+        var narrowCollapsed = _zone == WidthZone.Narrow
+            && item.NarrowBehavior is DockNarrowBehavior.AutoHide or DockNarrowBehavior.Hide;
+        if (!item.IsPinned || narrowCollapsed) OpenAutoHideFlyout(item);
     }
 
     /// <summary>Raised when the host crosses the narrow/wide threshold.</summary>
@@ -173,15 +197,17 @@ public partial class DockHost : ContentControl
 
     /// <summary>Raised when an auto-hide flyout opens (rail tap or <see cref="OpenFlyout"/>), with the
     /// item it presents. List-style hosts use this to reset selection so re-picking the same row still
-    /// registers as a change — the dock analogue of the old back-to-master rail tap.</summary>
+    /// registers as a change.</summary>
     public event EventHandler<DockItem>? FlyoutOpened;
 
     /// <summary>
-    /// Raised when the user taps the scrim to dismiss an auto-hide flyout, BEFORE it closes. Set
-    /// <see cref="System.ComponentModel.CancelEventArgs.Cancel"/> to keep the flyout open — the hook
+    /// Raised when the user taps the scrim to dismiss a pane shown over the document, BEFORE it
+    /// closes: an auto-hide flyout (default outcome: it slides back to its rail), or a narrow-zone
+    /// <see cref="DockNarrowBehavior.Overlay"/> pane (default outcome: <see cref="DockItem.IsOpen"/>
+    /// becomes false, raised once per overlaid pane). Set
+    /// <see cref="System.ComponentModel.CancelEventArgs.Cancel"/> to keep the pane showing — the hook
     /// for hosts that gate the close (an editor pane's unsaved-changes prompt) or that want a
-    /// different outcome than the default slide-out (fully closing the pane). The dismissed item is
-    /// <see cref="FlyoutDismissEventArgs.Item"/>.
+    /// different outcome than the default. The dismissed item is <see cref="FlyoutDismissEventArgs.Item"/>.
     /// </summary>
     public event EventHandler<FlyoutDismissEventArgs>? FlyoutDismissRequested;
 
@@ -190,33 +216,64 @@ public partial class DockHost : ContentControl
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.OldItems is not null)
+        {
             foreach (DockItem old in e.OldItems)
+            {
                 old.LayoutAffectingPropertyChanged -= OnItemLayoutChanged;
+                old.IsOpenChanged -= OnItemIsOpenChanged;
+            }
+        }
 
         if (e.NewItems is not null)
+        {
             foreach (DockItem added in e.NewItems)
+            {
                 added.LayoutAffectingPropertyChanged += OnItemLayoutChanged;
+                added.IsOpenChanged += OnItemIsOpenChanged;
+            }
+        }
 
         Rebuild();
     }
 
     private void OnItemLayoutChanged(object? sender, EventArgs e) => Rebuild();
 
+    /// <summary>
+    /// Every open/close is saved, whoever made it — the header's close, a scrim dismiss, the restore
+    /// menu, or code. Debounced, because hosts that drive panes from code can toggle several in a row.
+    /// </summary>
+    private void OnItemIsOpenChanged(object? sender, EventArgs e)
+    {
+        // A floating pane closed from code (typically after a cancelled close request) must leave its
+        // window too; otherwise the window keeps showing a pane the model says is closed.
+        if (sender is DockItem { IsOpen: false, IsFloating: true } item)
+            DockItemBack(item, reopen: false);
+
+        SchedulePersist();
+    }
+
     private async void OnHostLoaded(object sender, RoutedEventArgs e)
     {
+        _isLoaded = true;
+
         // ActualWidth is frequently 0 until the first real arrange, and deciding a zone from 0 would
         // wrongly latch Narrow. Wait for a genuine measurement.
         if (ActualWidth > 0) ApplyResponsiveLayout(ActualWidth);
         Rebuild();
 
         // After the first build, so a restore that changes nothing costs one no-op rebuild rather than
-        // delaying first paint behind an await on the host's storage.
-        await RestoreLayoutAsync();
-
+        // delaying first paint behind an await on the host's storage. Once per store: a host that is
+        // unloaded and loaded again (a tab switch) keeps its in-session layout, which is newer.
+        if (!_restoreCompleted) await RestoreLayoutAsync();
     }
 
     private void OnHostUnloaded(object sender, RoutedEventArgs e)
     {
+        _isLoaded = false;
+
+        // A debounced save still waiting must not be lost with the host.
+        FlushPendingPersist();
+
         // Flush any close that was deferred for frame timing: the host is leaving the tree, so the
         // stall no longer matters and an unclosed window must not leak past this point.
         foreach (var (timer, window) in _deferredCloses.ToList())
@@ -317,6 +374,7 @@ public partial class DockHost : ContentControl
         var docked = new List<DockItem>();
         var overlaid = new List<DockItem>();
         var autoHidden = new List<DockItem>();
+        _narrowHidden.Clear();
 
         foreach (var item in Items)
         {
@@ -335,7 +393,7 @@ public partial class DockHost : ContentControl
             {
                 switch (item.NarrowBehavior)
                 {
-                    case DockNarrowBehavior.Hide: continue;
+                    case DockNarrowBehavior.Hide: _narrowHidden.Add(item); continue;
                     case DockNarrowBehavior.Overlay: overlaid.Add(item); continue;
                     // Zone-driven auto-unpin (the default): the pane collapses to its rail tab
                     // WITHOUT touching IsPinned, so widening restores it docked as it was.
@@ -351,8 +409,8 @@ public partial class DockHost : ContentControl
         BuildOverlay(overlaid);
 
         // Floating is plausibly imminent whenever a floatable item is hosted — give a pooling head
-        // its chance to absorb the window-construction freeze during idle instead of under the
-        // user's eventual tear-out (XU-450). Repeat-safe by contract.
+        // its chance to absorb the window-construction cost during idle instead of under the
+        // user's eventual tear-out. Repeat-safe by contract.
         if (PlatformServices.SupportsFloatingWindows && Items.Any(i => i.AllowFloat))
             PlatformServices.WarmFloatSupport(DispatcherQueue);
     }
@@ -361,24 +419,30 @@ public partial class DockHost : ContentControl
     /// The order edges claim the host's full extent: the FIRST edge here is laid out outermost and
     /// spans the whole host on its axis; each later edge fits inside the earlier ones. The default
     /// reproduces the common IDE arrangement (toolbars/output span full width). To give a Right pane
-    /// full height with the Top yielding to it — Russ's Event Editor case — put Right first.
+    /// full height with the Top yielding to it (a tall editor beside the document), put Right first.
     /// </summary>
     /// <remarks>
-    /// This used to be HARDCODED (Top/Bottom rows outside the Left/Right band); which edge won the
-    /// corners was an accident of the grid, not a policy. Now it is the host author's call.
+    /// A dependency property, so it can be bound from XAML; there is no string syntax for a literal list,
+    /// so set it from code or bind it to an <c>IReadOnlyList&lt;DockEdge&gt;</c>. Null restores the
+    /// default.
     /// </remarks>
     public IReadOnlyList<DockEdge> EdgePriority
     {
         get => _edgePriority;
-        set
-        {
-            _edgePriority = value;
-            Rebuild();
-        }
+        set => SetValue(EdgePriorityProperty, value);
     }
 
-    private IReadOnlyList<DockEdge> _edgePriority =
-        new[] { DockEdge.Top, DockEdge.Bottom, DockEdge.Left, DockEdge.Right };
+    public static readonly DependencyProperty EdgePriorityProperty = DependencyProperty.Register(
+        nameof(EdgePriority), typeof(IReadOnlyList<DockEdge>), typeof(DockHost),
+        new PropertyMetadata(DefaultEdgePriority, (d, e) =>
+        {
+            var host = (DockHost)d;
+            host._edgePriority = e.NewValue as IReadOnlyList<DockEdge> ?? DefaultEdgePriority;
+            host.Rebuild();
+        }));
+
+    // Cached so the hot layout path doesn't go through GetValue (and never sees a null).
+    private IReadOnlyList<DockEdge> _edgePriority = DefaultEdgePriority;
 
     private void BuildDockedGrid(List<DockItem> docked, List<DockItem> autoHidden)
     {
@@ -418,7 +482,8 @@ public partial class DockHost : ContentControl
     /// The way back from ✕: while any pane is closed, a small menu button rides the document's
     /// top-right corner listing the closed panes — clicking one reopens it where it was. Without
     /// this, a closed pane is gone for good: <see cref="DockItem.IsOpen"/> is persisted, so not even
-    /// an app restart brings it back.
+    /// an app restart brings it back. In the narrow zone the menu also lists panes hidden by
+    /// <see cref="DockNarrowBehavior.Hide"/>; choosing one shows it over the document as a flyout.
     /// </summary>
     /// <remarks>
     /// On the DOCUMENT cell rather than the host's corner, deliberately: the host's own corners are
@@ -433,15 +498,20 @@ public partial class DockHost : ContentControl
         if (!ShowClosedPaneRestore) return _documentHost;
 
         var closedCount = Items.Count(i => !i.IsOpen);
-        if (closedCount == 0) return _documentHost;
+        var hiddenCount = _narrowHidden.Count;
+        if (closedCount + hiddenCount == 0) return _documentHost;
 
         var wrap = new Grid();
         wrap.Children.Add(_documentHost);
 
         // GlobalNavigationButton (hamburger) from the theme symbol font — "there is a menu here".
-        var button = DockItemHeader.BuildIconButton("\uE700", closedCount == 1
-            ? "1 closed pane — reopen"
-            : $"{closedCount} closed panes — reopen");
+        var tooltip = (closedCount, hiddenCount) switch
+        {
+            (_, 0) => closedCount == 1 ? "1 closed pane — reopen" : $"{closedCount} closed panes — reopen",
+            (0, _) => hiddenCount == 1 ? "1 hidden pane — show" : $"{hiddenCount} hidden panes — show",
+            _ => $"{closedCount} closed, {hiddenCount} hidden — reopen or show",
+        };
+        var button = DockItemHeader.BuildIconButton("\uE700", tooltip);
 
         var pill = new Border
         {
@@ -461,13 +531,22 @@ public partial class DockHost : ContentControl
             foreach (var item in Items.Where(i => !i.IsOpen).ToList())
             {
                 var entry = new MenuFlyoutItem { Text = item.Title ?? item.DockId ?? "(untitled pane)" };
-                entry.Click += (_, _) =>
-                {
-                    item.IsOpen = true; // the setter's rebuild re-docks it and re-evaluates this pill
-                    PersistLayoutAsync();
-                };
+                // The setter's rebuild re-docks it and re-evaluates this pill; the IsOpen change saves.
+                entry.Click += (_, _) => item.IsOpen = true;
                 flyout.Items.Add(entry);
             }
+
+            // Hidden-by-narrow panes are still open, so "reopen" would do nothing: show them over the
+            // document instead, the same flyout a rail tab opens. Widening docks them again.
+            var hidden = _narrowHidden.ToList();
+            if (hidden.Count > 0 && flyout.Items.Count > 0) flyout.Items.Add(new MenuFlyoutSeparator());
+            foreach (var item in hidden)
+            {
+                var entry = new MenuFlyoutItem { Text = $"Show {item.Title ?? item.DockId ?? "(untitled pane)"}" };
+                entry.Click += (_, _) => OpenFlyout(item);
+                flyout.Items.Add(entry);
+            }
+
             flyout.ShowAt(pill);
         };
 
@@ -516,7 +595,7 @@ public partial class DockHost : ContentControl
         }
 
         // The region's handle protrudes over whatever lies inside this layer, so inset it on the seam
-        // side: no text or control ever sits under the handle (XU-631).
+        // side: no text or control ever sits under the handle.
         if (seam) inner = PadAgainstSeam(inner, DockSplitter.ClearanceOppositeOf(edge));
 
         if (edge.IsHorizontal()) Grid.SetColumn(inner, index[3]);
@@ -552,7 +631,7 @@ public partial class DockHost : ContentControl
         if (items.Any(i => i.CanResize))
         {
             // The region seam belongs to this edge's pane: the splitter draws its handle flush
-            // against the pane, protruding over the document side (the MasterDetail look).
+            // against the pane, protruding over the document side.
             var splitter = new DockSplitter(horizontal ? Orientation.Vertical : Orientation.Horizontal, ActualTheme, edge);
             var farSide = edge.IsFarSide();
             var min = items.Max(i => i.MinLength);
@@ -599,7 +678,7 @@ public partial class DockHost : ContentControl
     }
 
     /// <summary>
-    /// Insets content that borders a seam so the splitter's handle never covers it (XU-631). A
+    /// Insets content that borders a seam so the splitter's handle never covers it. A
     /// transparent padded Panel rather than a Margin or a Border: the content may be a persistent
     /// DockItem (a Margin would travel with it into float windows), or the document host, which every
     /// rebuild re-parents by removing it from its Panel parent.
@@ -622,8 +701,8 @@ public partial class DockHost : ContentControl
     /// </summary>
     /// <remarks>
     /// Top/Bottom used to stack side-by-side (columns), which made an edge drop onto an occupied
-    /// Top edge land BESIDE the existing pane — Russ: "I drop to land above, but it lands to the
-    /// left". DevExpress stacks edge layers from the border inward, i.e. top/bottom panes stack as
+    /// Top edge land BESIDE the existing pane instead of above it. DevExpress stacks edge layers from
+    /// the border inward, i.e. top/bottom panes stack as
     /// ROWS; rows everywhere also makes the slot compass's insert arrows read the same (↑ above,
     /// ↓ below) on every edge. Side-by-side within an edge returns with the recursive-split model.
     /// </remarks>
@@ -696,7 +775,7 @@ public partial class DockHost : ContentControl
 
                 // Rebalance the two ADJACENT layers by converting their current pixel sizes into
                 // star weights. The ratio becomes MODEL state at drag end — it survives rebuilds
-                // and, via the layout document, restarts (Russ asked for both).
+                // and, via the layout document, restarts.
                 var prevTrack = layerTracks[i - 1];
                 var nextTrack = layerTracks[i];
                 var prevKey = SlotKey(slots[layers[i - 1][0]][0]);
@@ -736,7 +815,7 @@ public partial class DockHost : ContentControl
             }
 
             // Between-layer handles straddle their seam, so keep this layer clear of the ones above
-            // and below it (XU-631).
+            // and below it.
             var layerElement = PadAgainstSeam(BuildLayer(edge, slots, layers[i]), new Thickness(
                 0,
                 i > 0 ? DockSplitter.StraddleClearance : 0,
@@ -752,8 +831,8 @@ public partial class DockHost : ContentControl
 
     /// <summary>
     /// Builds one layer: a single slot fills it outright; multiple slots sit side-by-side in star
-    /// columns with splitters between them. Column ratios are session-scoped for now — the layout
-    /// document persists layer heights only.
+    /// columns with splitters between them. Column ratios live in <see cref="_columnWeights"/> and are
+    /// persisted with the layout, the same way between-layer ratios are.
     /// </summary>
     private FrameworkElement BuildLayer(DockEdge edge, List<List<DockItem>> slots, List<int> slotIndexes)
     {
@@ -772,11 +851,22 @@ public partial class DockHost : ContentControl
 
         // Column pattern [slot, splitter, slot, ...]: slot c sits at column 2c, its leading
         // splitter at 2c-1.
+        // Stored weights are pixel widths captured at the end of a drag — only their ratio matters. A
+        // slot with none sits next to slots whose weights are pixel magnitudes, so it takes the
+        // average of its layer's stored ones rather than a literal 1 that would render it invisible.
+        var stored = slotIndexes
+            .Select(s => _columnWeights.TryGetValue(SlotKey(slots[s][0]), out var w) && w > 0 ? w : (double?)null)
+            .ToList();
+        var fallback = stored.Any(w => w is not null) ? stored.Where(w => w is not null).Average(w => w!.Value) : 1;
+
         var layerGrid = new Grid();
         for (var c = 0; c < slotIndexes.Count; c++)
         {
             if (c > 0) layerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            layerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            layerGrid.ColumnDefinitions.Add(new ColumnDefinition
+            {
+                Width = new GridLength(stored[c] ?? fallback, GridUnitType.Star),
+            });
         }
 
         for (var c = 0; c < slotIndexes.Count; c++)
@@ -786,6 +876,8 @@ public partial class DockHost : ContentControl
                 var between = new DockSplitter(Orientation.Vertical, ActualTheme);
                 var prevColumn = (c - 1) * 2;
                 var nextColumn = c * 2;
+                var prevKey = SlotKey(slots[slotIndexes[c - 1]][0]);
+                var nextKey = SlotKey(slots[slotIndexes[c]][0]);
                 double startPrev = 0, startNext = 0;
 
                 between.DragStarted += (_, _) =>
@@ -803,6 +895,20 @@ public partial class DockHost : ContentControl
                     layerGrid.ColumnDefinitions[nextColumn].Width = new GridLength(total - newPrev, GridUnitType.Star);
                 };
 
+                // Same model-store rule as the between-layer seam: the ratio must survive rebuilds
+                // (any tab switch or pin toggle recreates this grid) and, via the document, restarts.
+                between.DragCompleted += (_, _) =>
+                {
+                    var finalPrev = layerGrid.ColumnDefinitions[prevColumn].ActualWidth;
+                    var finalNext = layerGrid.ColumnDefinitions[nextColumn].ActualWidth;
+                    if (finalPrev > 0 && finalNext > 0)
+                    {
+                        _columnWeights[prevKey] = finalPrev;
+                        _columnWeights[nextKey] = finalNext;
+                        PersistLayoutAsync();
+                    }
+                };
+
                 Grid.SetColumn(between, nextColumn - 1);
                 layerGrid.Children.Add(between);
             }
@@ -811,7 +917,7 @@ public partial class DockHost : ContentControl
             var chrome = BuildSlotChrome(slot);
 
             // Side-by-side handles straddle their seam: keep this slot clear of the one before and
-            // after it (XU-631). The registry keeps the unpadded chrome for drop-target hit tests.
+            // after it. The registry keeps the unpadded chrome for drop-target hit tests.
             var padded = PadAgainstSeam(chrome, new Thickness(
                 c > 0 ? DockSplitter.StraddleClearance : 0,
                 0,
@@ -858,6 +964,12 @@ public partial class DockHost : ContentControl
     /// </summary>
     private readonly Dictionary<string, double> _slotWeights = new();
 
+    /// <summary>
+    /// Width weight per slot among the side-by-side slots of its layer, keyed by <see cref="SlotKey"/>.
+    /// The column counterpart of <see cref="_slotWeights"/>, with the same pixel-ratio semantics.
+    /// </summary>
+    private readonly Dictionary<string, double> _columnWeights = new();
+
     /// <summary>A slot's stable identity: its group name for a tab group, its first item's DockId otherwise.</summary>
     private static string SlotKey(DockItem first) => first.TabGroup ?? first.DockId ?? string.Empty;
 
@@ -873,8 +985,7 @@ public partial class DockHost : ContentControl
 
     // Selection is keyed by group name and held as the ITEM REFERENCE, not an index or DockId: items
     // are stable instances across rebuilds, indexes shift when a tab closes or floats, and DockId is
-    // optional. Selection deliberately does not persist yet — the layout document carries structure,
-    // and which tab was frontmost is cheap to lose.
+    // optional. The layout document records it per item (the selected tab's record carries a flag).
     private readonly Dictionary<string, DockItem> _tabSelection = new();
 
     /// <summary>
@@ -907,8 +1018,8 @@ public partial class DockHost : ContentControl
         strip.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // close
 
         // Hand-rolled DOCUMENT TABS, not SelectorBar. SelectorBar was the first choice, but its
-        // selection indicator never rendered visibly here (Russ: "these don't look like tabs …
-        // you can't tell which is active") and its ItemContainer input pipeline already cost us the
+        // selection indicator never rendered visibly here (you couldn't tell which tab was active)
+        // and its ItemContainer input pipeline already cost us the
         // original drag bug. These are the classic dock tabs: the active one is a raised box merged
         // with the content below it, inactive ones are flat dimmed text with a hover wash.
         var activeBg = ComponentTheme.Surface(ActualTheme);
@@ -968,6 +1079,7 @@ public partial class DockHost : ContentControl
         {
             _tabSelection[key] = item;
             Rebuild();
+            SchedulePersist();
         });
 
         Grid.SetColumn(bar, 0);
@@ -975,7 +1087,7 @@ public partial class DockHost : ContentControl
 
         if (selected.ShowPinToggle)
         {
-            // Same MasterDetailControl pin as the header: E718 = pinned (a docked strip's selected
+            // Same pin as the header: E718 = pinned (a docked strip's selected
             // tab is by definition pinned), clicking unpins to the rail.
             var pin = DockItemHeader.BuildIconButton("\uE718", "Unpin (auto-hide)");
             // Only the SELECTED pane leaves the group (a rail tab appears at the edge), so the ghost
@@ -989,11 +1101,7 @@ public partial class DockHost : ContentControl
         if (selected.CanClose)
         {
             var close = DockItemHeader.BuildButton("✕", "Close");
-            close.Click += (_, _) =>
-            {
-                selected.RaiseCloseRequested();
-                selected.IsOpen = false;
-            };
+            close.Click += (_, _) => RequestClose(selected);
             Grid.SetColumn(close, 2);
             strip.Children.Add(close);
         }
@@ -1131,6 +1239,16 @@ public partial class DockHost : ContentControl
     }
 
     /// <summary>
+    /// The user's close gesture on a docked pane (header, tab strip, header menu): ask the item's
+    /// <see cref="DockItem.CloseRequested"/> handlers first, close only if none cancelled. The
+    /// IsOpen change itself saves the layout.
+    /// </summary>
+    private static void RequestClose(DockItem item)
+    {
+        if (item.RaiseCloseRequested()) item.IsOpen = false;
+    }
+
+    /// <summary>
     /// Wraps an item in its header chrome. Lives on the host rather than in a DockItem template because
     /// the header's contents depend on host-level facts — notably whether the platform can float at all.
     /// </summary>
@@ -1144,11 +1262,7 @@ public partial class DockHost : ContentControl
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
         var header = new DockItemHeader(item, PlatformServices.SupportsFloatingWindows);
-        header.CloseRequested += (_, _) =>
-        {
-            item.RaiseCloseRequested();
-            item.IsOpen = false;
-        };
+        header.CloseRequested += (_, _) => RequestClose(item);
         header.PinRequested += (_, _) =>
         {
             // The host owns the transition (the state-machine rule): toggling triggers the rebuild
@@ -1180,28 +1294,35 @@ public partial class DockHost : ContentControl
         return grid;
     }
 
-    // ---- Floating (command path) ----------------------------------------------------------------
+    // ---- Floating -------------------------------------------------------------------------------
     //
-    // The float command per XU-444 scope: a button, no cross-window drag, no docking guides. The
-    // mechanism is the XU-396-proven one — detach the SAME instance and reattach it in the new window,
-    // so all view state survives for free. Both transitions live here and nowhere else: XU-442's
-    // "re-dock leaves the pane collapsed" bug was two half-aware code paths disagreeing about whether
-    // the docked slot was open, and this single owner is the structural fix.
+    // Detach the SAME instance and reattach it in the new window, so all view state survives for
+    // free. Both transitions live here and nowhere else: two half-aware code paths disagreeing about
+    // whether the docked slot was open is how a re-dock leaves the pane collapsed, and this single
+    // owner is the structural fix.
 
-    // The Closed handler is stored alongside the window so DockItemBack can unsubscribe it — windows
-    // get RECYCLED into the pre-warm slot, and a recycled window re-floated for a different item must
-    // not still carry the previous item's close-handling lambda. The drag tracker (the platform's
-    // watch on the window for the drag-back-to-redock gesture) is scoped the same way.
-    private readonly Dictionary<DockItem, (Window Window, Windows.Foundation.TypedEventHandler<object, WindowEventArgs> ClosedHandler, IDisposable? DragTracker)> _floatingWindows = new();
+    /// <summary>
+    /// A floating pane's window and everything the host hooked onto it. <see cref="Detach"/> removes
+    /// those hooks: windows get RECYCLED into the platform's pool, and a recycled window re-floated
+    /// for a different item must not still carry the previous item's handlers. The drag tracker (the
+    /// platform's watch on the window for the drag-back-to-redock gesture) is scoped the same way.
+    /// </summary>
+    private sealed record FloatingWindowEntry(Window Window, Action Detach, IDisposable? DragTracker);
+
+    private readonly Dictionary<DockItem, FloatingWindowEntry> _floatingWindows = new();
     private readonly List<(Microsoft.UI.Dispatching.DispatcherQueueTimer Timer, Window Window)> _deferredCloses = new();
     private bool _closingWindowProgrammatically;
 
-    // NOTE: the library used to keep its own pre-warmed spare window here. That whole mechanism moved
-    // behind IDockPlatformServices.TryAcquireFloatWindow/TryReleaseFloatWindow: the [DockPerf] numbers
-    // (XU-450: construction ~3.6s of UI freeze, close 18ms, and AppWindow.Hide() succeeding WITHOUT
-    // hiding on Uno Skia desktop) mean every pooling decision is a platform judgment — where the
-    // construction freeze may land, and whether a freed window can genuinely be hidden for reuse. The
-    // host owns those; the library only constructs on demand as the fallback.
+    // Window acquisition (pooling, pre-construction) is behind IDockPlatformServices.TryAcquireFloatWindow
+    // and TryReleaseFloatWindow: where a construction cost may land, and whether a freed window can
+    // genuinely be hidden for reuse, are platform judgments. The host owns those; the library only
+    // constructs on demand as the fallback.
+
+    /// <summary>
+    /// Routes a diagnostic line to the platform's log hook (<see cref="Platform.Win32DockPlatformServices.Log"/>),
+    /// so the library never writes to the console on its own.
+    /// </summary>
+    private void Trace(string line) => (PlatformServices as Platform.Win32DockPlatformServices)?.Log?.Invoke(line);
 
     private void FloatItem(DockItem item)
     {
@@ -1214,43 +1335,40 @@ public partial class DockHost : ContentControl
         item.IsFloating = true;
         if (item.Parent is Panel dockedParent) dockedParent.Children.Remove(item);
 
-        // Window acquisition is host policy (pooling, pre-construction) via IDockPlatformServices; the
-        // library's fallback is construct-on-demand, paying the platform's construction cost (~3.6s on
-        // Uno Skia desktop, XU-450) under the gesture.
+        // The library's fallback when the platform has no ready window is construct-on-demand, paying
+        // the platform's construction cost under the gesture.
         var floatSw = System.Diagnostics.Stopwatch.StartNew();
         var window = PlatformServices.TryAcquireFloatWindow();
         var warm = window is not null;
 
         // A single-child shell rather than window.Content = item directly: the re-dock path detaches
-        // the item by removing it from a PANEL parent, and direct window content has none. (The
-        // "Dock back" button that used to live here is retired — dragging the window back over the
-        // host is the re-dock gesture now, and the window's ✕ closes the pane.)
+        // the item by removing it from a PANEL parent, and direct window content has none.
         var wrapper = new Grid();
         wrapper.Children.Add(item);
 
-        // A pooled window can be DEAD — Russ hit this: a window whose hide silently no-oped sat visible
-        // and blank, he closed it by hand, and the next float activated the corpse and threw from
-        // Window.Activate(). The pool now evicts on Closed, but the library still refuses to trust it:
-        // present defensively, retry with a fresh window, and revert the whole transition if even that
-        // fails, so the pane can never be stranded invisible (dropped from the docked tree, no window).
+        // A pooled window can be DEAD — a window whose hide silently no-oped can sit visible and blank,
+        // be closed by hand, and then throw from Window.Activate() on the next float. Pools should
+        // evict on Closed, but the library still refuses to trust them: present defensively, retry with
+        // a fresh window, and revert the whole transition if even that fails, so the pane can never be
+        // stranded invisible (dropped from the docked tree, no window).
         if (window is null || !TryPresentFloatWindow(item, window, wrapper))
         {
-            if (warm) Console.WriteLine("[DockPerf] FloatItem: pooled window failed to present — constructing fresh");
+            if (warm) Trace("[DockPerf] FloatItem: pooled window failed to present — constructing fresh");
             warm = false;
             if (!TryPresentFloatWindow(item, new Window(), wrapper))
             {
                 if (item.Parent is Panel p) p.Children.Remove(item);
                 item.IsFloating = false; // triggers the rebuild that re-docks the pane
-                Console.WriteLine("[DockPerf] FloatItem: fresh window also failed — float reverted");
+                Trace("[DockPerf] FloatItem: fresh window also failed — float reverted");
                 return;
             }
         }
 
         // The item now lives under the new window's XamlRoot — let content resync per-root state.
         item.RaiseReparented();
+        SchedulePersist();
 
-        // [DockPerf] diagnostics stay until XU-450 closes — its repro reads these lines.
-        Console.WriteLine($"[DockPerf] FloatItem: warm={warm}, total={floatSw.ElapsedMilliseconds}ms");
+        Trace($"[DockPerf] FloatItem: warm={warm}, total={floatSw.ElapsedMilliseconds}ms");
     }
 
     /// <summary>
@@ -1275,15 +1393,76 @@ public partial class DockHost : ContentControl
         }
 
         // Subscribe only after presentation succeeds, so a failed attempt leaves no handler behind.
-        // The window's own ✕ means "close this pane" — the item returns to the docked tree but stays
-        // closed, exactly like the header's ✕ on a docked pane. An explicit "Dock back" is the reopen
-        // path. Distinguishing the two is the XU-442 lesson.
+        //
+        // The window's own close button means "close this pane", exactly like the header's close on a
+        // docked pane: CloseRequested is asked first (cancelable, from AppWindow.Closing), and an
+        // unvetoed close returns the item to the docked tree closed. Dragging the window back over the
+        // host is the re-dock gesture; this is the close gesture, and keeping the two apart matters.
+        var closeAsked = false;
+        Windows.Foundation.TypedEventHandler<Microsoft.UI.Windowing.AppWindow, Microsoft.UI.Windowing.AppWindowClosingEventArgs> onClosing = (_, args) =>
+        {
+            if (_closingWindowProgrammatically) return;
+            closeAsked = true;
+            if (!item.RaiseCloseRequested(fromFloatingWindow: true))
+            {
+                args.Cancel = true;
+                closeAsked = false;
+            }
+        };
+
         Windows.Foundation.TypedEventHandler<object, WindowEventArgs> onClosed = (_, _) =>
         {
-            if (!_closingWindowProgrammatically)
+            if (_closingWindowProgrammatically) return;
+
+            if (closeAsked)
+            {
                 DockItemBack(item, reopen: false, windowAlreadyClosed: true);
+                return;
+            }
+
+            // Closed without the user's close button (no Closing seen): app shutdown or the OS took
+            // the window. The pane still returns to the host closed so nothing is stranded, but the
+            // layout is NOT saved from here — the last saved document keeps the pane floating, which
+            // is what a restart should restore.
+            _suppressPersist++;
+            try { DockItemBack(item, reopen: false, windowAlreadyClosed: true); }
+            finally { _suppressPersist--; }
         };
+
+        // Moving or resizing the window changes the layout document (its bounds are saved).
+        Windows.Foundation.TypedEventHandler<Microsoft.UI.Windowing.AppWindow, Microsoft.UI.Windowing.AppWindowChangedEventArgs> onChanged = (_, args) =>
+        {
+            if (args.DidPositionChange || args.DidSizeChange) SchedulePersist();
+        };
+
         window.Closed += onClosed;
+        var appWindowHooked = false;
+        try
+        {
+            window.AppWindow.Closing += onClosing;
+            window.AppWindow.Changed += onChanged;
+            appWindowHooked = true;
+        }
+        catch
+        {
+            // No AppWindow on this platform: the close stays informational and bounds save with the
+            // next layout change.
+        }
+
+        void Detach()
+        {
+            window.Closed -= onClosed;
+            if (!appWindowHooked) return;
+            try
+            {
+                window.AppWindow.Closing -= onClosing;
+                window.AppWindow.Changed -= onChanged;
+            }
+            catch
+            {
+                // The window is already gone; nothing left to unhook.
+            }
+        }
 
         // Watch the window for the OS title-bar drag so dragging it back over the host can offer the
         // dock guides. Null tracker (the default platform) = the gesture simply isn't available.
@@ -1292,10 +1471,10 @@ public partial class DockHost : ContentControl
             screen => OnFloatDragMoved(item, screen),
             screen => OnFloatDragDropped(item, screen));
 
-        _floatingWindows[item] = (window, onClosed, tracker);
+        _floatingWindows[item] = new FloatingWindowEntry(window, Detach, tracker);
 
-        // The host's window-management policy (XU-438 group activation, later position/size) applies
-        // here; the library has no opinion.
+        // The platform's window-management policy (ownership, activation, placement) applies here;
+        // the library has no opinion.
         PlatformServices.OnWindowSpawned(window);
         return true;
     }
@@ -1307,7 +1486,7 @@ public partial class DockHost : ContentControl
         Window? windowToClose = null;
         if (_floatingWindows.Remove(item, out var entry))
         {
-            entry.Window.Closed -= entry.ClosedHandler;
+            entry.Detach();
             entry.DragTracker?.Dispose(); // the window is no longer this pane's — stop watching its drags
 
             // Same rule in reverse: orphan the item from the window's tree before the rebuild puts it
@@ -1316,12 +1495,10 @@ public partial class DockHost : ContentControl
 
             if (!windowAlreadyClosed)
             {
-                // NOTHING window-infra-related runs synchronously here. The first dock-back fix closed
-                // the window inline (stall); the second hid it inline to recycle it — still slow,
-                // because Hide/Content-detach are plausibly the same blocking cost family as
-                // construction and teardown (XU-442). The synchronous path now touches only the
-                // wrapper grid (the Orphan above); hide-or-close happens on a timer after the re-dock
-                // frame has presented. Cosmetic cost: the emptied floating window lingers ~600ms.
+                // NOTHING window-infra-related runs synchronously here. Closing or hiding a window can
+                // be as slow as constructing one, so the synchronous path touches only the wrapper grid
+                // (the orphan above); hide-or-close happens on a timer after the re-dock frame has
+                // presented. Cosmetic cost: the emptied floating window lingers briefly.
                 windowToClose = entry.Window;
             }
         }
@@ -1329,29 +1506,28 @@ public partial class DockHost : ContentControl
         var sw = System.Diagnostics.Stopwatch.StartNew();
         item.IsFloating = false;
         var tFloatFlip = sw.ElapsedMilliseconds;
-        item.IsOpen = reopen; // reopen=true is "Dock back"; false is the window's ✕ = close the pane.
+        item.IsOpen = reopen; // true: re-docked by drag; false: the window was closed (or IsOpen=false from code).
         var tOpenFlip = sw.ElapsedMilliseconds;
 
         // Back under the host's XamlRoot (or parked closed awaiting reopen) — same resync hook as the
         // float direction; handlers read IsFloating/IsOpen for where the item landed.
         item.RaiseReparented();
+        SchedulePersist();
 
-        // [DockPerf] diagnostics stay until XU-450 (the ~3.6s Window construction investigation)
-        // closes — its repro instructions read these lines from the harness's redirected stdout.
-        Console.WriteLine($"[DockPerf] DockItemBack sync path: IsFloating flip={tFloatFlip}ms, IsOpen flip={tOpenFlip - tFloatFlip}ms, total={sw.ElapsedMilliseconds}ms");
+        Trace($"[DockPerf] DockItemBack sync path: IsFloating flip={tFloatFlip}ms, IsOpen flip={tOpenFlip - tFloatFlip}ms, total={sw.ElapsedMilliseconds}ms");
 
         if (windowToClose is not null) DeferWindowRelease(windowToClose);
     }
 
     /// <summary>
     /// Disposes of a freed floating window AFTER the re-dock frame has presented: recycle it into the
-    /// pre-warm slot when possible, close it when not.
+    /// platform's pool when possible, close it when not.
     /// </summary>
     private void DeferWindowRelease(Window window)
     {
         var timer = DispatcherQueue.CreateTimer();
-        // 200ms, down from 600: long enough for the re-dock frame to present, short enough that the
-        // emptied floating window barely registers before it disappears (Russ flagged the linger).
+        // Long enough for the re-dock frame to present, short enough that the emptied floating window
+        // barely registers before it disappears.
         timer.Interval = TimeSpan.FromMilliseconds(200);
         timer.IsRepeating = false;
         timer.Tick += (_, _) =>
@@ -1369,21 +1545,21 @@ public partial class DockHost : ContentControl
             catch
             {
                 // The user closed the window during the deferral; nothing left to release.
-                Console.WriteLine("[DockPerf] DeferWindowRelease: window already gone");
+                Trace("[DockPerf] DeferWindowRelease: window already gone");
                 return;
             }
 
-            // Offer the freed window back to the host's pool. The host must VERIFY its hide worked
-            // (AppWindow.Hide() succeeds without hiding on Uno Skia desktop — XU-450) and own the
-            // window's liveness from here. A declined offer falls back to the measured-cheap close.
+            // Offer the freed window back to the platform's pool. The platform must VERIFY its hide
+            // worked (AppWindow.Hide() can succeed without hiding on Uno Skia desktop) and own the
+            // window's liveness from here. A declined offer falls back to a close, which is cheap.
             if (PlatformServices.TryReleaseFloatWindow(window))
             {
-                Console.WriteLine($"[DockPerf] DeferWindowRelease: content={tContent}ms → released to host pool ({sw.ElapsedMilliseconds - tContent}ms)");
+                Trace($"[DockPerf] DeferWindowRelease: content={tContent}ms → released to host pool ({sw.ElapsedMilliseconds - tContent}ms)");
                 return;
             }
 
             CloseWindowGuarded(window);
-            Console.WriteLine($"[DockPerf] DeferWindowRelease: content={tContent}ms, declined by pool, close={sw.ElapsedMilliseconds - tContent}ms");
+            Trace($"[DockPerf] DeferWindowRelease: content={tContent}ms, declined by pool, close={sw.ElapsedMilliseconds - tContent}ms");
         };
         _deferredCloses.Add((timer, window)); // rooted here so the pending timer can't be collected
         timer.Start();
@@ -1391,103 +1567,182 @@ public partial class DockHost : ContentControl
 
     private void CloseWindowGuarded(Window window)
     {
-        // Guard the Closed handler path: this close is ours, not the user closing the window.
+        // Guard the Closing/Closed handler path: this close is ours, not the user closing the window.
         _closingWindowProgrammatically = true;
         try { window.Close(); }
         catch { /* already closed, or teardown quirks — the window is unreferenced either way */ }
         finally { _closingWindowProgrammatically = false; }
     }
 
-    // ---- Persistence ----------------------------------------------------------------------------
+    /// <summary>The floating window's frame in physical screen pixels, or null when it can't be read.</summary>
+    private DockWindowBounds? TryGetFloatBounds(DockItem item)
+    {
+        if (!_floatingWindows.TryGetValue(item, out var entry)) return null;
 
-    // Deliberately a hand-rolled delimited format rather than System.Text.Json. Reflection-based
-    // serialization is exactly the shape the WASM publish trimmer strips (XU-360), and a layout
-    // document that silently fails to round-trip only on a published build is a bad trade for a few
-    // fields per item.
+        try
+        {
+            var position = entry.Window.AppWindow.Position;
+            var size = entry.Window.AppWindow.Size;
+            return size.Width > 0 && size.Height > 0
+                ? new DockWindowBounds(position.X, position.Y, size.Width, size.Height)
+                : null;
+        }
+        catch
+        {
+            return null; // window mid-teardown
+        }
+    }
+
+    /// <summary>
+    /// Re-floats the items a restored document recorded as floating, at their saved bounds. Deferred to
+    /// a low-priority dispatcher pass so the docked layout paints first and the platform has had its
+    /// chance to finish window setup (owner handle, pool) in the same startup.
+    /// </summary>
+    private void RestoreFloatingItems(List<(DockItem Item, DockWindowBounds? Bounds)> floats)
+    {
+        if (floats.Count == 0 || !PlatformServices.SupportsFloatingWindows) return;
+
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            foreach (var (item, bounds) in floats)
+            {
+                if (!Items.Contains(item) || !item.IsOpen || item.IsFloating || !item.AllowFloat) continue;
+
+                FloatItem(item);
+                if (bounds is { } b && _floatingWindows.TryGetValue(item, out var entry))
+                    ApplyWindowBounds(entry.Window, b);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Best-effort placement of a restored floating window. The saved position is applied only when its
+    /// title area still lands on a display (a monitor may have been unplugged since); otherwise only the
+    /// size is restored and the window stays where the OS put it.
+    /// </summary>
+    private void ApplyWindowBounds(Window window, DockWindowBounds bounds)
+    {
+        try
+        {
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32
+            {
+                Width = Math.Max(bounds.Width, 160),
+                Height = Math.Max(bounds.Height, 120),
+            });
+
+            // Probe a point inside the title bar rather than the corner: a window whose corner is just
+            // off-screen is still reachable, one whose title bar is off-screen is not. DisplayArea's
+            // lookups are not implemented on Uno, so the check goes through the Win32 platform; a
+            // platform that can't answer gets the saved position as stored.
+            var probe = new Windows.Graphics.PointInt32 { X = bounds.X + 40, Y = bounds.Y + 12 };
+            var onScreen = (PlatformServices as Platform.Win32DockPlatformServices)?.IsOnAnyDisplay(probe);
+            if (onScreen != false)
+                window.AppWindow.Move(new Windows.Graphics.PointInt32 { X = bounds.X, Y = bounds.Y });
+        }
+        catch
+        {
+            // Placement is garnish; the pane is floating either way.
+            Trace("[DockPerf] restore: floating window bounds could not be applied");
+        }
+    }
+
+    // ---- Persistence ----------------------------------------------------------------------------
     //
-    // v5 format: dockId|edge|length|isOpen|tabGroup|isPinned|slotWeight|band|layerGroup, records
-    // separated by ';' in ITEM ORDER — record order IS the persisted slot/layer order, since
-    // drag-drop can reorder, group and layer panes. slotWeight (0 = none stored) restores the
-    // between-layer ratio; items in one slot share a key so they carry the same value. band is the
-    // outer/inner placement of the doubled compass; layerGroup is side-by-side layer membership.
-    // ApplyLayout accepts v1 (4), v2 (6), v3 (7) and v4 (8) records too.
-    private const char RecordSeparator = ';';
-    private const char FieldSeparator = '|';
+    // The document format lives in DockLayoutDocument. Saves wait until the current store's document
+    // has been read (_restoreCompleted), so the authored layout can never overwrite a stored one
+    // before it has been applied.
+
+    private bool _restoreCompleted;
+    private int _restoreGeneration;
+    private int _suppressPersist; // > 0 while a change must not be saved (see the float window's Closed handler)
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _persistTimer;
+
+    /// <summary>How long a burst of open/close/select changes may run before one save covers them all.</summary>
+    private static readonly TimeSpan PersistDebounce = TimeSpan.FromMilliseconds(300);
+
+    private static void OnPersistenceSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        => ((DockHost)d).OnPersistenceSourceChanged();
+
+    /// <summary>
+    /// A new store or key: drop any save aimed at the old one, and if the host is already loaded,
+    /// restore from the new one now rather than waiting for a Loaded that has already happened.
+    /// </summary>
+    private async void OnPersistenceSourceChanged()
+    {
+        _persistTimer?.Stop();
+        _restoreCompleted = false;
+        if (_isLoaded) await RestoreLayoutAsync();
+    }
 
     /// <summary>Serializes the current layout. Items without a <see cref="DockItem.DockId"/> are skipped.</summary>
     private string SerializeLayout()
-        => string.Join(RecordSeparator, Items
+        => DockLayoutDocument.Serialize(Items
             .Where(i => !string.IsNullOrWhiteSpace(i.DockId))
-            .Select(i => string.Join(FieldSeparator,
-                i.DockId,
-                (int)i.Edge,
-                i.DockLength.ToString("F0", System.Globalization.CultureInfo.InvariantCulture),
-                i.IsOpen ? "1" : "0",
-                // Sanitize: a group name carrying our separators would shear the document.
-                (i.TabGroup ?? string.Empty).Replace(FieldSeparator, '_').Replace(RecordSeparator, '_'),
-                i.IsPinned ? "1" : "0",
-                (_slotWeights.TryGetValue(SlotKey(i), out var w) ? w : 0)
-                    .ToString("F0", System.Globalization.CultureInfo.InvariantCulture),
-                (int)i.Band,
-                (i.LayerGroup ?? string.Empty).Replace(FieldSeparator, '_').Replace(RecordSeparator, '_'))));
+            .Select(i => new DockLayoutRecord(i.DockId!)
+            {
+                Edge = i.Edge,
+                Length = i.DockLength,
+                IsOpen = i.IsOpen,
+                TabGroup = i.TabGroup,
+                IsPinned = i.IsPinned,
+                SlotWeight = _slotWeights.TryGetValue(SlotKey(i), out var w) ? w : null,
+                Band = i.Band,
+                LayerGroup = i.LayerGroup,
+                IsFloating = i.IsFloating,
+                FloatBounds = i.IsFloating ? TryGetFloatBounds(i) : null,
+                IsSelectedTab = i.TabGroup is { } group
+                    && _tabSelection.TryGetValue(group, out var selected)
+                    && ReferenceEquals(selected, i),
+                ColumnWeight = _columnWeights.TryGetValue(SlotKey(i), out var c) ? c : null,
+            }));
 
-    private void ApplyLayout(string document)
+    /// <summary>
+    /// Applies a stored document to the items. Returns the items the document recorded as floating;
+    /// the caller re-floats them once the docked layout has been rebuilt.
+    /// </summary>
+    private List<(DockItem Item, DockWindowBounds? Bounds)> ApplyLayout(string document)
     {
         var orderedIds = new List<string>();
+        var floats = new List<(DockItem, DockWindowBounds?)>();
 
-        foreach (var record in document.Split(RecordSeparator, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var record in DockLayoutDocument.Parse(document))
         {
-            var f = record.Split(FieldSeparator);
-            if (f.Length is not (4 or 6 or 7 or 8 or 9)) continue; // v1..v5 records only
-
-            var item = Items.FirstOrDefault(i => i.DockId == f[0]);
+            var item = Items.FirstOrDefault(i => i.DockId == record.DockId);
             if (item is null) continue; // A pane that no longer exists — ignore rather than fail.
 
-            orderedIds.Add(f[0]);
+            orderedIds.Add(record.DockId);
 
-            if (Enum.TryParse<DockEdge>(f[1], out var edge) && item.AllowedDockEdges.HasFlag(edge))
+            if (record.Edge is { } edge && item.AllowedDockEdges.HasFlag(edge))
                 item.Edge = edge;
 
-            if (double.TryParse(f[2], System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out var length))
+            if (record.Length is { } length)
                 item.SetDockLengthSilently(Math.Clamp(length, item.MinLength, item.MaxLength));
 
-            if (RestoreItemOpenState) item.IsOpen = f[3] == "1";
+            if (RestoreItemOpenState) item.IsOpen = record.IsOpen;
 
-            if (f.Length >= 6)
+            if (record.Version >= 2)
             {
-                // TabGroup must be applied BEFORE the weight is read: SlotKey prefers the group name.
-                item.TabGroup = string.IsNullOrEmpty(f[4]) ? null : f[4];
-                item.IsPinned = f[5] == "1";
+                // TabGroup must be applied BEFORE the weights are read: SlotKey prefers the group name.
+                item.TabGroup = record.TabGroup;
+                if (record.IsPinned is { } pinned) item.IsPinned = pinned;
             }
 
-            if (f.Length >= 7
-                && double.TryParse(f[6], System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out var weight)
-                && weight > 0)
-            {
-                _slotWeights[SlotKey(item)] = weight;
-            }
-
-            if (f.Length >= 8 && int.TryParse(f[7], out var band)
-                && Enum.IsDefined(typeof(DockBand), band))
-            {
-                item.Band = (DockBand)band;
-            }
-
-            if (f.Length >= 9)
-            {
-                item.LayerGroup = string.IsNullOrEmpty(f[8]) ? null : f[8];
-            }
+            if (record.SlotWeight is { } weight) _slotWeights[SlotKey(item)] = weight;
+            if (record.Band is { } band) item.Band = band;
+            if (record.Version >= 5) item.LayerGroup = record.LayerGroup;
+            if (record.ColumnWeight is { } column) _columnWeights[SlotKey(item)] = column;
+            if (record.IsSelectedTab && item.TabGroup is { } group) _tabSelection[group] = item;
+            if (record.IsFloating) floats.Add((item, record.FloatBounds));
         }
 
         RestoreItemOrder(orderedIds);
+        return floats;
     }
 
     /// <summary>
     /// Reorders Items to match the persisted sequence. Items the document doesn't mention (new panes
     /// added since the save) keep their relative order and end up after the known ones — appended, not
-    /// dropped, matching the "new cards must still show up somewhere" rule.
+    /// dropped, so a pane added in a later version still shows up somewhere.
     /// </summary>
     private void RestoreItemOrder(List<string> orderedIds)
     {
@@ -1502,7 +1757,7 @@ public partial class DockHost : ContentControl
             .ToList();
 
         // Move (never Clear): Clear raises a Reset with no OldItems, which would leak the per-item
-        // LayoutAffectingPropertyChanged subscriptions OnItemsChanged maintains.
+        // subscriptions OnItemsChanged maintains.
         for (var target = 0; target < desired.Count; target++)
         {
             var current = list.IndexOf(desired[target]);
@@ -1510,48 +1765,101 @@ public partial class DockHost : ContentControl
         }
     }
 
+    /// <summary>
+    /// Saves after a burst of changes settles. Gesture handlers that end a single deliberate action
+    /// (a drop, a splitter release) call <see cref="PersistLayoutAsync"/> directly instead.
+    /// </summary>
+    private void SchedulePersist()
+    {
+        if (Persistence is null || string.IsNullOrWhiteSpace(PersistenceKey) || !_restoreCompleted) return;
+        if (_suppressPersist > 0) return;
+
+        if (DispatcherQueue is not { } queue)
+        {
+            PersistLayoutAsync();
+            return;
+        }
+
+        if (_persistTimer is null)
+        {
+            _persistTimer = queue.CreateTimer();
+            _persistTimer.Interval = PersistDebounce;
+            _persistTimer.IsRepeating = false;
+            _persistTimer.Tick += (_, _) => PersistLayoutAsync();
+        }
+
+        _persistTimer.Stop();
+        _persistTimer.Start();
+    }
+
+    /// <summary>Runs a pending debounced save now (the host is leaving the tree).</summary>
+    private void FlushPendingPersist()
+    {
+        if (_persistTimer is not { IsRunning: true }) return;
+        PersistLayoutAsync();
+    }
+
     private async void PersistLayoutAsync()
     {
-        if (Persistence is null || string.IsNullOrWhiteSpace(PersistenceKey)) return;
+        _persistTimer?.Stop(); // this save covers anything a pending debounced one would have written
+        if (Persistence is not { } persistence || string.IsNullOrWhiteSpace(PersistenceKey) || !_restoreCompleted) return;
 
         try
         {
-            await Persistence.SaveAsync(PersistenceKey!, SerializeLayout());
+            await persistence.SaveAsync(PersistenceKey!, SerializeLayout());
         }
         catch
         {
             // Best-effort by contract: failing to save a UI preference must never surface to the user,
-            // and this runs from a drag-completed handler where a throw would be unobservable anyway.
+            // and this runs from gesture handlers where a throw would be unobservable anyway.
         }
     }
 
     private async Task RestoreLayoutAsync()
     {
-        if (Persistence is null || string.IsNullOrWhiteSpace(PersistenceKey)) return;
+        if (Persistence is not { } persistence || string.IsNullOrWhiteSpace(PersistenceKey)) return;
+
+        // A newer store assignment supersedes a load still in flight: its result must not be applied,
+        // and it must not mark the NEW store as restored.
+        var generation = ++_restoreGeneration;
+        var key = PersistenceKey!;
+
+        string? document = null;
+        try
+        {
+            document = await persistence.LoadAsync(key);
+        }
+        catch
+        {
+            // Unreadable store — fall back to the layout as authored.
+        }
+
+        if (generation != _restoreGeneration) return;
 
         try
         {
-            var document = await Persistence.LoadAsync(PersistenceKey!);
             if (!string.IsNullOrWhiteSpace(document))
             {
-                ApplyLayout(document!);
+                var floats = ApplyLayout(document!);
                 Rebuild();
+                RestoreFloatingItems(floats);
             }
         }
         catch
         {
-            // No saved layout, or an unreadable one — fall back to the layout as authored in XAML.
+            // An unreadable document falls back to the layout as authored.
         }
+
+        _restoreCompleted = true;
     }
 
-    // ---- Header drag: intra-host re-dock (XU-447 half one) --------------------------------------
+    // ---- Header drag: intra-host re-dock ---------------------------------------------------------
     //
     // Drag a pane's header toward an edge; docking-guide INDICATORS (small squares at each allowed
-    // edge's midpoint, per the UnoDock prior-art approach the epic recommends) show where a drop is
+    // edge's midpoint, after the UnoDock prior art) show where a drop is
     // legal; hovering one previews the landing region; releasing over it re-docks the item there.
-    // Everything is visual-only until release — the drag hazard noted on XU-447 is that a mid-drag
-    // rebuild would destroy the very element being dragged, so the ONLY mutation is item.Edge at
-    // commit. Cross-window tear-out drag is the deferred second half.
+    // Everything is visual-only until release — a mid-drag rebuild would destroy the very element
+    // being dragged, so the model is mutated only at commit.
 
     private const double GuideSize = 44;
     private const double GuideInset = 16;
@@ -1577,7 +1885,7 @@ public partial class DockHost : ContentControl
     // tear-out, commit comes from the platform's dropped callback rather than a pointer release).
     private bool _redockActive;
 
-    // The document compass (DevExpress reference, Russ's spec): anchored at the document's centre,
+    // The document compass (after the DevExpress dock manager): anchored at the document's center,
     // no centre button, and DOUBLED arrows per direction distinguished by DISTANCE — the INNER
     // arrow docks only the document's extent (DockBand.Inner), the OUTER docks against the entire
     // host border (DockBand.Outer). Built once per drag alongside the edge markers.
@@ -1585,7 +1893,7 @@ public partial class DockHost : ContentControl
 
     // Per-slot drop targets: hovering a docked pane raises a small guide cluster over it — centre
     // square = join it as a tab group, directional squares = dock adjacently before/after it in its
-    // region's stack. This is the "group them or place left/right/over/under" Russ asked for.
+    // region's stack.
     private DropKind _dropKind = DropKind.None;
     private int _hoverSlotIndex = -1;
     // Edge is meaningful only when Kind == DropKind.Edge; DockEdge.None otherwise. (No cluster guide
@@ -1615,8 +1923,8 @@ public partial class DockHost : ContentControl
 
         // A lightweight ghost of the header follows the drag; the real pane stays where it is until
         // the drop commits. The "❐ float" tag lights up whenever a release RIGHT NOW would float
-        // the pane (open space, no guide targeted) — Russ asked for a float indication, and the tag
-        // doubles as the discoverability for drop-anywhere-floats.
+        // the pane (open space, no guide targeted) — the float indication, which doubles as the
+        // discoverability for drop-anywhere-floats.
         _dragGhostFloatHint = new TextBlock
         {
             Text = "❐ float",
@@ -1665,8 +1973,8 @@ public partial class DockHost : ContentControl
 
     /// <summary>
     /// Raises the drag guides for <paramref name="item"/>: the four edge MARKERS at the host borders
-    /// and the DOCUMENT COMPASS at the document's centre (both straight from the DevExpress demo
-    /// Russ screenshotted). Shared by the two drag sources: in-host header/tab drags (which add a
+    /// and the DOCUMENT COMPASS at the document's center (both after the DevExpress dock manager).
+    /// Shared by the two drag sources: in-host header/tab drags (which add a
     /// ghost on top) and the floating-window re-dock drag (where the floating window is the ghost).
     /// </summary>
     private void ShowDragGuides(DockItem item)
@@ -1746,8 +2054,7 @@ public partial class DockHost : ContentControl
     /// <remarks>
     /// It used to translate the ghost from the header's top-left corner by the drag's cumulative
     /// delta, which anchored it to the corner — so grabbing a wide header anywhere but its far left
-    /// left the ghost trailing behind the cursor by exactly the grab offset (Russ: "far off to the
-    /// left ... by the distance of where I clicked on the header"). Positioning against the pointer
+    /// left the ghost trailing behind the cursor by exactly the grab offset. Positioning against the pointer
     /// makes the grab point irrelevant, which is what a drag ghost should do.
     /// <para>Falls back to <c>DesiredSize</c> before the first layout pass has given the ghost an
     /// ActualWidth, so the very first frame lands correctly rather than jumping into place.</para>
@@ -1777,7 +2084,7 @@ public partial class DockHost : ContentControl
 
         PositionGhostUnder(pointer);
 
-        // TEAR-OUT (XU-447 half two, the trigger): dragging clearly past the host bounds floats the
+        // TEAR-OUT: dragging clearly past the host bounds floats the
         // pane at the cursor. The threshold keeps an edge-guide graze from tearing out accidentally.
         // In-host drags only — the re-dock drag never comes through here, its pane already floats.
         const double tearOutThreshold = 32;
@@ -1859,7 +2166,7 @@ public partial class DockHost : ContentControl
         //   - While the pointer is ON any guide (kind != None), the current slot is PINNED. Guides
         //     can sit over a slot's chrome; resolving the slot afresh there tore down the very
         //     cluster being hovered, which un-hovered the guide and re-raised it — a per-event
-        //     flicker Russ's releases kept landing on the "off" frame of.
+        //     flicker whose "off" frame releases kept landing on.
         //   - The cluster's own FOOTPRINT counts as hover territory: over thin panes the compass
         //     overhangs the pane's bounds, and travelling across its buttons must not read as
         //     "left the pane".
@@ -1962,19 +2269,19 @@ public partial class DockHost : ContentControl
         ClearDragState();
         FloatAtPointer(item, pointer);
 
-        // XU-461: the user's button is still down, so hand the gesture to the OS — the window then
+        // The user's button is still down, so keep the gesture going — the window then
         // follows the cursor and lands where they RELEASE, which is what a tear-out should do. Before
         // this the pane simply dropped at the host boundary the moment it crossed, and moving it where
-        // you wanted meant grabbing it a second time (Russ: "I never even release the mouse button,
-        // but it drops it"). A platform that can't do this returns false and keeps the old behaviour.
+        // you wanted meant grabbing it a second time. A platform that can't do this returns false and
+        // keeps that behavior.
         if (_floatingWindows.TryGetValue(item, out var floated))
         {
             var carried = PlatformServices.BeginWindowDrag(floated.Window);
-            Console.WriteLine($"[DockPerf] tear-out float committed (osDrag={carried})");
+            Trace($"[DockPerf] tear-out float committed (osDrag={carried})");
             return;
         }
 
-        Console.WriteLine("[DockPerf] tear-out float committed");
+        Trace("[DockPerf] tear-out float committed");
     }
 
     /// <summary>Floats <paramref name="item"/> and best-effort places its window at the pointer.</summary>
@@ -2008,8 +2315,8 @@ public partial class DockHost : ContentControl
     }
 
     /// <summary>
-    /// Builds (or clears) the guide cluster over the hovered slot, in the DevExpress compass shape
-    /// Russ pointed at: a cross of arrow squares around a centre square. Along the region's stacking
+    /// Builds (or clears) the guide cluster over the hovered slot, in the DevExpress compass shape:
+    /// a cross of arrow squares around a center square. Along the region's stacking
     /// axis the arrows INSERT adjacently before/after the slot; across it they dock to the FULL edge
     /// they point at; the centre joins the slot as a tab group.
     /// </summary>
@@ -2030,10 +2337,10 @@ public partial class DockHost : ContentControl
         const double gap = 6;
         const double step = s + gap;
 
-        // The full per-pane compass (Russ: "we need 4 buttons around the central button"), possible
-        // now that regions are two-level (layers of side-by-side slots):
+        // The full per-pane compass, four buttons around a center one (regions are two-level:
+        // layers of side-by-side slots):
         //   centre = join this slot as a tab group — drawn as a mini TABBED PANE, the DevExpress
-        //            folder-tab silhouette Russ liked for targets whose landing zone produces tabs
+        //            folder-tab silhouette for targets whose landing zone produces tabs
         //   ↑ / ↓  = a new full-span layer above/below this slot's layer
         //   ← / →  = side-by-side with this slot, inside its layer
         // Docking to a full HOST edge is always and only the edge markers / document compass.
@@ -2072,7 +2379,7 @@ public partial class DockHost : ContentControl
 
     /// <summary>
     /// The tab-target icon: a miniature tabbed pane (tab notch over a body), so a target whose drop
-    /// PRODUCES tabs advertises it — the DevExpress folder-tab look Russ pointed at.
+    /// PRODUCES tabs advertises it — the DevExpress folder-tab look.
     /// </summary>
     private static UIElement MakeTabbedPaneIcon()
     {
@@ -2289,8 +2596,8 @@ public partial class DockHost : ContentControl
 
         if (_dragPreview is null)
         {
-            // Solid enough to read instantly over any pane colour (Russ: "make the shade more
-            // apparent"), with a crisp border so the landing region's exact boundary is visible.
+            // Solid enough to read instantly over any pane color, with a crisp border so the
+            // landing region's exact boundary is visible.
             _dragPreview = new Border
             {
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x80, 0x2D, 0x5B, 0x8A)),
@@ -2351,15 +2658,14 @@ public partial class DockHost : ContentControl
 
         if (kind == DropKind.None)
         {
-            // Released over no guide at all. DevExpress/VS semantics, which Russ reached for and
-            // missed ("dragged to here and it does not give the option to float"): dropping a
+            // Released over no guide at all. DevExpress/VS semantics: dropping a
             // floatable pane in open space means "float it right here", not "snap back". Snap-back
             // remains for panes that cannot float, for platforms without windows, and for a release
             // still over the pane's own slot — that reads as a cancelled drag, not a float request.
             if (item.AllowFloat && PlatformServices.SupportsFloatingWindows && !IsOverOwnSlot(item, releasePoint))
             {
                 FloatAtPointer(item, releasePoint);
-                Console.WriteLine("[DockPerf] none-drop float committed");
+                Trace("[DockPerf] none-drop float committed");
                 return;
             }
 
@@ -2516,7 +2822,7 @@ public partial class DockHost : ContentControl
             list.Insert(list.IndexOf(peers[0]), item);
     }
 
-    // ---- Floating-window drag-back-to-redock (XU-447 closing half) ------------------------------
+    // ---- Floating-window drag-back-to-redock ----------------------------------------------------
     //
     // Grab a floating pane's WINDOW by its title bar and drag it over the host: the same guides an
     // in-host drag shows light up (edges, per-slot clusters), and releasing over one re-docks the
@@ -2524,7 +2830,7 @@ public partial class DockHost : ContentControl
     // events — IDockPlatformServices.TrackFloatingWindowDrag supplies the cursor stream and the
     // drop signal, and the library converts screen coords into overlay coords to reuse the whole
     // guide pipeline. A platform that can't track (the default) just never lights the guides; the
-    // explicit "Dock back" button remains the fallback path everywhere.
+    // window's close button (which returns the pane closed) is then the way back.
 
     /// <summary>How far outside the host the cursor may sit while still counting as "over" it.</summary>
     private const double RedockEnterMargin = 24;
@@ -2590,7 +2896,7 @@ public partial class DockHost : ContentControl
         ApplyDropPlacement(item, kind, targetEdge, targetBand, slotIndex);
         DockItemBack(item, reopen: true);
         PersistLayoutAsync();
-        Console.WriteLine("[DockPerf] float-drag redock committed");
+        Trace("[DockPerf] float-drag redock committed");
     }
 
     /// <summary>
@@ -2620,7 +2926,7 @@ public partial class DockHost : ContentControl
         }
     }
 
-    // ---- Auto-hide (pushpin, XU-452) ------------------------------------------------------------
+    // ---- Auto-hide (pushpin) --------------------------------------------------------------------
     //
     // Unpinning collapses a pane out of the docked grid to a tab on a thin rail at its edge; clicking
     // the tab slides the pane in OVER the document, light-dismissed on tap-away — the same overlay
@@ -2649,7 +2955,7 @@ public partial class DockHost : ContentControl
             Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x10, 0x80, 0x80, 0x80)),
             Spacing = 4,
             // Flush on the OUTSIDE: no padding between the tab and the host's true edge, so the tab
-            // reads as attached to the border (Russ's styling note), padded everywhere else.
+            // reads as attached to the border, padded everywhere else.
             Padding = edge switch
             {
                 DockEdge.Left => new Thickness(0, 2, 2, 2),
@@ -2670,7 +2976,7 @@ public partial class DockHost : ContentControl
     {
         var vertical = edge.IsHorizontal();
 
-        // Styled per Russ: square corners and NO outline on the outside (edge-facing) side — the tab
+        // Square corners and NO outline on the outside (edge-facing) side — the tab
         // emerges from the host's border like a real auto-hide tab — rounded corners and a thin
         // outline on every other side.
         var tab = new Button
@@ -2707,8 +3013,8 @@ public partial class DockHost : ContentControl
 
         if (vertical)
         {
-            // Rotated rail text, the way MasterDetailControl does its own rotated caption: hosted in a
-            // CANVAS, "so nothing clips it" (its words). A Canvas measures children unconstrained, so
+            // Rotated rail text hosted in a CANVAS, so nothing clips it. A Canvas measures children
+            // unconstrained, so
             // the TextBlock reports its NATURAL size — measuring it off-tree returned a bogus size on
             // Uno (fonts not yet resolved), which is why the previous lock-the-measured-size fix still
             // truncated ("nt Ed", twice). Sizing happens in SizeChanged, i.e. from REAL layout values.
@@ -2753,9 +3059,9 @@ public partial class DockHost : ContentControl
     private void OpenAutoHideFlyout(DockItem item)
     {
         // Already presenting this item: NO-OP rather than rebuild. Hosts re-assert "open" on every
-        // selection change (the timeline calls SetPaneOpen(true) per click), and rebuilding the
+        // selection change (a list/detail host re-opens the pane per click), and rebuilding the
         // flyout re-parents its live content each time — an editor's two-way bindings churn on the
-        // reload and false-dirty its unsaved-changes gate (Russ hit a stack of three dialogs).
+        // reload and false-dirty its unsaved-changes gate (stacked "discard changes?" prompts).
         if (ReferenceEquals(_autoHideFlyoutItem, item)) return;
 
         // Reuse the overlay layer; opening one flyout replaces whatever the layer held. Any rebuild
@@ -2777,8 +3083,8 @@ public partial class DockHost : ContentControl
         _overlayLayer.Children.Add(scrim);
 
         // The chrome needs an OPAQUE container: docked panes sit on the host's own surface, but the
-        // flyout hovers over live content, and the header's translucent wash let it bleed through
-        // (Russ's screenshot). Pane-surface colour per the actual theme (the app-resource lookup this
+        // flyout hovers over live content, which would otherwise bleed through the header's
+        // translucent wash. Pane-surface color per the actual theme (the app-resource lookup this
         // replaces painted it white in dark mode); border on every side except the edge the flyout
         // slides from, matching the rail tab's treatment.
         var container = new Border
@@ -2796,7 +3102,7 @@ public partial class DockHost : ContentControl
         };
 
         // A presented pane is a pane the user is working in, so it gets the same drag-to-resize seam a
-        // docked one has (Russ: "resize handle missing"). The splitter lives on the INNER side — the
+        // docked one has. The splitter lives on the INNER side — the
         // edge facing the document — inside a wrapper that owns the extent and the slide transform, so
         // the handle rides in and out with the pane instead of hanging in mid-air over the scrim.
         var horizontal = item.Edge.IsHorizontal();
@@ -2879,8 +3185,8 @@ public partial class DockHost : ContentControl
             panel.Children.Add(splitter);
         }
 
-        // The panel starts FULLY off-edge and slides its whole extent (Russ: "animated to slide
-        // in and out all the way, not fade"), so it needs a static clip around it — without one the
+        // The panel starts FULLY off-edge and slides its whole extent (a slide, not a fade), so it
+        // needs a static clip around it — without one the
         // off-edge frames would draw outside the host, over whatever the app placed beside it.
         var clipHost = new Grid();
         clipHost.SizeChanged += (_, e) => clipHost.Clip = new RectangleGeometry
@@ -2975,8 +3281,8 @@ public partial class DockHost : ContentControl
 
     /// <summary>
     /// Unpins <paramref name="item"/> with a visible exit: a bitmap ghost of its chrome slides off
-    /// toward its edge while the rebuild collapses the real pane to its rail tab (Russ: unpinning
-    /// "should be animated to slide out of the way", not blink out).
+    /// toward its edge while the rebuild collapses the real pane to its rail tab, rather than the pane
+    /// blinking out.
     /// </summary>
     /// <remarks>
     /// A SNAPSHOT rather than the live element, deliberately: the pane's content must be free for the
@@ -3064,15 +3370,21 @@ public partial class DockHost : ContentControl
 
         _overlayLayer.IsHitTestVisible = true;
 
-        // Light-dismiss backdrop. Tapping it closes the overlaid panes, matching the tap-away behaviour
-        // a narrow list/detail blade has today.
+        // Light-dismiss backdrop. Tapping it closes the overlaid panes — each one asked first through
+        // the same cancelable FlyoutDismissRequested an auto-hide flyout raises, so an editor pane can
+        // gate the close in either presentation. The IsOpen change saves the layout.
         var scrim = new Border
         {
             Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0, 0, 0)),
         };
         scrim.Tapped += (_, _) =>
         {
-            foreach (var i in overlaid) i.IsOpen = false;
+            foreach (var i in overlaid)
+            {
+                var dismiss = new FlyoutDismissEventArgs(i);
+                FlyoutDismissRequested?.Invoke(this, dismiss);
+                if (!dismiss.Cancel) i.IsOpen = false;
+            }
         };
         _overlayLayer.Children.Add(scrim);
 

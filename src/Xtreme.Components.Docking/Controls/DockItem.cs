@@ -9,21 +9,24 @@ namespace Xtreme.Components.Docking.Controls;
 public enum DockNarrowBehavior
 {
     /// <summary>
-    /// Slide over the document instead of beside it, dismissing on tap-away. The document keeps its full
-    /// width. This is the behaviour <c>MasterDetailControl.FloatPane</c> + <c>PaneLightDismiss</c> gives
-    /// today.
+    /// Slide over the document instead of beside it, dismissing on tap-away (subject to
+    /// <see cref="DockHost.FlyoutDismissRequested"/>). The document keeps its full width.
     /// </summary>
     Overlay,
 
-    /// <summary>Collapse entirely; the host is responsible for offering a way back (a toggle, a rail).</summary>
+    /// <summary>
+    /// Collapse entirely. While the host is narrow, its restore menu lists the pane (unless
+    /// <see cref="DockHost.ShowClosedPaneRestore"/> is off) and <see cref="DockHost.OpenFlyout"/> shows
+    /// it over the document.
+    /// </summary>
     Hide,
 
     /// <summary>Stay docked and keep taking space. For panes that must never disappear.</summary>
     Keep,
 
     /// <summary>
-    /// Collapse to the pane's auto-hide rail tab — the VS-style narrow story and the DEFAULT (Russ:
-    /// "the docks should auto unpin at certain resolutions"). Zone-driven presentation only:
+    /// Collapse to the pane's auto-hide rail tab — the VS-style narrow story, and the default.
+    /// Zone-driven presentation only:
     /// <see cref="DockItem.IsPinned"/> is never mutated, so widening the host restores the pane
     /// docked exactly as it was, and nothing persists an unpin the user didn't ask for. Every pane
     /// stays one rail-tab tap away, which beats a modal overlay that hides them all.
@@ -33,8 +36,8 @@ public enum DockNarrowBehavior
 
 /// <summary>
 /// Which band of its edge a docked pane occupies — the outer/inner distinction behind the doubled
-/// compass buttons (Russ's spec: "the outer one drops against the entire border, the inner drops
-/// just the size of the center content").
+/// compass buttons: the outer one docks against the entire border, the inner one only along the
+/// document's extent.
 /// </summary>
 public enum DockBand
 {
@@ -225,7 +228,10 @@ public partial class DockItem : ContentControl
 
     // ---- State ----------------------------------------------------------------------------------
 
-    /// <summary>Whether the pane is currently showing. Toggling this is the normal show/hide path.</summary>
+    /// <summary>
+    /// Whether the pane is currently showing. Toggling this is the normal show/hide path. The owning host
+    /// saves the layout after every change (debounced), so a pane closed from code stays closed.
+    /// </summary>
     public bool IsOpen
     {
         get => (bool)GetValue(IsOpenProperty);
@@ -234,7 +240,13 @@ public partial class DockItem : ContentControl
 
     public static readonly DependencyProperty IsOpenProperty = DependencyProperty.Register(
         nameof(IsOpen), typeof(bool), typeof(DockItem),
-        new PropertyMetadata(true, OnLayoutAffectingPropertyChanged));
+        new PropertyMetadata(true, OnIsOpenChanged));
+
+    private static void OnIsOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        OnLayoutAffectingPropertyChanged(d, e);
+        ((DockItem)d).IsOpenChanged?.Invoke(d, EventArgs.Empty);
+    }
 
     /// <summary>What happens to this pane when the host is too narrow to show it beside the document.</summary>
     public DockNarrowBehavior NarrowBehavior
@@ -258,8 +270,6 @@ public partial class DockItem : ContentControl
         nameof(CanClose), typeof(bool), typeof(DockItem), new PropertyMetadata(true));
 
     /// <summary>CAPABILITY: whether the header offers the pushpin (auto-hide) toggle.</summary>
-    /// <remarks>Name matches <c>MasterDetailControl.ShowPinToggle</c> (XU-253) to ease the XU-446
-    /// migration.</remarks>
     public bool ShowPinToggle
     {
         get => (bool)GetValue(ShowPinToggleProperty);
@@ -273,7 +283,7 @@ public partial class DockItem : ContentControl
     /// <summary>
     /// STATE: pinned (default) keeps the pane in the docked grid; unpinned collapses it to a tab on a
     /// thin rail at its edge — clicking the tab slides it in over the document, light-dismissed on
-    /// tap-away (VS-style auto-hide, XU-452).
+    /// tap-away (VS-style auto-hide).
     /// </summary>
     public bool IsPinned
     {
@@ -330,10 +340,21 @@ public partial class DockItem : ContentControl
 
     // ---- Events ---------------------------------------------------------------------------------
 
-    /// <summary>Raised when the user asks to close the pane via its header button.</summary>
-    public event EventHandler? CloseRequested;
+    /// <summary>
+    /// Raised when the user asks to close the pane: its header or tab-strip close button, the header
+    /// menu's Close, or its floating window's own close button. Set
+    /// <see cref="System.ComponentModel.CancelEventArgs.Cancel"/> to keep the pane open. Not raised when
+    /// code sets <see cref="IsOpen"/>.
+    /// </summary>
+    public event EventHandler<DockItemCloseRequestedEventArgs>? CloseRequested;
 
-    internal void RaiseCloseRequested() => CloseRequested?.Invoke(this, EventArgs.Empty);
+    /// <returns>True when no handler cancelled the close.</returns>
+    internal bool RaiseCloseRequested(bool fromFloatingWindow = false)
+    {
+        var args = new DockItemCloseRequestedEventArgs(this, fromFloatingWindow);
+        CloseRequested?.Invoke(this, args);
+        return !args.Cancel;
+    }
 
     /// <summary>
     /// Raised after the item has crossed into a different Window — floated out, or docked back. Read
@@ -342,11 +363,10 @@ public partial class DockItem : ContentControl
     /// </summary>
     /// <remarks>
     /// This is the formal hook for content that caches per-<c>XamlRoot</c> facts and needs a resync
-    /// after a move. The known case is Mapsui: its navigator holds the old viewport size because moving
-    /// between windows doesn't reliably raise <c>SizeChanged</c> (the XU-433 <c>ResyncViewportSize</c>
-    /// fix currently squats in <c>OnLoaded</c>), and the XU-442 click-to-world offset points at more
-    /// cached state of the same kind — a cached rasterization scale carried from the old window would
-    /// convert pointer DIPs against the wrong factor. Reparenting deliberately preserves view state
+    /// after a move. A map control is the typical case: its navigator can keep the old viewport size,
+    /// because moving between windows doesn't reliably raise <c>SizeChanged</c>, and a cached
+    /// rasterization scale carried from the old window would convert pointer DIPs against the wrong
+    /// factor. Reparenting deliberately preserves view state
     /// (that is its point); this event is where content refreshes the state it should NOT have kept.
     /// </remarks>
     public event EventHandler? Reparented;
@@ -360,6 +380,9 @@ public partial class DockItem : ContentControl
     /// the item calling back directly, so an item is usable standalone (in a designer, or a test).
     /// </summary>
     internal event EventHandler? LayoutAffectingPropertyChanged;
+
+    /// <summary>Raised on every <see cref="IsOpen"/> change; the host saves the layout from it.</summary>
+    internal event EventHandler? IsOpenChanged;
 
     private bool _suppressLayoutNotification;
 

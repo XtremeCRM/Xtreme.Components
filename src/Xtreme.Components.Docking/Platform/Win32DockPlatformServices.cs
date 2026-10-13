@@ -3,16 +3,15 @@ using Microsoft.UI.Xaml;
 namespace Xtreme.Components.Docking.Platform;
 
 /// <summary>
-/// The real head's window policy for the dock manager (XU-446): float support detection plus a
-/// small pool of spare windows, so a tear-out never pays construction cost under the user's click.
-/// Ported from the Harness reference implementation, which remains the proving ground.
+/// The Windows window policy for the dock manager: float support detection plus a small pool of
+/// spare windows, so a tear-out never pays construction cost under the user's click.
 /// </summary>
 /// <remarks>
 /// <para>One class serves every head TFM: the platform facts are RUNTIME decisions
 /// (<see cref="SupportsFloatingWindows"/> is false on WASM/mobile, the user32 interop is guarded by
 /// <c>OperatingSystem.IsWindows()</c>), which is exactly the shape <see cref="IDockPlatformServices"/>
 /// exists to allow — Xtreme.Components is a single net10.0 assembly with no <c>#if WINDOWS</c>.</para>
-/// <para>The pool's rules were all bought with observed failures in the Harness:</para>
+/// <para>The pool's rules were all bought with observed failures:</para>
 /// <list type="bullet">
 /// <item><b>Verify the hide, don't trust it.</b> <c>AppWindow.Hide()</c> returns successfully WITHOUT
 /// hiding on Uno Skia desktop; trusting it pooled a visible blank window.</item>
@@ -32,9 +31,9 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     /// <summary>
     /// How many spare windows to keep, so a tear-out never constructs under the user's click.
     /// <para>
-    /// <b>Why a pool exists at all (XU-450).</b> <c>new Window()</c> goes through OpenGL context
-    /// creation on Win32, which is ~12ms on a healthy driver and pathological on a bad one. On the
-    /// dev box it measured <b>3.6 SECONDS</b>, every time, with the UI thread blocked (3608ms wall
+    /// <b>Why a pool exists at all.</b> <c>new Window()</c> goes through OpenGL context
+    /// creation on Win32, which is ~12ms on a healthy driver and pathological on a bad one. On one
+    /// machine it measured <b>3.6 SECONDS</b>, every time, with the UI thread blocked (3608ms wall
     /// against 406ms CPU) — reproduced on a blank Uno head, so neither this app nor Uno was at
     /// fault. Bisecting by Skia backend found it: opengl 3608ms, software 17ms, vulkan 716ms. The
     /// cause was an 18-month-old Intel Arc driver (32.0.101.6559); updating to 32.0.101.8974 took
@@ -53,8 +52,13 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     private readonly List<Window> _pool = new();
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _seedTimer;
 
-    public bool SupportsFloatingWindows { get; } =
-        !OperatingSystem.IsBrowser() && !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS();
+    /// <summary>
+    /// True on Windows only — the one runtime where the whole float path works (owned windows, drag
+    /// tracking, drag-carried tear-out, drag-back-to-redock). Elsewhere the host stays in-surface:
+    /// macOS and Linux desktop can open windows, but without the drag tracking a floating pane could
+    /// only come back by closing its window, which is a worse experience than not floating.
+    /// </summary>
+    public bool SupportsFloatingWindows { get; } = OperatingSystem.IsWindows();
 
     /// <summary>The app's main window; the owner of every floating window. Set it once after the window exists.</summary>
     public Window? HostWindow { get; set; }
@@ -127,7 +131,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     {
         try
         {
-            // Preferred: a real hide. Observed to silently no-op on Uno Skia desktop (XU-450), so
+            // Preferred: a real hide. Observed to silently no-op on Uno Skia desktop, so
             // VERIFY via IsVisible rather than trusting the call.
             window.AppWindow.Hide();
             if (!window.AppWindow.IsVisible)
@@ -163,7 +167,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     /// nature and needs no hide.
     /// <para>
     /// The refill is a BURST back up to <see cref="PoolTarget"/>, not a single window: since the
-    /// ~3.6s is charged per work item rather than per window (XU-450), refilling one at a time on
+    /// ~3.6s is charged per work item rather than per window, refilling one at a time on
     /// separate ticks would pay it once per window — the worst possible schedule. One freeze buys
     /// the whole pool.
     /// </para>
@@ -232,7 +236,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     }
 
     /// <summary>
-    /// Makes every spawned float window an OWNED window of the main shell window (XU-438), so the app's
+    /// Makes every spawned float window an OWNED window of the main shell window, so the app's
     /// windows raise, minimise and restore as one group instead of a float being buried the moment the
     /// shell is clicked.
     /// </summary>
@@ -283,7 +287,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
 
     /// <summary>
     /// Continues a tear-out under the still-held button: the window is carried by the drag tracker's
-    /// own timer until the button is released (XU-461).
+    /// own timer until the button is released.
     /// </summary>
     /// <remarks>
     /// <para><b>The obvious Win32 route was tried first and is wrong on this backend.</b>
@@ -472,7 +476,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
 
                 var buttonDown = NativeMethods.IsPrimaryButtonDown();
 
-                // XU-461: a tear-out still under the user's finger. Carry the window with the cursor and
+                // A tear-out still under the user's finger. Carry the window with the cursor and
                 // report the drag, so the guides light and the release lands the pane where they let go.
                 // This runs BEFORE the sawIdle gate deliberately — that gate exists to ignore the
                 // spawning gesture, and here the spawning gesture is precisely what we are continuing.
@@ -565,6 +569,13 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
         return new TimerHandle(timer, () => NativeMethods.TrySetWindowOpacity(draggedHwnd, 1.0));
     }
 
+    /// <summary>
+    /// Whether a physical screen point lies on any connected display: true/false on Windows, null where
+    /// this implementation can't tell. The host uses it before restoring a saved floating-window position.
+    /// </summary>
+    internal bool? IsOnAnyDisplay(Windows.Graphics.PointInt32 point)
+        => OperatingSystem.IsWindows() ? NativeMethods.IsOnAnyMonitor(point) : null;
+
     private sealed class TimerHandle(Microsoft.UI.Dispatching.DispatcherQueueTimer timer, Action onDispose) : IDisposable
     {
         public void Dispose()
@@ -626,6 +637,18 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
             // Both are unsigned tick counts that wrap every ~49 days; unchecked subtraction gives
             // the right elapsed value across the wrap, where a signed compare would not.
             return unchecked((uint)Environment.TickCount - info.dwTime);
+        }
+
+        private const uint MONITOR_DEFAULTTONULL = 0;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromPoint(POINT point, uint flags);
+
+        /// <summary>Whether the point is on a connected monitor. A failing call answers null (unknown).</summary>
+        public static bool? IsOnAnyMonitor(Windows.Graphics.PointInt32 point)
+        {
+            try { return MonitorFromPoint(new POINT { X = point.X, Y = point.Y }, MONITOR_DEFAULTTONULL) != IntPtr.Zero; }
+            catch { return null; }
         }
 
         public static bool TryGetCursorPos(out Windows.Graphics.PointInt32 point)
@@ -740,7 +763,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
         /// to find our own windows on this backend.
         /// </summary>
         /// <remarks>
-        /// Both of the obvious routes were measured and rejected (2026-08-15, XU-438):
+        /// Both of the obvious routes were measured and rejected:
         /// <list type="bullet">
         /// <item><c>WinRT.Interop.WindowNative.GetWindowHandle</c> returns <b>0x1</b> — the WindowId,
         /// NOT an HWND (<c>IsWindow</c> reports false on it), exactly like
@@ -770,7 +793,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
                     {
                         _ = GetWindowThreadProcessId(hwnd, out var pid);
 
-                        // Invisible ones are skipped deliberately: pooled windows (XU-450) are
+                        // Invisible ones are skipped deliberately: pooled windows are
                         // constructed but never activated, and must never be mistaken for the
                         // window that was just spawned.
                         if (pid != me || !IsWindowVisible(hwnd)) return true;
@@ -810,7 +833,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
             }
         }
 
-        // NOTE (XU-461): a WM_NCLBUTTONDOWN/HTCAPTION "let the OS drag it" helper lived here and was
+        // NOTE: a WM_NCLBUTTONDOWN/HTCAPTION "let the OS drag it" helper lived here and was
         // REMOVED after testing. It reached the right window, but the OS move loop is modal — it stalls
         // Uno's dispatcher and traps the pointer waiting for a release it never receives. See
         // BeginWindowDrag's remarks before considering it again.
