@@ -40,7 +40,7 @@ merge is explicit.
 | `XcFontSizeTitle` | double | 16 | Cards (`SectionCard` title) |
 | `XcFieldLabelStyle` | TextBlock style | secondary caption, 4px bottom margin | `DateTimePicker` |
 | `XcListSectionHeaderTextStyle` | TextBlock style | semibold secondary caption | `ChipPickerDialog` |
-| `XcListViewItemStyle` | ListViewItem style | 32px min height, 8/4 padding | `DateTimePicker` time list |
+| `XcListViewItemStyle` | ListViewItem style | 32px min height, 8/4 padding; selection colors stay the platform default (override the `ListViewItemBackground*` theme resources, or redefine this style) | `DateTimePicker` time list |
 
 ### Surface (code-painted chrome, `ComponentTheme`)
 
@@ -87,7 +87,11 @@ Used by `MultiMonthDateNavigator` and the pickers built on it:
 ### TableView
 
 `RowFlag.BrushKey` names any brush resource; it resolves for the row's actual theme. Name your
-own keys (for example `XcFlagChangedBrush`) and define them in `ThemeDictionaries`.
+own keys (for example `XcFlagChangedBrush`) and define them in `ThemeDictionaries`, at the top
+level of `App.xaml` or in a dictionary merged into it (`ComponentHost.TryGetBrush` searches merged
+dictionaries' `ThemeDictionaries` too). The frame and tag look (thickness, tag text size and
+color, padding, corners) is set per table with `RowFlagOptions`; there are no `Xc*` tokens for
+it. See [tableview.md](tableview.md#custom-look).
 
 ## 3. Runtime changes
 

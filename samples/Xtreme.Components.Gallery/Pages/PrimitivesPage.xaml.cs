@@ -11,11 +11,7 @@ public sealed partial class PrimitivesPage : UserControl
     {
         InitializeComponent();
 
-        // Vector icon keys resolve through the host hook; the gallery knows one.
-        ComponentHost.ResolveGeometry = key => key == "star"
-            ? (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof(Geometry),
-                "M12,2 L15,9 L22,9.5 L16.5,14.5 L18,22 L12,18 L6,22 L7.5,14.5 L2,9.5 L9,9 Z")
-            : null;
+        // The "star" icon key resolves through ComponentHost.ResolveGeometry, set once in App.OnLaunched.
 
         // Chip picker: items are plain records; SaveAsync receives the picked set when the dialog closes.
         Chips.Title = "Tags";

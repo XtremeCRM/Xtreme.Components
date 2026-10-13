@@ -11,7 +11,12 @@ control families. No controls live here; the family packages reference it.
   `Application.Current.Resources` lookup does not.
 - High-contrast overrides: when a consumer merges a high-contrast palette that defines the
   `XcHighContrast` sentinel key, the brushes come from `XcSurfaceBrush` and
-  `XcSurfaceOutlineBrush` in that palette instead.
+  `XcSurfaceOutlineBrush` in that palette instead (resolved for the requested theme when the
+  palette splits them into `ThemeDictionaries`). The brushes are shared per theme, not allocated
+  per call; treat them as read-only.
+- `ComponentHost`: the optional startup hooks (`CurrentTheme`, `ResolveGeometry`), a theme-aware
+  `TryGetBrush(key, theme)` that also searches merged dictionaries' `ThemeDictionaries`, and
+  `PrepareDialog(dialog, xamlRoot)`, which styles, themes and roots a code-built `ContentDialog`.
 
 ```xml
 <!-- App.xaml, inside a high-contrast resource dictionary -->
@@ -20,4 +25,4 @@ control families. No controls live here; the family packages reference it.
 <SolidColorBrush x:Key="XcSurfaceOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 ```
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT licence.
+Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.

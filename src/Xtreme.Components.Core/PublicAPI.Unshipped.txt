@@ -16,3 +16,4 @@ static Xtreme.Components.Core.ComponentTheme.Surface(Microsoft.UI.Xaml.ElementTh
 static Xtreme.Components.Core.ComponentTheme.SurfaceOutline(Microsoft.UI.Xaml.ElementTheme theme) -> Microsoft.UI.Xaml.Media.SolidColorBrush!
 Xtreme.Components.Core.ComponentHost
 Xtreme.Components.Core.ComponentTheme
+static Xtreme.Components.Core.ComponentHost.PrepareDialog(Microsoft.UI.Xaml.Controls.ContentDialog! dialog, Microsoft.UI.Xaml.XamlRoot? xamlRoot) -> void

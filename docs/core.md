@@ -14,18 +14,17 @@ Primitives (Scheduler). You rarely add it by hand; it arrives with any family pa
 - Live demo: [gallery](https://xtremecrm.github.io/Xtreme.Components/) (the dark-mode switch
   and the Primitives page's star icon exercise `ComponentHost`)
 - Host wiring in the gallery:
-  [MainPage.xaml.cs](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/MainPage.xaml.cs),
-  [PrimitivesPage.xaml.cs](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/Pages/PrimitivesPage.xaml.cs),
+  [App.xaml.cs](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/App.xaml.cs) (the hooks, set once in `OnLaunched`),
   [App.xaml](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/App.xaml)
 
 Token tables, high-contrast keys and runtime theme changes are documented in
 [theming.md](theming.md); package layout and the reasons Core exists are in
-[architecture.md](architecture.md). This page covers the code API and host initialisation.
+[architecture.md](architecture.md). This page covers the code API and host initialization.
 
-## Host initialisation
+## Host initialization
 
 Nothing in Core is required. A bare app that sets no hook gets WinUI defaults: the application
-theme, no custom icon vectors, and the WinUI `ContentDialog` style. Initialise only what applies.
+theme, no custom icon vectors, and the WinUI `ContentDialog` style. Initialize only what applies.
 
 ### 1. Merge the resources (App.xaml)
 
@@ -64,30 +63,28 @@ ComponentHost.CurrentTheme = () => rootElement.ActualTheme;
 ComponentHost.ResolveGeometry = key => MyIcons.TryGet(key);
 ```
 
-The gallery sets `CurrentTheme` in its dark-mode toggle handler, after changing the root
-page's `RequestedTheme`:
+Set both once at startup, after the window content exists. The gallery does it in
+`App.OnLaunched`, right after creating the root frame:
 
 ```csharp
-private void DarkToggle_Toggled(object sender, RoutedEventArgs e)
+private static void InitializeComponentHost(Frame rootFrame)
 {
-    RequestedTheme = DarkToggle.IsOn ? ElementTheme.Dark : ElementTheme.Light;
-    ComponentHost.CurrentTheme = () => ActualTheme;
+    // The dark-mode switch sets the root page's RequestedTheme, so read the visible theme there.
+    ComponentHost.CurrentTheme = () => (rootFrame.Content as FrameworkElement)?.ActualTheme;
+
+    // One icon key, "star". A fresh Geometry per call: a geometry must not be shared between shapes.
+    ComponentHost.ResolveGeometry = key => key == "star"
+        ? (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof(Geometry),
+            "M12,2 L15,9 L22,9.5 L16.5,14.5 L18,22 L12,18 L6,22 L7.5,14.5 L2,9.5 L9,9 Z")
+        : null;
 }
 ```
 
-and resolves one icon key, `"star"`, in the Primitives page constructor:
-
-```csharp
-ComponentHost.ResolveGeometry = key => key == "star"
-    ? (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof(Geometry),
-        "M12,2 L15,9 L22,9.5 L16.5,14.5 L18,22 L12,18 L6,22 L7.5,14.5 L2,9.5 L9,9 Z")
-    : null;
-```
-
-In a real app set both once at startup (for example in `App.OnLaunched` after the window
-content exists); the gallery sets them from pages only to keep each demo self-contained. The
-hook is a delegate, so `CurrentTheme` set once at startup keeps returning the root's current
-theme after later switches.
+Both hooks are delegates, so `CurrentTheme` set once keeps returning the root's current theme
+after later switches; the gallery's dark-mode toggle only changes the root page's
+`RequestedTheme`. Avoid assigning hooks from a page constructor or an event handler: the last
+assignment wins for the whole app, and anything that reads the hook before that page opens sees
+nothing.
 
 ### 3. After a runtime resource change
 
@@ -103,14 +100,17 @@ Theme switches do not need it. See [theming.md](theming.md#3-runtime-changes).
 ### 4. Code-built dialogs (library authors and hosts)
 
 ```csharp
-var dialog = new ContentDialog { Title = "Rename", Content = box, PrimaryButtonText = "OK",
-                                 XamlRoot = this.XamlRoot };
-ComponentHost.PrepareDialog(dialog);
+var dialog = new ContentDialog { Title = "Rename", Content = box, PrimaryButtonText = "OK" };
+ComponentHost.PrepareDialog(dialog, this.XamlRoot);
 await dialog.ShowAsync();
 ```
 
-`PrepareDialog` applies an app resource named `DefaultContentDialogStyle` when one exists and
-sets `RequestedTheme` to `ComponentHost.EffectiveTheme()`. It does not set `XamlRoot`.
+`PrepareDialog` applies an app resource named `DefaultContentDialogStyle` when one exists, sets
+`RequestedTheme` to `ComponentHost.EffectiveTheme()`, and sets the `XamlRoot` the dialog shows in
+(`ShowAsync` throws without one). Pass the invoking element's `XamlRoot`. Without one (or with
+the one-argument overload) a `XamlRoot` the dialog already has is kept, and failing that it is
+taken from the dialog's `Content` when that element is already in a live tree; otherwise it stays
+unset and the caller must set it.
 
 ## What the other packages use
 
@@ -142,12 +142,13 @@ wins, and nothing is thread-guarded (set them on the UI thread).
 | `NotifyResourcesChanged()` | `static void` | | Raises `ResourcesChanged`. Call after merging or removing a resource dictionary at runtime. |
 | `EffectiveTheme()` | `static ElementTheme` | | `CurrentTheme()` when it returns `Light` or `Dark`; otherwise `Dark` if `Application.Current.RequestedTheme` is `Dark`, else `Light` (including when there is no `Application.Current`). Never returns `Default`. |
 | `TryGetBrush(string key)` | `static Brush?` | | `TryGetBrush(key, EffectiveTheme())`. |
-| `TryGetBrush(string key, ElementTheme theme)` | `static Brush?` | | Brush lookup for an explicit theme (typically an element's `ActualTheme`). See [Brush lookup rules](#brush-lookup-rules). Null when not found, when the value is not a `Brush`, or on any exception. |
-| `PrepareDialog(ContentDialog dialog)` | `static void` | | Applies the app's `DefaultContentDialogStyle` (when defined as a `Style` in application resources) and sets `dialog.RequestedTheme = EffectiveTheme()`. Call before `ShowAsync`. |
+| `TryGetBrush(string key, ElementTheme theme)` | `static Brush?` | | Brush lookup for an explicit theme (typically an element's `ActualTheme`). See [Brush lookup rules](#brush-lookup-rules). Null when not found, when the value is not a `Brush`, or on an expected lookup failure; other exceptions propagate. |
+| `PrepareDialog(ContentDialog dialog)` | `static void` | | `PrepareDialog(dialog, null)`. |
+| `PrepareDialog(ContentDialog dialog, XamlRoot? xamlRoot)` | `static void` | | Applies the app's `DefaultContentDialogStyle` (when defined as a `Style` in application resources), sets `dialog.RequestedTheme = EffectiveTheme()`, and sets `dialog.XamlRoot`: `xamlRoot` when given, else the dialog's existing root, else its `Content`'s root when that is in a live tree. Call before `ShowAsync`. |
 
 ### `ComponentTheme` (static class)
 
-Per-theme surface colours for chrome painted from code-behind, where a `{ThemeResource}` binding
+Per-theme surface colors for chrome painted from code-behind, where a `{ThemeResource}` binding
 is not available.
 
 | Member | Type / signature | Value | Purpose |
@@ -159,11 +160,19 @@ is not available.
 | `SurfaceOutline(ElementTheme theme)` | `static SolidColorBrush` | Light: `#50000000`; Dark: `#50FFFFFF` | Hairline outline for a `Surface` on translucent chrome. |
 
 With high contrast active, `Surface` / `SurfaceOutline` return the palette's `XcSurfaceBrush` /
-`XcSurfaceOutlineBrush` when it is a `SolidColorBrush`; otherwise (key missing, wrong type, or
-any exception) they return the Light/Dark value above. The `theme` argument is ignored while the
-override applies, because a high-contrast palette has no Light/Dark split. Outside high contrast
-each call allocates a new brush. `ElementTheme.Default` is treated as Light; pass an element's
-`ActualTheme`, not its `RequestedTheme`.
+`XcSurfaceOutlineBrush` when it is a `SolidColorBrush`; otherwise (key missing, wrong type, or an
+expected lookup failure) they return the Light/Dark value above. The override key is resolved with
+`ComponentHost.TryGetBrush(key, theme)`, so the `theme` argument still counts under high contrast
+where it can: a flat palette (the usual shape, one palette per contrast polarity) gives the same
+brush for either theme, and a palette that puts the key in `ThemeDictionaries` gets the entry for
+the theme asked for.
+
+The brushes are shared, not allocated per call: the built-in Light and Dark brushes are created
+once per theme, and a high-contrast override returns the palette's own instance. Treat them as
+read-only (do not change `Color` or `Opacity`; create your own brush for that). The high-contrast
+check itself is not cached, so a palette merged or removed at runtime takes effect on the next
+call without `NotifyResourcesChanged`. `ElementTheme.Default` is treated as Light outside high
+contrast; pass an element's `ActualTheme`, not its `RequestedTheme`.
 
 ### Resources (`Themes/Generic.xaml`)
 
@@ -176,7 +185,7 @@ Source: `ms-appx:///Xtreme.Components.Core/Themes/Generic.xaml`.
 | `XcFontSizeTitle` | `x:Double` | `16` |
 | `XcFieldLabelStyle` | `Style` (TextBlock) | `XcFontSizeCaption`, `TextFillColorSecondaryBrush`, margin `0,0,0,4` |
 | `XcListSectionHeaderTextStyle` | `Style` (TextBlock) | `XcFontSizeCaption`, SemiBold, `TextFillColorSecondaryBrush`, margin `0,8,0,4` |
-| `XcListViewItemStyle` | `Style` (ListViewItem) | `MinHeight` 32, `Padding` `8,4` |
+| `XcListViewItemStyle` | `Style` (ListViewItem) | `MinHeight` 32, `Padding` `8,4`; selection colors are the platform default |
 
 `XcHighContrast`, `XcSurfaceBrush` and `XcSurfaceOutlineBrush` are deliberately not defined here;
 their presence is the high-contrast switch. Which controls read which token is listed in
@@ -188,15 +197,27 @@ their presence is the high-contrast switch. Which controls read which token is l
 
 1. Returns null if there is no `Application.Current`.
 2. Maps `ElementTheme.Default` to `EffectiveTheme()`.
-3. Looks for `key` in `Application.Current.Resources.ThemeDictionaries["Dark"]` (for Dark) or
-   `["Light"]` (for Light), returning it if it is a `Brush`.
-4. Otherwise returns `Application.Current.Resources.TryGetValue(key)` if that is a `Brush`.
+3. Searches `Application.Current.Resources`, then its merged dictionaries from the last merged to
+   the first, recursing into their own merged dictionaries. In each dictionary it tries, in order:
+   - the dictionary's `ThemeDictionaries` entry for the theme (`"Light"`, or `"Dark"` falling back
+     to `"Default"`),
+   - the dictionary's own flat entry.
 
-Step 3 reads only the application dictionary's **own** `ThemeDictionaries`. A key defined in a
-merged dictionary's `ThemeDictionaries` is only reached by step 4, the framework's normal lookup,
-which does not use the `theme` argument. Keys that must differ per theme should therefore be
-defined in the top-level `ThemeDictionaries` of `App.xaml` (as the gallery does for its row-flag
-brushes). Flat keys (same value in both themes) can live anywhere.
+   The first hit wins; if it is a `Brush` it is returned.
+4. Otherwise returns the framework's own `Application.Current.Resources.TryGetValue(key)` if that
+   is a `Brush`.
+
+So a per-theme value resolves for the theme asked for wherever it is defined: in the top-level
+`ThemeDictionaries` of `App.xaml` (as the gallery does for its row-flag brushes), or in a
+library, brand or palette dictionary merged into it. Definitions closer to the application win: a
+flat override written in `App.xaml` after the merges beats a per-theme default inside a merged
+dictionary, matching the "overrides go after the merge" rule. Flat keys (same value in both
+themes) can live anywhere. The walk stops 16 merge levels deep.
+
+Only expected lookup failures read as "not found" (null): `KeyNotFoundException`,
+`InvalidOperationException` (a merged-dictionary list changed during the walk), `XamlParseException`
+(a lazily built resource that fails to materialize) and `COMException`. Any other exception is a
+bug and propagates.
 
 There is no `HighContrast` theme-dictionary branch: high contrast in this library is an
 app-merged override palette, detected through `XcHighContrast` (see
@@ -207,11 +228,18 @@ app-merged override palette, detected through `XcHighContrast` (see
 - **Global, process-wide state.** `CurrentTheme` and `ResolveGeometry` are single static slots;
   two parts of an app (or two windows with different themes) cannot set different values.
   `EffectiveTheme` is one value for the whole app.
-- **Errors are swallowed.** `TryGetBrush` and the high-contrast lookup in `ComponentTheme`
-  catch every exception and return null / the default colour. A typo in a key fails silently
-  (Primitives' brush converter paints hot pink in that case so the gap is visible).
+- **Missing keys are silent.** `TryGetBrush` and the high-contrast lookup in `ComponentTheme`
+  return null / the default color for a key that is not defined or an expected lookup failure
+  (see [Brush lookup rules](#brush-lookup-rules)), so a typo in a key fails silently (Primitives'
+  brush converter paints hot pink in that case so the gap is visible). Unexpected exceptions are
+  no longer swallowed.
 - **`PrepareDialog`** looks up `DefaultContentDialogStyle` with `Application.Current.Resources`
-  only and does not set `XamlRoot`.
+  only. It can only derive a `XamlRoot` from the dialog itself; pass one from the invoking
+  element when the dialog is built in code.
 - **Static event.** `ResourcesChanged` holds strong references to its handlers; subscribe from
   long-lived (static or app-lifetime) objects, or unsubscribe.
 - **`XcListViewItemStyle`** sets size and padding only; the selection look is the WinUI default.
+  The selected / hover colors are read inside the `ListViewItem` template, so a style setter
+  cannot change them without re-templating. Override the platform's `ListViewItemBackground*`
+  theme resources in `App.xaml`, or redefine `XcListViewItemStyle` there (based on your own item
+  style), to change them.
