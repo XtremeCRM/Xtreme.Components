@@ -1,0 +1,65 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:xc="using:Xtreme.Components.Primitives">
+
+    <!-- Converters the default templates below use. Keyed under the library's own names so an
+         app's converters of the same type never collide. -->
+    <xc:MultiplyConverter x:Key="XcMultiplyConverter" />
+
+    <!-- OverlayGlyphIcon default style: a Fluent glyph (or app-supplied vector) with a small
+         accent badge glyph overlaid bottom-right. -->
+    <Style TargetType="xc:OverlayGlyphIcon">
+        <Setter Property="BackForeground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FrontBackground" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+        <Setter Property="FrontForeground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="xc:OverlayGlyphIcon">
+                    <Grid Width="{TemplateBinding Size}"
+                          Height="{TemplateBinding Size}">
+
+                        <!-- Back icon (Fluent glyph) -->
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            Glyph="{TemplateBinding BackGlyph}"
+                            FontSize="{TemplateBinding Size}"
+                            Foreground="{TemplateBinding BackForeground}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False" />
+
+                        <!-- Back icon (vector) renders when BackGeometryKey resolves through
+                             ComponentHost.ResolveGeometry. Themed by BackForeground. -->
+                        <Path
+                            Data="{TemplateBinding BackData}"
+                            Fill="{TemplateBinding BackForeground}"
+                            Stretch="Uniform"
+                            Margin="1.5"
+                            IsHitTestVisible="False" />
+
+                        <!-- Front overlay (badge) -->
+                        <Border
+                            Width="{Binding Size, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource XcMultiplyConverter}, ConverterParameter=0.5}"
+                            Height="{Binding Size, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource XcMultiplyConverter}, ConverterParameter=0.5}"
+                            Background="{TemplateBinding FrontBackground}"
+                            CornerRadius="999"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            IsHitTestVisible="False">
+                            <FontIcon
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontWeight="ExtraBlack"
+                                Glyph="{TemplateBinding FrontGlyph}"
+                                Foreground="{TemplateBinding FrontForeground}"
+                                FontSize="{Binding Size, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource XcMultiplyConverter}, ConverterParameter=0.4}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

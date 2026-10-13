@@ -1,0 +1,116 @@
+<ContentDialog
+    x:Class="Xtreme.Components.Primitives.ChipPickerDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Xtreme.Components.Primitives"
+    d:DataContext="{d:DesignInstance Type=local:ChipPickerControl}"
+    PrimaryButtonText="Save"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary">
+
+    <ContentDialog.Resources>
+        <local:BoolToVisibilityConverter x:Key="XcBoolToVisibilityConverter" />
+        <Style TargetType="local:ChipPickerDialog" BasedOn="{StaticResource DefaultContentDialogStyle}"/>
+
+        <!-- Plain include-only row: every consumer that leaves AllowExclude off. -->
+        <DataTemplate x:Key="ChipRowTemplate">
+            <CheckBox Content="{Binding Name}"
+                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                      Checked="OnChipToggled"
+                      Unchecked="OnChipToggled" />
+        </DataTemplate>
+
+        <!-- XU-517: include + NOT row, for hosts that set AllowExclude (Entity Type/Tag/Group,
+             where an EntityFilter's rules carry an IsNot flag). The NOT button both selects the
+             item and marks it excluded, so "exclude this" is one click rather than two. -->
+        <!-- XU-787: an excluded row must not look like an include. The checkbox alone cannot say
+             which one it is, so an excluded row also gets a red NOT badge ahead of a red name, and
+             its circle-slash button turns solid red. Rows re-render on every toggle (RebuildRows),
+             so OneWay bindings against the plain ChipItem are enough. -->
+        <local:BoolToBrushConverter x:Key="ExcludedNameBrushConverter"
+                                      TrueBrush="{ThemeResource XtremeExcludedBrush}"
+                                      FalseBrush="{ThemeResource TextFillColorPrimaryBrush}" />
+
+        <DataTemplate x:Key="ChipRowWithExcludeTemplate">
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <CheckBox Grid.Column="0"
+                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                          Checked="OnChipToggled"
+                          Unchecked="OnChipToggled">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Background="{ThemeResource XtremeExcludedBrush}"
+                                CornerRadius="3"
+                                Padding="4,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsExcluded, Converter={StaticResource XcBoolToVisibilityConverter}}">
+                            <TextBlock Text="NOT"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="White" />
+                        </Border>
+                        <TextBlock Text="{Binding Name}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding IsExcluded, Converter={StaticResource ExcludedNameBrushConverter}}" />
+                    </StackPanel>
+                </CheckBox>
+                <!-- The circle-slash is DRAWN rather than a FontIcon glyph: this app's icon
+                     font does not carry Blocked (it rendered blank). Primitives always
+                     render. Outline = off, solid red disc with a white slash = excluding. -->
+                <ToggleButton Grid.Column="1"
+                              IsChecked="{Binding IsExcluded, Mode=OneWay}"
+                              Click="OnExcludeToggled"
+                              VerticalAlignment="Center"
+                              MinWidth="0"
+                              Padding="6,2"
+                              ToolTipService.ToolTip="Exclude (NOT) — match everything except this">
+                    <Grid Width="14" Height="14">
+                        <Ellipse Stroke="{ThemeResource XtremeExcludedBrush}" StrokeThickness="1.5" />
+                        <Ellipse Fill="{ThemeResource XtremeExcludedBrush}"
+                                 Visibility="{Binding IsExcluded, Converter={StaticResource XcBoolToVisibilityConverter}}" />
+                        <Rectangle Fill="{ThemeResource XtremeExcludedBrush}"
+                                   Width="12.5" Height="1.5"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   RenderTransformOrigin="0.5,0.5"
+                                   Visibility="{Binding IsExcluded, Converter={StaticResource XcBoolToVisibilityConverter}, ConverterParameter=invert}">
+                            <Rectangle.RenderTransform>
+                                <RotateTransform Angle="-45" />
+                            </Rectangle.RenderTransform>
+                        </Rectangle>
+                        <Rectangle Fill="White"
+                                   Width="9" Height="1.5"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   RenderTransformOrigin="0.5,0.5"
+                                   Visibility="{Binding IsExcluded, Converter={StaticResource XcBoolToVisibilityConverter}}">
+                            <Rectangle.RenderTransform>
+                                <RotateTransform Angle="-45" />
+                            </Rectangle.RenderTransform>
+                        </Rectangle>
+                    </Grid>
+                </ToggleButton>
+            </Grid>
+        </DataTemplate>
+
+        <!-- XU-586: section header for grouped pickers (entity tags under their EntityType). -->
+        <DataTemplate x:Key="ChipGroupHeaderTemplate">
+            <TextBlock Text="{Binding Name}"
+                       Style="{StaticResource XcListSectionHeaderTextStyle}"
+                       Margin="0,10,0,2" />
+        </DataTemplate>
+    </ContentDialog.Resources>
+
+    <Grid>
+        <ScrollViewer MaxHeight="400"
+                      VerticalScrollBarVisibility="Auto"
+                      VerticalScrollMode="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <!-- ItemsSource is set in code (Render): grouped pickers interleave header rows. -->
+            <ItemsControl x:Name="ChipRows" />
+        </ScrollViewer>
+
+    </Grid>
+</ContentDialog>

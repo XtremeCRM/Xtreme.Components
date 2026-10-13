@@ -21,8 +21,13 @@ family on a shared version.
 - `Xtreme.Components.Primitives`: `MaskedTextBox` + `InputMask`, `TypeableTimeBox`,
   `CompactCalendarDatePicker`, `MonthYearPicker`, `MultiMonthDateNavigator` (moved out of the
   Scheduler, which now depends on Primitives), `PagingControl`, `ColumnFlowPanel`, `WrapPanel`,
-  `ExpanderClipFix`, `ToastControl`, `EditorActionBar`, `CopyButton`. Font sizes read the
-  `XcFontSizeBody` / `XcFontSizeCaption` resources.
+  `ExpanderClipFix`, `ToastControl`, `EditorActionBar`, `CopyButton`, `DateTimePicker`
+  (was `XtremeDateTimePicker`), `CriteriaPanel`, `ChipPickerControl` + `ChipPickerDialog`
+  (items are `ChipItem`, was `ChipVM`), `OverlayGlyphIcon`. Font sizes and field styles read
+  the `XcFontSizeBody` / `XcFontSizeCaption` / `XcFontSizeTitle` / `XcFieldLabelStyle` /
+  `XcListViewItemStyle` / `XcListSectionHeaderTextStyle` resources.
+- `Xtreme.Components.Core`: `ComponentHost` with the optional `CurrentTheme` and
+  `ResolveGeometry` hooks, `TryGetBrush` and `PrepareDialog`.
 - `Xtreme.Components.Scheduler`: `SchedulerControl` with Day, Week, Month, Agenda and
   multi-resource Planner views; drag-to-move, resize and click-to-create reported as events;
   external drag-drop via `ISchedulerDroppable`; per-resource IANA time zones; recurring-event

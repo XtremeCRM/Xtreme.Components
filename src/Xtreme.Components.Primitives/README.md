@@ -18,6 +18,22 @@ third-party packages.
 | `ToastControl` | Transient bottom toast with icon, fade in and out. |
 | `EditorActionBar` | The Delete / Save / Cancel bar for editors: trash on the left, accent Save and secondary Cancel on the right, Save gated on `IsDirty`. |
 | `CopyButton` | Copy-to-clipboard button with a "Copied" confirmation. |
+| `DateTimePicker` | Date and time in one field: multi-month calendar flyout plus a typeable time slot list. |
+| `CriteriaPanel` | A titled group of labelled fields whose label column auto-sizes, for search criteria forms. |
+| `ChipPickerControl` + `ChipPickerDialog` | Multi-select chips on a button that opens a grouped, searchable picker dialog; optional "everything except" exclusions. Items are `ChipItem` records. |
+| `OverlayGlyphIcon` | A Fluent glyph (or an app-supplied vector) with a small accent badge glyph overlaid bottom-right. |
+
+## Host hooks (optional)
+
+`Xtreme.Components.Core.ComponentHost` carries two optional hooks an app can set at startup:
+
+```csharp
+ComponentHost.CurrentTheme = () => rootElement.ActualTheme;          // live theme switching
+ComponentHost.ResolveGeometry = key => MyIcons.TryGet(key);          // OverlayGlyphIcon.BackGeometryKey
+```
+
+Without them, code-built dialogs follow `Application.RequestedTheme` and vector icon keys resolve
+to nothing.
 
 ## Quick start
 

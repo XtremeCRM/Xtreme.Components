@@ -1,0 +1,197 @@
+<UserControl
+    x:Class="Xtreme.Components.Primitives.DateTimePicker"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Xtreme.Components.Primitives"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    SizeChanged="OnSizeChanged">
+
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="PART_Header"
+                   Grid.Row="0"
+                   Text="{x:Bind Header, Mode=OneWay}"
+                   Margin="0,0,0,4"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   FontSize="{StaticResource XcFontSizeBody}" />
+
+        <Button x:Name="PART_Button"
+                Grid.Row="1"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Left"
+                Padding="10,6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <SymbolIcon Symbol="Calendar"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="PART_DisplayText"
+                           Text="&#8212;"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button.Flyout>
+                <!-- ONE popup. The calendar and the time list are both inline here, never
+                     nested flyouts of their own — that nesting is what wedged the old
+                     DateTimeFieldControl (a second light-dismiss layer ate the click meant
+                     for the other half). Everything below is directly clickable, in any
+                     order, with no open/close state to get stuck. -->
+                <Flyout x:Name="PART_Flyout"
+                        Placement="Bottom"
+                        Opened="OnFlyoutOpened"
+                        Closing="OnFlyoutClosing">
+                    <!-- Lift the FlyoutPresenter's default ~456px MaxWidth / MaxHeight caps —
+                         they clip the calendar + time column (same reason SchedulerToolbar's
+                         period flyout lifts them) — and disable its scrollbars so the content
+                         sizes itself. -->
+                    <Flyout.FlyoutPresenterStyle>
+                        <Style TargetType="FlyoutPresenter">
+                            <Setter Property="MaxWidth" Value="2000" />
+                            <Setter Property="MaxHeight" Value="1400" />
+                            <Setter Property="Padding" Value="12" />
+                            <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                            <Setter Property="ScrollViewer.VerticalScrollMode" Value="Disabled" />
+                            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+                        </Style>
+                    </Flyout.FlyoutPresenterStyle>
+
+                    <!-- Scrolling is OFF side-by-side (the popup always fits) and switched ON when
+                         stacked, where calendar + time together can exceed a short window. Safe to
+                         use Auto here because nothing inside wraps — no bar-toggles-then-rewrap loop. -->
+                    <ScrollViewer x:Name="PART_FlyoutScroll"
+                                  VerticalScrollMode="Disabled"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  HorizontalScrollMode="Disabled"
+                                  HorizontalScrollBarVisibility="Disabled">
+                    <!-- Rows 1-2 are only used by the stacked (narrow) arrangement; they collapse to
+                         zero height in the side-by-side one. ApplyResponsiveLayout re-parents the
+                         divider and time panel between the two. -->
+                    <Grid x:Name="PART_FlyoutGrid" RowSpacing="12" ColumnSpacing="20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Our own month grid (from Xtreme.Components.Scheduler), not WinUI's CalendarView:
+                             it's hand-built so it renders compact and on-theme, and it takes
+                             plain DateTime — so no DateTimeOffset ever touches the date path,
+                             which is what made the XU-283 off-by-one possible in the first place. -->
+                        <!-- SingleDateMode drops the navigator's Days/Range switch (a field holds one
+                             value) and makes a tap replace rather than toggle. Width is set just wide
+                             enough for ONE month tile — which is also what makes the navigator fill the
+                             leading/trailing slots with the neighbouring months' days. -->
+                        <local:MultiMonthDateNavigator x:Name="PART_Calendar"
+                                                       Grid.Row="0"
+                                                       Grid.Column="0"
+                                                       SingleDateMode="True"
+                                                       Width="250"
+                                                       Height="244"
+                                                       SelectionChanged="OnCalendarSelectionChanged" />
+
+                        <Border x:Name="PART_Divider"
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Width="1"
+                                VerticalAlignment="Stretch"
+                                Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                        <StackPanel x:Name="PART_TimePanel"
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    Width="230"
+                                    Spacing="6">
+                            <TextBlock Text="Time" Style="{StaticResource XcFieldLabelStyle}" />
+                            <TextBox x:Name="PART_TimeText"
+                                     PlaceholderText="h:mm AM/PM"
+                                     KeyDown="OnTimeTextKeyDown"
+                                     LostFocus="OnTimeTextLostFocus" />
+
+                            <!-- Slot granularity — our own connected ToggleButton row (the Timeline
+                                 filter-bar idiom): buttons touch, only the outer corners round, and
+                                 Click (not Checked/Unchecked) so the programmatic sync in
+                                 SyncStepSelection can't fire a spurious write. Tag = step in minutes.
+                                 Authored statically because the set is fixed, so the per-position
+                                 CornerRadius is literal instead of computed in a Loaded handler. -->
+                            <StackPanel x:Name="PART_StepBar"
+                                        Orientation="Horizontal"
+                                        Spacing="0"
+                                        HorizontalAlignment="Left"
+                                        SizeChanged="OnStepBarSizeChanged">
+                                <ToggleButton Tag="1" Content="1" Padding="8,3" MinWidth="34"
+                                              FontSize="{StaticResource XcFontSizeCaption}"
+                                              CornerRadius="4,0,0,4" Click="OnStepToggleClick" />
+                                <ToggleButton Tag="5" Content="5" Padding="8,3" MinWidth="34"
+                                              FontSize="{StaticResource XcFontSizeCaption}"
+                                              CornerRadius="0" Click="OnStepToggleClick" />
+                                <ToggleButton Tag="10" Content="10" Padding="8,3" MinWidth="34"
+                                              FontSize="{StaticResource XcFontSizeCaption}"
+                                              CornerRadius="0" Click="OnStepToggleClick" />
+                                <ToggleButton Tag="15" Content="15" Padding="8,3" MinWidth="34"
+                                              FontSize="{StaticResource XcFontSizeCaption}"
+                                              CornerRadius="0" Click="OnStepToggleClick" />
+                                <ToggleButton Tag="30" Content="30" Padding="8,3" MinWidth="34"
+                                              FontSize="{StaticResource XcFontSizeCaption}"
+                                              CornerRadius="0" Click="OnStepToggleClick" />
+                                <ToggleButton Tag="60" Content="60" Padding="8,3" MinWidth="34"
+                                              FontSize="{StaticResource XcFontSizeCaption}"
+                                              CornerRadius="0,4,4,0" Click="OnStepToggleClick" />
+                            </StackPanel>
+
+                            <ListView x:Name="PART_TimeList"
+                                      Height="220"
+                                      SelectionMode="Single"
+                                      ItemContainerStyle="{StaticResource XcListViewItemStyle}"
+                                      SelectionChanged="OnTimeListSelectionChanged" />
+                        </StackPanel>
+
+                        <!-- Mirrors the shared EditorActionBar's column rule: the destructive action
+                             far left, the Save/Cancel pair pinned far right with Save accent. Save is
+                             dirty-gated; Cancel is NOT, because here it doubles as the dismiss
+                             affordance and must stay usable when nothing has changed. -->
+                        <Grid x:Name="PART_ButtonRow"
+                              Grid.Row="3"
+                              Grid.Column="0"
+                              Grid.ColumnSpan="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="PART_ClearButton"
+                                    Grid.Column="0"
+                                    Content="Clear"
+                                    Click="OnClearClick" />
+
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                <Button x:Name="PART_SaveButton"
+                                        Content="Save"
+                                        Style="{ThemeResource AccentButtonStyle}"
+                                        IsEnabled="False"
+                                        Click="OnSaveClick" />
+                                <Button x:Name="PART_CancelButton"
+                                        Content="Cancel"
+                                        Click="OnCancelClick" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                    </ScrollViewer>
+                </Flyout>
+            </Button.Flyout>
+        </Button>
+    </Grid>
+</UserControl>

@@ -1,0 +1,40 @@
+<UserControl
+    x:Class="Xtreme.Components.Primitives.CriteriaPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!-- Secondary label colour as a ThemeResource so it follows the element theme live. -->
+        <Style x:Key="CriteriaLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- A titled group of search criteria. The rows are built in code-behind from Fields, so the
+         label column auto-sizes to the widest label in THIS panel and every field shares one
+         stretchable column - which is what makes the fields line up. -->
+    <Border BorderThickness="1"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            CornerRadius="4"
+            Padding="12,8,12,10"
+            Background="{ThemeResource LayerFillColorDefaultBrush}">
+        <StackPanel Spacing="6">
+            <TextBlock x:Name="TitleText"
+                       Style="{ThemeResource BodyStrongTextBlockStyle}"
+                       Text="{x:Bind Title, Mode=OneWay}" />
+
+            <!-- Column 0 = labels (Auto), column 1 = fields (*). Rows are added per field. -->
+            <Grid x:Name="FieldGrid"
+                  ColumnSpacing="10"
+                  RowSpacing="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -20,7 +20,7 @@ namespace Xtreme.Components.Primitives;
 public static class ExpanderClipFix
 {
     /// <summary>
-    /// XAML switch: <c>helpers:ExpanderClipFix.IsEnabled="True"</c> on an Expander applies the fix —
+    /// XAML switch: <c>xc:ExpanderClipFix.IsEnabled="True"</c> on an Expander applies the fix —
     /// the form every Shell Expander uses, so a new one copies it from its neighbours.
     /// </summary>
     public static readonly DependencyProperty IsEnabledProperty = DependencyProperty.RegisterAttached(
