@@ -12,3 +12,22 @@ Xtreme.Components.TableView.RowFlag.Tip.get -> string?
 Xtreme.Components.TableView.RowFlag.Tip.init -> void
 Xtreme.Components.TableView.RowFlagDecorator
 Xtreme.Components.TableView.RowFlagDecorator.BrushResolver
+static Xtreme.Components.TableView.RowFlagDecorator.Attach(WinUI.TableView.TableView! table, System.Func<object?, Xtreme.Components.TableView.RowFlag?>! flagOf, Xtreme.Components.TableView.RowFlagOptions! options) -> void
+static Xtreme.Components.TableView.RowFlagDecorator.Detach(WinUI.TableView.TableView! table) -> bool
+static Xtreme.Components.TableView.RowFlagDecorator.IsAttached(WinUI.TableView.TableView! table) -> bool
+Xtreme.Components.TableView.RowFlagOptions
+Xtreme.Components.TableView.RowFlagOptions.FrameCornerRadius.get -> Microsoft.UI.Xaml.CornerRadius
+Xtreme.Components.TableView.RowFlagOptions.FrameCornerRadius.set -> void
+Xtreme.Components.TableView.RowFlagOptions.FrameThickness.get -> double
+Xtreme.Components.TableView.RowFlagOptions.FrameThickness.set -> void
+Xtreme.Components.TableView.RowFlagOptions.ResolveBrush.get -> Xtreme.Components.TableView.RowFlagDecorator.BrushResolver?
+Xtreme.Components.TableView.RowFlagOptions.ResolveBrush.set -> void
+Xtreme.Components.TableView.RowFlagOptions.RowFlagOptions() -> void
+Xtreme.Components.TableView.RowFlagOptions.TagCornerRadius.get -> Microsoft.UI.Xaml.CornerRadius
+Xtreme.Components.TableView.RowFlagOptions.TagCornerRadius.set -> void
+Xtreme.Components.TableView.RowFlagOptions.TagFontSize.get -> double
+Xtreme.Components.TableView.RowFlagOptions.TagFontSize.set -> void
+Xtreme.Components.TableView.RowFlagOptions.TagForeground.get -> Microsoft.UI.Xaml.Media.Brush?
+Xtreme.Components.TableView.RowFlagOptions.TagForeground.set -> void
+Xtreme.Components.TableView.RowFlagOptions.TagPadding.get -> Microsoft.UI.Xaml.Thickness
+Xtreme.Components.TableView.RowFlagOptions.TagPadding.set -> void

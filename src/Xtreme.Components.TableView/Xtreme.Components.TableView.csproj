@@ -1,6 +1,6 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <Description>Helpers for WinUI.TableView on Uno Platform: RowFlagDecorator frames a flagged row in a coloured border and pins a small caps tag to it, theme-aware and recycle-safe. Separate from Xtreme.Components.Primitives because it depends on the WinUI.TableView package.</Description>
+    <Description>Helpers for WinUI.TableView on Uno Platform: RowFlagDecorator frames a flagged row in a colored frame and pins a small caps tag to it, theme-aware and recycle-safe. Separate from Xtreme.Components.Primitives because it depends on the WinUI.TableView package.</Description>
     <PackageTags>uno;uno-platform;winui;tableview;datagrid;row-flag;cross-platform;skia</PackageTags>
   </PropertyGroup>
   <ItemGroup>
