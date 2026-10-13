@@ -61,10 +61,12 @@ public sealed partial class SchedulerPage : Grid
     public SchedulerPage()
     {
         var monday = DateTime.Today.AddDays(-((7 + (int)DateTime.Today.DayOfWeek - (int)DayOfWeek.Monday) % 7));
+        // The sample times below are local wall-clock times, which is what every view draws as-is. So no
+        // resource sets TimeZoneId: a zoned Planner lane would read its appointments as UTC and shift them.
         _resources =
         [
             new ResourceModel { Id = 1, Name = "Alex",   Color = Microsoft.UI.Colors.RoyalBlue },
-            new ResourceModel { Id = 2, Name = "Bailey", Color = Microsoft.UI.Colors.SeaGreen, TimeZoneId = "America/New_York" },
+            new ResourceModel { Id = 2, Name = "Bailey", Color = Microsoft.UI.Colors.SeaGreen },
             new ResourceModel { Id = 3, Name = "Casey",  Color = Microsoft.UI.Colors.DarkOrange },
         ];
         _appointments =
@@ -106,9 +108,10 @@ public sealed partial class SchedulerPage : Grid
         _scheduler.SelectedDate = new DateTimeOffset(monday);
 
         // The toolbar's adornment toggle group: each button names a template; the handler applies or
-        // removes that adornment on whatever is selected.
-        _scheduler.ToolbarAdornments.Add(new SchedulerToolbarButton { Id = "urgent", Glyph = "", Label = "Urgent", Tooltip = "Toggle the URGENT ribbon on the selected appointment", IsToggle = true });
-        _scheduler.ToolbarAdornments.Add(new SchedulerToolbarButton { Id = "paid", Glyph = "", Label = "Paid", Tooltip = "Toggle the PAID stamp on the selected appointment", IsToggle = true });
+        // removes that adornment on whatever is selected. The buttons are toggles whose pressed state shows
+        // whether the selected appointment carries that adornment, so they are re-supplied on every change.
+        UpdateAdornmentButtons();
+        _scheduler.SelectionChanged += (_, _) => UpdateAdornmentButtons();
         _scheduler.AdornmentToggleRequested += (_, button) =>
         {
             var target = _scheduler.SelectedAppointment ?? _appointments[0];
@@ -117,6 +120,7 @@ public sealed partial class SchedulerPage : Grid
             else target.Adornments.Add(Adornment(button.Id!));
             Log($"{(existing is null ? "Added" : "Removed")} '{button.Label}' on '{target.Subject}'");
             Refresh();
+            UpdateAdornmentButtons();
         };
 
         _scheduler.TileOptionToggled += (_, option) =>
@@ -144,7 +148,7 @@ public sealed partial class SchedulerPage : Grid
         };
         _scheduler.AppointmentEditRequested += (_, e) =>
         {
-            if (!_editorEnabled) return;      // unhandled: the control keeps its default (nothing)
+            if (!_editorEnabled) return;      // the control ships no editor: an unhandled request does nothing
             e.Handled = true;
             OpenEditor(e.Appointment, isNew: false);
         };
@@ -198,7 +202,7 @@ public sealed partial class SchedulerPage : Grid
 
         var hint = new TextBlock
         {
-            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it, or double-click (or drag across) an empty slot to create one. Right-click an appointment for the context menu.",
+            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it (in any view), or double-click (or drag across) an empty slot to create one; in Month, a double-click on an empty part of a day creates an all-day appointment. Right-click an appointment for the context menu.",
             Opacity = 0.7, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8),
         };
 
@@ -240,13 +244,40 @@ public sealed partial class SchedulerPage : Grid
         Refresh();
     }
 
+    /// <summary>
+    /// (Re)supplies the adornment toggle buttons. <see cref="SchedulerToolbarButton"/> is init-only, so the
+    /// pressed state is changed by replacing the buttons: each is checked when the selected appointment
+    /// carries that adornment.
+    /// </summary>
+    private void UpdateAdornmentButtons()
+    {
+        var target = _scheduler.SelectedAppointment;
+        bool Has(string id) => target?.Adornments.Any(a => a.Tooltip == id) == true;
+
+        _scheduler.ToolbarAdornments.Clear();
+        _scheduler.ToolbarAdornments.Add(new SchedulerToolbarButton { Id = "urgent", Glyph = "", Label = "Urgent", Tooltip = "Toggle the URGENT ribbon on the selected appointment", IsToggle = true, IsChecked = Has("urgent") });
+        _scheduler.ToolbarAdornments.Add(new SchedulerToolbarButton { Id = "paid", Glyph = "", Label = "Paid", Tooltip = "Toggle the PAID stamp on the selected appointment", IsToggle = true, IsChecked = Has("paid") });
+    }
+
     private readonly List<CheckBox> _switches = new();
 
-    /// <summary>Turns every example switch on and opens the editor (the self-test renders the decorated path).</summary>
+    /// <summary>Turns every example switch on and opens the editor (the self-test renders the decorated path),
+    /// then renders every view once with a selection, the Planner in both group modes, and ends on Week.</summary>
     public void EnableAllExamples()
     {
         foreach (var box in _switches) box.IsChecked = true;
         OpenEditor(_appointments[0], isNew: false);
+
+        _scheduler.SelectedAppointment = _appointments[1];
+        foreach (var view in Enum.GetValues<SchedulerView>())
+        {
+            _scheduler.CurrentView = view;
+            _scheduler.UpdateLayout();
+        }
+        _scheduler.GroupMode = SchedulerGroupMode.ByDay;
+        _scheduler.UpdateLayout();
+        _scheduler.GroupMode = SchedulerGroupMode.ByResource;
+        _scheduler.CurrentView = SchedulerView.Week;
     }
 
     // ---- Appointment editor -------------------------------------------------------------------
@@ -382,7 +413,8 @@ public sealed partial class SchedulerPage : Grid
                 }
                 : [];
 
-            // Tiles: data-driven labels under the subject, gated by the toolbar's tile options.
+            // Tiles: data-driven labels in a row under the subject (Position = Bottom; in one-line chips and
+            // Planner bars they join the right-hand strip), gated by the toolbar's tile options.
             a.Tiles = _tiles
                 ? new List<AppointmentDecoration>(Tiles(id))
                 : [];
@@ -481,11 +513,12 @@ public sealed partial class SchedulerPage : Grid
         var duplicate = new MenuFlyoutItem { Text = "Duplicate to tomorrow", Icon = new SymbolIcon(Symbol.Copy) };
         duplicate.Click += (_, _) =>
         {
-            _appointments.Add(new AppointmentModel
-            {
-                Id = Guid.NewGuid(), Subject = a.Subject, Start = a.Start.AddDays(1), End = a.End.AddDays(1), IsAllDay = a.IsAllDay,
-                ResourceIds = a.ResourceIds.ToList(), BarColor = a.BarColor, BackColor = a.BackColor, Memo = a.Memo,
-            });
+            // Clone carries every field (flags, tiles, adornments, details, Tag...) into a copy with its own lists.
+            var copy = a.Clone();
+            copy.Id = Guid.NewGuid();
+            copy.Start = a.Start.AddDays(1);
+            copy.End = a.End.AddDays(1);
+            _appointments.Add(copy);
             Log($"Duplicated '{a.Subject}' to {a.Start.AddDays(1):ddd}");
             Refresh();
         };
