@@ -103,7 +103,7 @@ public sealed partial class SchedulerPage : Grid
         };
 
         // Example switches
-        var switches = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Margin = new Thickness(0, 0, 0, 8) };
+        var switches = new Primitives.WrapPanel { ColumnSpacing = 16, RowSpacing = 4, Margin = new Thickness(0, 0, 0, 8) };
         switches.Children.Add(new TextBlock { Text = "Examples:", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.75 });
         switches.Children.Add(Switch("Resource picker", on => { _resourcePane.Visibility = on ? Visibility.Visible : Visibility.Collapsed; if (!on) { _hiddenResources.Clear(); foreach (var cb in _resourcePane.Children.OfType<CheckBox>()) cb.IsChecked = true; } Refresh(); }));
         switches.Children.Add(Switch("Tiles", on => { _tiles = on; Refresh(); }));
