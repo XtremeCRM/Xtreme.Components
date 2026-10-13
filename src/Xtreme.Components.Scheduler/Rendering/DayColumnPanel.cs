@@ -8,7 +8,7 @@ namespace Xtreme.Components.Scheduler.Rendering;
 /// into pixel rects in <see cref="ArrangeOverride"/>, so positioning re-flows automatically
 /// with the column's width — no SizeChanged plumbing, and identical under Skia and Native.
 /// </summary>
-public sealed partial class DayColumnPanel : Panel
+internal sealed partial class DayColumnPanel : Panel
 {
     private const double ColumnGap = 2;
     /// <summary>Smallest pixel height a timed block is drawn at — one line of text plus padding (XU-837: the

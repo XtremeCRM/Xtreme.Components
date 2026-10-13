@@ -9,7 +9,7 @@ namespace Xtreme.Components.Scheduler.Controls;
 /// cursor. Host its visual (the grip icon) as its content, with the icon set non-hit-testable so this
 /// panel receives the pointer.
 /// </summary>
-public partial class ResizeGrip : Grid
+internal sealed partial class ResizeGrip : Grid
 {
     public ResizeGrip()
     {

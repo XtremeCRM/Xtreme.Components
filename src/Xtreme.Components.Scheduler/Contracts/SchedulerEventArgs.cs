@@ -9,9 +9,11 @@ namespace Xtreme.Components.Scheduler.Contracts;
 /// </summary>
 public sealed class AppointmentMoveArgs : EventArgs
 {
+    /// <summary>The host's own appointment instance (from <c>SchedulerControl.Appointments</c>), in every view.</summary>
     public required AppointmentModel Appointment { get; init; }
 
-    /// <summary>Proposed new start (UTC semantics, same as <see cref="AppointmentModel.Start"/>).</summary>
+    /// <summary>Proposed new start, on the same basis as <see cref="AppointmentModel.Start"/>: wall-clock,
+    /// or UTC when the target is a Planner lane whose resource sets <see cref="ResourceModel.TimeZoneId"/>.</summary>
     public required DateTime NewStart { get; init; }
 
     /// <summary>Proposed new end, preserving the original duration.</summary>
@@ -32,9 +34,11 @@ public sealed class AppointmentMoveArgs : EventArgs
     public bool WithShift { get; init; }
 }
 
-/// <summary>Raised when the user drags an appointment's top or bottom edge to change its duration.</summary>
+/// <summary>Raised when the user drags an appointment's top or bottom edge (left or right edge in the
+/// Planner) to change its duration. Times are on the same basis as <see cref="AppointmentModel.Start"/>.</summary>
 public sealed class AppointmentResizeArgs : EventArgs
 {
+    /// <summary>The host's own appointment instance (from <c>SchedulerControl.Appointments</c>), in every view.</summary>
     public required AppointmentModel Appointment { get; init; }
 
     /// <summary>Proposed new start (changed when the top edge is dragged).</summary>
@@ -119,21 +123,24 @@ public sealed class ExternalDropArgs : EventArgs
 }
 
 /// <summary>
-/// Raised when the user clicks/taps an appointment (i.e. asks to edit it). The control selects the
-/// appointment regardless; this hook is for opening an editor. A host that opens its own editor
-/// should set <see cref="Handled"/> = true; if no handler sets it, the control falls back to its
-/// own default editor.
+/// Raised when the user double-clicks (double-taps) a non-locked appointment, in any view, to ask to edit
+/// it. The control selects the appointment first. It ships no editor: the host shows its own, and a
+/// request no handler acts on does nothing.
 /// </summary>
 public sealed class AppointmentEditRequestedArgs : EventArgs
 {
+    /// <summary>The host's own appointment instance (from <c>SchedulerControl.Appointments</c>).</summary>
     public required AppointmentModel Appointment { get; init; }
 
-    /// <summary>Set true to tell the control a host is showing the editor — suppresses the default.</summary>
+    /// <summary>Not read by the control. Lets several subscribers coordinate: a handler that opened an
+    /// editor sets it so later handlers can skip the request.</summary>
     public bool Handled { get; set; }
 }
 
-/// <summary>Raised when the user clicks/taps an appointment. <see cref="WithCtrl"/> is true when the
-/// Ctrl/Cmd modifier was held (multi-select toggle); a plain click is a single-select + edit request.</summary>
+/// <summary>A click/tap on an appointment, as a view reports it to <c>SchedulerControl</c>.
+/// <see cref="WithCtrl"/> is true when the Ctrl/Cmd modifier was held (multi-select toggle); a plain click
+/// single-selects, and a second click on the same appointment within the double-click window is an edit
+/// request. <c>SchedulerControl</c> raises no event with this type.</summary>
 public sealed class AppointmentClickArgs : EventArgs
 {
     public required AppointmentModel Appointment { get; init; }
@@ -149,6 +156,7 @@ public sealed class AppointmentClickArgs : EventArgs
 /// </summary>
 public sealed class AppointmentContextRequestedArgs : EventArgs
 {
+    /// <summary>The host's own appointment instance (from <c>SchedulerControl.Appointments</c>).</summary>
     public required AppointmentModel Appointment { get; init; }
 
     /// <summary>The click position, relative to the <see cref="Microsoft.UI.Xaml.XamlRoot"/> content, so the
@@ -157,7 +165,7 @@ public sealed class AppointmentContextRequestedArgs : EventArgs
     public Point? Position { get; init; }
 }
 
-/// <summary>Raised when the user clicks/taps or drag-selects an empty slot to create an appointment.</summary>
+/// <summary>Raised when the user double-clicks or drag-selects an empty slot to create an appointment.</summary>
 public sealed class AppointmentCreateArgs : EventArgs
 {
     public required DateTime Start { get; init; }
@@ -167,7 +175,8 @@ public sealed class AppointmentCreateArgs : EventArgs
     /// <summary>The resource lane the slot belongs to (null in non-resource views).</summary>
     public object? ResourceId { get; init; }
 
-    /// <summary>True when the slot was in the all-day region.</summary>
+    /// <summary>True when the create came from the all-day row (Day/Week) or a Month day cell. The range then
+    /// covers whole days: <see cref="Start"/> is midnight and <see cref="End"/> is midnight of the next day.</summary>
     public bool IsAllDay { get; init; }
 
     /// <summary>The click position, relative to the <see cref="Microsoft.UI.Xaml.XamlRoot"/> content, so the
@@ -177,18 +186,22 @@ public sealed class AppointmentCreateArgs : EventArgs
 }
 
 /// <summary>
-/// Raised when the user single-clicks an empty time-grid slot (Day/Week). A single click no longer
-/// creates — it just reports the clicked lane + time so the host can track a "selected resource" for
-/// the new-appointment panel. A SECOND click within the double-click window raises
-/// <see cref="SchedulerControl.AppointmentCreateRequested"/> instead.
+/// Raised when the user single-clicks an empty slot: a Day/Week time slot or all-day cell, a Planner lane,
+/// or a Month day cell. A single click does not create; it reports the clicked lane and time so the host can
+/// track a "selected resource" for its new-appointment panel. A double-click raises
+/// <c>SchedulerControl.AppointmentCreateRequested</c> instead (or the single click does, when
+/// <c>SchedulerControl.SingleClickCreates</c> is true).
 /// </summary>
 public sealed class EmptySlotSelectedArgs : EventArgs
 {
-    /// <summary>The snapped slot start the user clicked.</summary>
+    /// <summary>The snapped slot start the user clicked (midnight of the day for an all-day or Month cell).</summary>
     public required DateTime Start { get; init; }
 
     /// <summary>The resource lane the slot belongs to (null in non-resource views).</summary>
     public object? ResourceId { get; init; }
+
+    /// <summary>True when the click was on the all-day row (Day/Week) or a Month day cell.</summary>
+    public bool IsAllDay { get; init; }
 
     /// <summary>The click position, relative to the <see cref="Microsoft.UI.Xaml.XamlRoot"/> content (so the
     /// host can anchor a popup at the click). Null when unknown.</summary>

@@ -7,14 +7,21 @@ namespace Xtreme.Components.Scheduler.Models;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="Start"/> / <see cref="End"/> are absolute instants expressed in UTC.
-/// The control converts them to each resource's local wall-clock for display using
-/// <see cref="ResourceModel.TimeZoneId"/> (see Phase 7). Treat them as UTC even though
-/// the CLR <see cref="DateTime"/> type does not enforce <see cref="DateTimeKind"/>.
+/// <b>Time contract.</b> <see cref="Start"/> / <see cref="End"/> are <em>wall-clock</em> times, drawn
+/// exactly as given: Day, Week, Month, Agenda and every Planner lane without a time zone apply no
+/// conversion, and the times they report back in event args are on the same basis. Pass the times you
+/// want the viewer to see (typically the viewer's local time).
 /// </para>
 /// <para>
-/// All-day events (<see cref="IsAllDay"/>) are floating: their date components are used
-/// as-is and they are not timezone-shifted.
+/// The one exception is a Planner lane whose resource sets <see cref="ResourceModel.TimeZoneId"/>.
+/// That lane reads <see cref="Start"/> / <see cref="End"/> as <em>UTC instants</em>, draws them in the
+/// resource's zone, and converts the times a gesture in that lane produces back to UTC. Only use
+/// <see cref="ResourceModel.TimeZoneId"/> when the host stores UTC for that resource's appointments.
+/// The CLR <see cref="DateTime.Kind"/> is never inspected.
+/// </para>
+/// <para>
+/// All-day events (<see cref="IsAllDay"/>) are floating: their date components are used as-is and they
+/// are never shifted, in any view.
 /// </para>
 /// </remarks>
 public sealed class AppointmentModel
@@ -32,10 +39,10 @@ public sealed class AppointmentModel
     /// <summary>Optional longer text (tooltip / detail row).</summary>
     public string? Description { get; set; }
 
-    /// <summary>Start instant (UTC). See remarks on <see cref="AppointmentModel"/>.</summary>
+    /// <summary>Start, as a wall-clock time (UTC only in a zoned Planner lane). See the remarks on <see cref="AppointmentModel"/>.</summary>
     public DateTime Start { get; set; }
 
-    /// <summary>End instant (UTC). Must be &gt;= <see cref="Start"/>.</summary>
+    /// <summary>End, on the same basis as <see cref="Start"/>. Must be &gt;= <see cref="Start"/>.</summary>
     public DateTime End { get; set; }
 
     /// <summary>When true the event renders in the all-day banner and is not timezone-shifted.</summary>
@@ -121,4 +128,21 @@ public sealed class AppointmentModel
     /// it; it's carried through so custom templates / renderers can bind to app-specific data.
     /// </summary>
     public object? Tag { get; set; }
+
+    /// <summary>
+    /// A copy of this appointment with every property carried over. The collections
+    /// (<see cref="ResourceIds"/>, <see cref="Indicators"/>, <see cref="Details"/>, <see cref="Adornments"/>,
+    /// <see cref="Tiles"/>) are new lists holding the same items, so adding to or removing from the copy's
+    /// lists leaves this instance alone; the items themselves and <see cref="Tag"/> are shared.
+    /// </summary>
+    public AppointmentModel Clone()
+    {
+        var copy = (AppointmentModel)MemberwiseClone();
+        copy.ResourceIds = new List<object>(ResourceIds);
+        copy.Indicators = new List<AppointmentIndicator>(Indicators);
+        copy.Details = new List<AppointmentDetail>(Details);
+        copy.Adornments = new List<AppointmentDecoration>(Adornments);
+        copy.Tiles = new List<AppointmentDecoration>(Tiles);
+        return copy;
+    }
 }

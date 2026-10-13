@@ -2,12 +2,15 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Xtreme.Components.Scheduler.Models;
 
-/// <summary>Where a decoration anchors on the appointment block.</summary>
+/// <summary>Where a decoration sits on the appointment block.</summary>
 /// <remarks>
-/// The edge values (<see cref="Left"/>/<see cref="Top"/>/<see cref="Right"/>/<see cref="Bottom"/>) and
-/// the <c>Float*</c> values both render as an overlay pinned to that side; the distinction is preserved
-/// from Legacy's tile model (an edge tile would reserve space, a float tile overlays) but this control
-/// overlays all of them for v1. Reserving edge space is a deferred refinement.
+/// <para><b>Adornments</b> are pinned overlays: every value anchors the badge's center on that side (or
+/// corner, with <see cref="DecorationAlignment"/>) and it may overhang the block. The edge values and the
+/// <c>Float*</c> values render the same way; neither reserves space.</para>
+/// <para><b>Tiles</b> flow in strips that never cover the subject: <see cref="Left"/>/<see cref="FloatLeft"/>
+/// = a strip at the left, <see cref="Right"/>/<see cref="FloatRight"/> = a strip at the right,
+/// <see cref="Top"/> = a row above the subject, <see cref="Bottom"/>/<see cref="FloatCenter"/> = a row below
+/// it. Chips and Planner bars are one line high, so Top and Bottom tiles join the right strip there.</para>
 /// </remarks>
 public enum DecorationPosition
 {
@@ -20,7 +23,7 @@ public enum DecorationPosition
     FloatRight,
 }
 
-/// <summary>Alignment of a decoration along its anchored edge (near = top/left, far = bottom/right).</summary>
+/// <summary>Alignment of a decoration along its edge or strip (near = top/left, far = bottom/right).</summary>
 public enum DecorationAlignment
 {
     Near,
@@ -29,20 +32,20 @@ public enum DecorationAlignment
 }
 
 /// <summary>
-/// A small positioned tile drawn on top of an appointment block — the domain-agnostic primitive behind
-/// the host's <c>Tile</c> and <c>Adornment</c> features. A decoration shows (in priority order) an
-/// <see cref="Image"/>, then a <see cref="Glyph"/>, then <see cref="Text"/>, anchored at
-/// <see cref="Position"/>/<see cref="Alignment"/> with a pixel <see cref="OffsetX"/>/<see cref="OffsetY"/>.
-/// The default templates render <see cref="AppointmentModel.Adornments"/> and
-/// <see cref="AppointmentModel.Tiles"/>; custom templates can lay them out however they like via the
+/// A small badge on an appointment block — the domain-agnostic primitive behind the host's <c>Tile</c> and
+/// <c>Adornment</c> features. A decoration shows its <see cref="Image"/> when set; otherwise a pill with its
+/// <see cref="Glyph"/> and/or <see cref="Text"/> side by side. Every member applies to both
+/// <see cref="AppointmentModel.Adornments"/> (pinned overlays) and <see cref="AppointmentModel.Tiles"/>
+/// (flowing strips); <see cref="Position"/> and <see cref="Alignment"/> describe where each kind goes (see
+/// <see cref="DecorationPosition"/>). Custom templates can lay them out however they like via the
 /// appointment context.
 /// </summary>
 public sealed class AppointmentDecoration
 {
-    /// <summary>Text label (used when no <see cref="Image"/>/<see cref="Glyph"/> is set).</summary>
+    /// <summary>Text label (shown after the <see cref="Glyph"/> when both are set; ignored when an <see cref="Image"/> is set).</summary>
     public string? Text { get; set; }
 
-    /// <summary>Icon-font glyph (a Segoe Fluent / MDL2 codepoint). Used when no <see cref="Image"/> is set.</summary>
+    /// <summary>Icon-font glyph (a Segoe Fluent / MDL2 codepoint), shown before the <see cref="Text"/>. Ignored when an <see cref="Image"/> is set.</summary>
     public string? Glyph { get; set; }
 
     /// <summary>Glyph font. Null = the symbol theme font (Segoe Fluent Icons / MDL2 Assets).</summary>
@@ -51,31 +54,33 @@ public sealed class AppointmentDecoration
     /// <summary>Raw image bytes (PNG/JPG/…). Takes precedence over <see cref="Glyph"/>/<see cref="Text"/>.</summary>
     public byte[]? Image { get; set; }
 
-    /// <summary>Where the decoration anchors on the block. Defaults to the top-left.</summary>
+    /// <summary>Where the decoration sits on the block: an adornment's anchor, or a tile's strip (see
+    /// <see cref="DecorationPosition"/>). Defaults to <see cref="DecorationPosition.FloatLeft"/>: the top-left
+    /// corner for an adornment, the left strip for a tile.</summary>
     public DecorationPosition Position { get; set; } = DecorationPosition.FloatLeft;
 
-    /// <summary>Alignment along the anchored edge.</summary>
+    /// <summary>Alignment along the anchored edge (adornment) or along the strip (tile).</summary>
     public DecorationAlignment Alignment { get; set; } = DecorationAlignment.Near;
 
-    /// <summary>Horizontal pixel offset from the anchor (positive = right).</summary>
+    /// <summary>Horizontal pixel nudge from the anchor / strip slot (positive = right).</summary>
     public int OffsetX { get; set; }
 
-    /// <summary>Vertical pixel offset from the anchor (positive = down).</summary>
+    /// <summary>Vertical pixel nudge from the anchor / strip slot (positive = down).</summary>
     public int OffsetY { get; set; }
 
-    /// <summary>Background fill for a text decoration. Null = transparent.</summary>
+    /// <summary>Pill fill. Null = transparent for an adornment, the neutral gray pill for a tile.</summary>
     public Color? BackColor { get; set; }
 
     /// <summary>Foreground (text/glyph) color. Null = the block's auto-contrast foreground.</summary>
     public Color? ForeColor { get; set; }
 
-    /// <summary>Border color for a text decoration. Null = no border.</summary>
+    /// <summary>Pill border color. Null = no border.</summary>
     public Color? BorderColor { get; set; }
 
     /// <summary>Font size for a text/glyph decoration.</summary>
     public double FontSize { get; set; } = 10;
 
-    /// <summary>Whether a text decoration renders bold (used by data tiles).</summary>
+    /// <summary>Whether the text renders bold.</summary>
     public bool Bold { get; set; }
 
     /// <summary>Optional tooltip shown on hover.</summary>

@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.System;
 using Xtreme.Components.Scheduler.Contracts;
 using Xtreme.Components.Scheduler.Models;
 using Xtreme.Components.Scheduler.Rendering;
@@ -22,8 +23,11 @@ internal sealed record PlannerLaneBand(
 /// Pointer interaction for the horizontal resource timeline (Planner) — the rotation of
 /// <see cref="TimeGridInteraction"/>: <b>X = time</b> (minutes from the range origin) and
 /// <b>Y = resource lane</b>. Drag a bar's body to retime it (horizontal) and reassign its
-/// resource (vertical, across lanes); drag a bar's left/right edge to resize; click/drag an
-/// empty lane to create; accept an external <see cref="ISchedulerDroppable"/> drop.
+/// resource (vertical, across lanes); drag a bar's left/right edge to resize; drag across an
+/// empty lane to create; accept an external <see cref="ISchedulerDroppable"/> drop. A click on a bar
+/// reports a click (select / double-click edit, decided by the host control); a click on an empty lane
+/// reports an empty-slot click; hovering reports the bar under the pointer (for the hover card).
+/// Read-only keeps clicks, right-clicks and hover, and drops every editing gesture.
 /// </summary>
 /// <remarks>
 /// Same overlay strategy as <see cref="TimeGridInteraction"/>: a single full-covering,
@@ -35,7 +39,8 @@ internal sealed record PlannerLaneBand(
 /// </remarks>
 internal sealed class PlannerTimelineInteraction
 {
-    private enum Mode { None, Move, ResizeStart, ResizeEnd, Create }
+    // Click = pressed on a bar that can't be dragged (read-only or locked): only a click can follow.
+    private enum Mode { None, Click, Move, ResizeStart, ResizeEnd, Create }
 
     private const double EdgeThreshold = 7;
     private const double DragThreshold = 4;
@@ -54,9 +59,14 @@ internal sealed class PlannerTimelineInteraction
     // onMove trailing bools: (…, isCopy, withShift); onResize trailing bool: (…, withShift).
     private readonly Action<AppointmentModel, object?, object?, double, double, bool, bool> _onMove;
     private readonly Action<AppointmentModel, object?, double, double, bool> _onResize;
-    private readonly Action<object?, double, double> _onCreate;
+    private readonly Action<object?, double, double, Point?> _onCreate;
     private readonly Action<ISchedulerDroppable, object?, double, double>? _onExternalDrop;
     private readonly Action<AppointmentModel, Point?>? _onContext;
+    private readonly Action<AppointmentModel, bool>? _onClick;
+    private readonly Action<object?, double, Point?>? _onEmptyClick;
+    private readonly Action<AppointmentModel?, Point>? _onHover;
+    private AppointmentModel? _hoverAppt;
+    private bool _pressCtrl;
 
     private Mode _mode = Mode.None;
     private AppointmentModel? _appt;
@@ -82,9 +92,12 @@ internal sealed class PlannerTimelineInteraction
         bool isReadOnly,
         Action<AppointmentModel, object?, object?, double, double, bool, bool> onMove,
         Action<AppointmentModel, object?, double, double, bool> onResize,
-        Action<object?, double, double> onCreate,
+        Action<object?, double, double, Point?> onCreate,
         Action<ISchedulerDroppable, object?, double, double>? onExternalDrop = null,
-        Action<AppointmentModel, Point?>? onContext = null)
+        Action<AppointmentModel, Point?>? onContext = null,
+        Action<AppointmentModel, bool>? onClick = null,
+        Action<object?, double, Point?>? onEmptyClick = null,
+        Action<AppointmentModel?, Point>? onHover = null)
     {
         _overlay = overlay;
         _bands = bands;
@@ -99,19 +112,22 @@ internal sealed class PlannerTimelineInteraction
         _onCreate = onCreate;
         _onExternalDrop = onExternalDrop;
         _onContext = onContext;
+        _onClick = onClick;
+        _onEmptyClick = onEmptyClick;
+        _onHover = onHover;
 
-        // PointerPressed is always live: a right-click reports a context-menu request even in read-only
-        // (the host still navigates from it). The drag/resize/create handlers stay edit-only, below.
+        // Pointer handlers are always live: clicks, right-clicks and hover work in read-only too (the host
+        // still selects and navigates). Drag / resize / create are gated on _isReadOnly inside them.
         _overlay.PointerPressed += OnPointerPressed;
+        _overlay.PointerMoved += OnPointerMoved;
+        _overlay.PointerReleased += OnPointerReleased;
+        _overlay.PointerCanceled += OnPointerCanceled;
+        _overlay.PointerExited += OnPointerExited;
 
         if (_isReadOnly)
         {
             return;
         }
-
-        _overlay.PointerMoved += OnPointerMoved;
-        _overlay.PointerReleased += OnPointerReleased;
-        _overlay.PointerCanceled += OnPointerCanceled;
 
         _overlay.AllowDrop = true;
         _overlay.DragOver += OnDragOver;
@@ -123,6 +139,7 @@ internal sealed class PlannerTimelineInteraction
     {
         var point = e.GetCurrentPoint(_overlay);
         var p = point.Position;
+        HideHover();
 
         // Right button = a context-menu request on the bar under the pointer (if any). It never starts a
         // drag/resize/create, and works in read-only too (the host still navigates from it).
@@ -138,19 +155,20 @@ internal sealed class PlannerTimelineInteraction
             return;
         }
 
-        // A read-only planner subscribes PointerPressed only for the right-click above — no drag/create.
-        if (_isReadOnly)
-        {
-            return;
-        }
-
         _pressPoint = p;
         _moved = false;
+        _pressCtrl = e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control);
         _fineSnap = InteractionModifiers.IsFineSnap(e.KeyModifiers);
         _grabBandIndex = BandIndexAt(p.Y);
 
         var hit = HitTest(p.X, p.Y);
-        if (hit is { Appointment.IsLocked: false } layout)
+        if (hit is { } clicked && (_isReadOnly || clicked.Appointment.IsLocked))
+        {
+            // Read-only or locked bar: a click (select / edit request) but never a drag or resize.
+            _appt = clicked.Appointment;
+            _mode = Mode.Click;
+        }
+        else if (hit is { } layout)
         {
             _appt = layout.Appointment;
             _origStartMin = layout.StartMinutes;
@@ -163,9 +181,8 @@ internal sealed class PlannerTimelineInteraction
                 : rightX - p.X < EdgeThreshold ? Mode.ResizeEnd
                 : Mode.Move;
         }
-        else if (hit is not null)
+        else if (_isReadOnly || _grabBandIndex < 0)
         {
-            // Locked bar: not movable / resizable, and not a create either.
             _appt = null;
             _mode = Mode.None;
         }
@@ -181,12 +198,24 @@ internal sealed class PlannerTimelineInteraction
 
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
     {
+        var p = e.GetCurrentPoint(_overlay).Position;
+
+        // Not pressing: report the bar under the pointer so the view can show its hover card.
         if (_mode == Mode.None)
         {
+            var hovered = HitTest(p.X, p.Y)?.Appointment;
+            if (!ReferenceEquals(hovered, _hoverAppt))
+            {
+                _hoverAppt = hovered;
+                _onHover?.Invoke(hovered, p);
+            }
             return;
         }
+        if (_mode == Mode.Click)
+        {
+            return; // a non-draggable bar: nothing to preview
+        }
 
-        var p = e.GetCurrentPoint(_overlay).Position;
         _fineSnap = InteractionModifiers.IsFineSnap(e.KeyModifiers);
         _copyDrag = InteractionModifiers.IsCopy(e.KeyModifiers);
         if (!_moved && Math.Abs(p.X - _pressPoint.X) < DragThreshold && Math.Abs(p.Y - _pressPoint.Y) < DragThreshold)
@@ -238,6 +267,17 @@ internal sealed class PlannerTimelineInteraction
         {
             return;
         }
+        if (_mode == Mode.Click)
+        {
+            var clicked = _appt;
+            _mode = Mode.None;
+            _appt = null;
+            if (clicked is not null)
+            {
+                _onClick?.Invoke(clicked, _pressCtrl);
+            }
+            return;
+        }
 
         var p = e.GetCurrentPoint(_overlay).Position;
         _fineSnap = InteractionModifiers.IsFineSnap(e.KeyModifiers);
@@ -254,6 +294,13 @@ internal sealed class PlannerTimelineInteraction
         _mode = Mode.None;
         _appt = null;
         _moved = false;
+
+        // A press+release on a bar without dragging = a click (select; a second click = edit request).
+        if (!moved && appt is not null)
+        {
+            _onClick?.Invoke(appt, _pressCtrl);
+            return;
+        }
 
         switch (mode)
         {
@@ -278,23 +325,22 @@ internal sealed class PlannerTimelineInteraction
             }
             case Mode.Create:
             {
-                double startMin, endMin;
-                if (moved)
+                // A click on an empty lane does not create: it reports the lane + time (the host control
+                // turns a double-click, or a single click in quick-add mode, into a create). A drag creates
+                // the dragged range directly.
+                if (!moved)
                 {
-                    var current = Snap(p.X / _pixelsPerMinute);
-                    startMin = Math.Min(_createStartMin, current);
-                    endMin = Math.Max(_createStartMin, current);
-                    if (endMin - startMin < MinDurationMinutes)
-                    {
-                        endMin = startMin + MinDurationMinutes;
-                    }
+                    _onEmptyClick?.Invoke(BandResource(_grabBandIndex), _createStartMin, ToRoot(p));
+                    break;
                 }
-                else
+                var current = Snap(p.X / _pixelsPerMinute);
+                var startMin = Math.Min(_createStartMin, current);
+                var endMin = Math.Max(_createStartMin, current);
+                if (endMin - startMin < MinDurationMinutes)
                 {
-                    startMin = _createStartMin;
-                    endMin = Math.Min(startMin + DefaultCreateMinutes, _totalMinutes);
+                    endMin = startMin + MinDurationMinutes;
                 }
-                _onCreate(BandResource(_grabBandIndex), startMin, endMin);
+                _onCreate(BandResource(_grabBandIndex), startMin, endMin, ToRoot(p));
                 break;
             }
         }
@@ -306,6 +352,17 @@ internal sealed class PlannerTimelineInteraction
         _mode = Mode.None;
         _appt = null;
         _moved = false;
+    }
+
+    private void OnPointerExited(object sender, PointerRoutedEventArgs e) => HideHover();
+
+    private void HideHover()
+    {
+        if (_hoverAppt is not null)
+        {
+            _hoverAppt = null;
+            _onHover?.Invoke(null, default);
+        }
     }
 
     private void OnDragOver(object sender, Microsoft.UI.Xaml.DragEventArgs e)
@@ -346,7 +403,7 @@ internal sealed class PlannerTimelineInteraction
 
     private EventLayout? HitTest(double x, double y)
     {
-        var bandIndex = BandIndexAt(y);
+        var bandIndex = BandIndexContaining(y);
         if (bandIndex < 0)
         {
             return null;
@@ -454,12 +511,33 @@ internal sealed class PlannerTimelineInteraction
         return Math.Clamp(Math.Round(minutes / step) * step, 0, _totalMinutes);
     }
 
+    // The lane under y, or the nearest lane when y is outside every band: above the first, below the
+    // last, or on a ByDay day-header row between bands. -1 only when there are no lanes.
     private int BandIndexAt(double y)
     {
-        if (_bands.Count == 0)
+        var inside = BandIndexContaining(y);
+        if (inside >= 0 || _bands.Count == 0)
         {
-            return -1;
+            return inside;
         }
+        var best = 0;
+        var bestDistance = double.MaxValue;
+        for (var i = 0; i < _bands.Count; i++)
+        {
+            var b = _bands[i];
+            var distance = y < b.Top ? b.Top - y : y - (b.Top + b.Height);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    // The lane whose band contains y, or -1.
+    private int BandIndexContaining(double y)
+    {
         for (var i = 0; i < _bands.Count; i++)
         {
             if (y >= _bands[i].Top && y < _bands[i].Top + _bands[i].Height)
@@ -467,8 +545,7 @@ internal sealed class PlannerTimelineInteraction
                 return i;
             }
         }
-        // Above the first band or below the last → clamp to the nearest edge lane.
-        return y < _bands[0].Top ? 0 : _bands.Count - 1;
+        return -1;
     }
 
     private object? BandResource(int index) =>

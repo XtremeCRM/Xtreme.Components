@@ -8,4 +8,8 @@
     <!-- The toolbar's range picker is the Primitives MultiMonthDateNavigator. -->
     <ProjectReference Include="../Xtreme.Components.Primitives/Xtreme.Components.Primitives.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Headless unit tests reach the internal pure-logic helpers (tile placement, zoned copies). -->
+    <InternalsVisibleTo Include="Xtreme.Components.Scheduler.Tests" />
+  </ItemGroup>
 </Project>

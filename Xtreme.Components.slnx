@@ -11,6 +11,9 @@
   <Folder Name="/samples/">
     <Project Path="samples/Xtreme.Components.Gallery/Xtreme.Components.Gallery.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Xtreme.Components.Scheduler.Tests/Xtreme.Components.Scheduler.Tests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
