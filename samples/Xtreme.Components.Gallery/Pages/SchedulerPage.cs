@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Xtreme.Components.Scheduler.Controls;
 using Xtreme.Components.Scheduler.Models;
 

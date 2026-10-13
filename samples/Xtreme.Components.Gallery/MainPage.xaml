@@ -32,6 +32,11 @@
       <StackPanel Margin="20,16,20,8" Spacing="2">
         <TextBlock x:Name="PageTitle" Style="{ThemeResource TitleTextBlockStyle}" />
         <TextBlock x:Name="PageBlurb" TextWrapping="Wrap" Opacity="0.75" />
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <HyperlinkButton x:Name="DocsLink" Padding="0" />
+          <HyperlinkButton Content="Theming guide" Padding="0" NavigateUri="https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/theming.md" />
+          <HyperlinkButton Content="Source" Padding="0" NavigateUri="https://github.com/XtremeCRM/Xtreme.Components" />
+        </StackPanel>
       </StackPanel>
       <ContentPresenter x:Name="Host" Grid.Row="1" Margin="20,0,20,16" />
     </Grid>
