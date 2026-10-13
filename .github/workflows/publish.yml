@@ -1,0 +1,229 @@
+name: Publish NuGet
+
+# Trusted Publishing: nuget.org exchanges this workflow's GitHub OIDC token for a short-lived
+# API key, so no long-lived NuGet key is stored anywhere. One-time setup on nuget.org:
+#   Account > Trusted Publishing > add policy: owner XtremeCRM, repo Xtreme.Components,
+#   workflow publish.yml, environment nuget. Then set the repository variable NUGET_USER
+#   to that nuget.org account and create the "nuget" environment in GitHub.
+#
+# Release flow: bump <Version> in Directory.Build.props, add the CHANGELOG section, merge to
+# main, tag v<version> on that merge commit, push the tag.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Validate and pack only; do not attest or push to nuget.org'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nuget-publish
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  CI: 'true'
+
+jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the version and check the tag, props and changelog agree
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+
+          props = open('Directory.Build.props', encoding='utf-8').read()
+          version = re.search(r'<Version>([^<]+)</Version>', props).group(1).strip()
+          event = os.environ['EVENT_NAME']
+          if event == 'push':
+              if os.environ['REF_TYPE'] != 'tag':
+                  raise SystemExit('Publishing is triggered by version tags only.')
+              tag = os.environ['REF_NAME']
+              if tag != f'v{version}':
+                  raise SystemExit(f'Tag {tag} does not match <Version>{version}</Version> in Directory.Build.props.')
+              head = git('rev-parse', 'HEAD')
+              if subprocess.run(['git', 'merge-base', '--is-ancestor', head, 'origin/main']).returncode != 0:
+                  raise SystemExit(f'Tag {tag} must point at a commit on main.')
+              publish = True
+          else:
+              publish = os.environ['DRY_RUN'] != 'true'
+
+          match = re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?', version)
+          if not match:
+              raise SystemExit(f'Invalid semantic version: {version!r}')
+
+          changelog = open('CHANGELOG.md', encoding='utf-8').read()
+          if f'## [{version}]' not in changelog:
+              raise SystemExit(f'CHANGELOG.md has no "## [{version}]" section.')
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'version={version}\n')
+              out.write(f'prerelease={str(bool(match[4])).lower()}\n')
+              out.write(f'publish={str(publish).lower()}\n')
+          print(f'version {version}; publish={publish}')
+          PY
+
+      - name: Require a successful CI run for this commit
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          runs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&status=success" --jq '.total_count')
+          if [ "$runs" -lt 1 ]; then
+            echo "::error::Publishing requires a successful CI run for ${GITHUB_SHA}."
+            exit 1
+          fi
+
+  pack:
+    name: Pack
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore and build
+        run: |
+          dotnet restore Xtreme.Components.slnx
+          dotnet build Xtreme.Components.slnx -c Release --no-restore
+      - name: Pack every packable project
+        run: dotnet pack Xtreme.Components.slnx -c Release --no-build -o artifacts/packages
+      - name: List packages
+        run: ls -l artifacts/packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+          if-no-files-found: error
+
+  attest:
+    name: Attest build provenance
+    needs: [validate, pack]
+    if: needs.validate.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/packages/*.nupkg
+
+  publish:
+    name: Push to nuget.org
+    needs: [validate, attest]
+    if: needs.validate.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/Xtreme.Components/${{ needs.validate.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Require the nuget.org account variable
+        env:
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          if [ -z "$NUGET_USER" ]; then
+            echo '::error::Set the NUGET_USER repository variable to the nuget.org account that owns the Trusted Publishing policy.'
+            exit 1
+          fi
+      - name: Exchange the GitHub OIDC token for a short-lived NuGet API key
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Push packages and symbols
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          for package in artifacts/packages/*.nupkg; do
+            dotnet nuget push "$package" --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+
+  release:
+    name: GitHub release
+    needs: [validate, publish]
+    if: github.event_name == 'push' && needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages
+      - name: Create the release with the CHANGELOG section and packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+        run: |
+          python3 - <<'PY' > notes.md
+          import os, re
+          version = os.environ['VERSION']
+          text = open('CHANGELOG.md', encoding='utf-8').read()
+          m = re.search(r'^## \[' + re.escape(version) + r'\][^\n]*\n(.*?)(?=^## \[|\Z)', text, re.S | re.M)
+          print(m.group(1).strip() if m else f'Release {version}.')
+          PY
+          flags=()
+          if [ "$PRERELEASE" = 'true' ]; then flags+=(--prerelease); fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber
+          else
+            gh release create "$TAG" artifacts/packages/*.nupkg artifacts/packages/*.snupkg \
+              --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}"
+          fi

@@ -1,0 +1,46 @@
+<Project>
+  <!--
+    Repository-wide build settings for Xtreme.Components.
+
+    The version lives HERE and nowhere else: every package in a release carries the same
+    number (lockstep SemVer). The publish workflow refuses a tag whose version does not
+    match this value, so bumping a release is a one-line change plus a CHANGELOG section.
+  -->
+  <PropertyGroup>
+    <Version>0.1.0-preview.1</Version>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <DebugType>portable</DebugType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- NuGet package metadata. Only affects `pack`; a project opts out with IsPackable=false. -->
+  <PropertyGroup>
+    <Authors>Xtreme.Components contributors</Authors>
+    <Company>Data Access Inc.</Company>
+    <Copyright>Copyright © 2026 Data Access Inc. and Xtreme.Components contributors</Copyright>
+    <PackageProjectUrl>https://github.com/XtremeCRM/Xtreme.Components</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/XtremeCRM/Xtreme.Components</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReleaseNotes>https://github.com/XtremeCRM/Xtreme.Components/releases</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!--
+    Every packable project ships its own README.md (the per-package quick start). nuget.org
+    cannot render repository-relative links, so those files use absolute links only.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false' and Exists('$(MSBuildProjectDirectory)/README.md')">
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
+    <Project Path="src/Xtreme.Components.Scheduler/Xtreme.Components.Scheduler.csproj" />
+    <Project Path="src/Xtreme.Components.Docking/Xtreme.Components.Docking.csproj" />
+    <Project Path="src/Xtreme.Components.Cards/Xtreme.Components.Cards.csproj" />
+    <Project Path="src/Xtreme.Components/Xtreme.Components.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+    <File Path="CHANGELOG.md" />
+  </Folder>
+</Solution>
