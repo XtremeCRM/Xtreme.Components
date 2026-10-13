@@ -30,7 +30,20 @@ public sealed partial class SchedulerPage : Grid
     private readonly TextBlock _log = new() { Opacity = 0.75, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 6, 0, 0) };
 
     private bool _tiles, _icons, _adornments, _editorEnabled, _tooltips, _contextMenu;
-    private readonly HashSet<string> _tileKeys = new() { "status", "tech" };
+    private readonly HashSet<string> _tileKeys = new() { "status", "tech", "balance" };
+
+    /// <summary>
+    /// Non-appointment data the host joins in by event id: the customer's account balance. A tile is
+    /// whatever the host computes for an appointment; nothing here lives on <see cref="AppointmentModel"/>.
+    /// </summary>
+    private static readonly Dictionary<int, decimal> CustomerBalances = new()
+    {
+        [1] = 0m, [2] = 1250.00m, [3] = 89.95m, [4] = 0m, [5] = 320.00m, [6] = 0m,
+        [9] = 2480.00m, [10] = 0m, [11] = 145.50m, [13] = 3100.00m, [14] = 0m, [15] = 560.00m, [17] = 975.00m,
+    };
+
+    private static string BalanceText(int eventId)
+        => CustomerBalances.TryGetValue(eventId, out var due) && due > 0 ? $"Balance {due:C0} due" : "Paid up";
 
     // Appointment editor (host-side example): the control raises edit / create requests and ships
     // no form. This one is SectionCard + DateTimePicker + EditorActionBar from the other packages.
@@ -176,13 +189,13 @@ public sealed partial class SchedulerPage : Grid
         switches.Children.Add(Switch("Tiles", on => { _tiles = on; Refresh(); }));
         switches.Children.Add(Switch("Icons", on => { _icons = on; Refresh(); }));
         switches.Children.Add(Switch("Adornments", on => { _adornments = on; Refresh(); }));
-        switches.Children.Add(Switch("Tooltips", on => { _tooltips = on; Refresh(); }));
+        switches.Children.Add(Switch("Tooltip details", on => { _tooltips = on; Refresh(); }));
         switches.Children.Add(Switch("Appointment editor", on => { _editorEnabled = on; if (!on) CloseEditor(); }));
         switches.Children.Add(Switch("Context menu", on => { _contextMenu = on; }));
 
         var hint = new TextBlock
         {
-            Text = "Hover an appointment for its tooltip. With the editor on, double-click an appointment to edit it, or click an empty slot to create one. With the context menu on, right-click an appointment.",
+            Text = "Every appointment always has a tooltip (subject and time). Tooltip details adds Details rows, a Description, and a custom renderer on the Install job. Tiles are host-computed: the Customer balance tile is looked up by event id from accounts data, not from the appointment. With the editor on, double-click an appointment to edit it, or click an empty slot to create one. With the context menu on, right-click an appointment.",
             Opacity = 0.7, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8),
         };
 
@@ -408,7 +421,8 @@ public sealed partial class SchedulerPage : Grid
         _scheduler.ShowTiles = _tiles;
         _scheduler.SetTileOptions(_tiles
             ? [new SchedulerTileOption { Key = "status", Label = "Status", IsOn = _tileKeys.Contains("status") },
-               new SchedulerTileOption { Key = "tech", Label = "Technician", IsOn = _tileKeys.Contains("tech") }]
+               new SchedulerTileOption { Key = "tech", Label = "Technician", IsOn = _tileKeys.Contains("tech") },
+               new SchedulerTileOption { Key = "balance", Label = "Customer balance", IsOn = _tileKeys.Contains("balance") }]
             : []);
 
         _scheduler.SchedulerResources = _resources.Where(r => !_hiddenResources.Contains(r.Id)).ToList();
@@ -421,6 +435,17 @@ public sealed partial class SchedulerPage : Grid
             yield return new AppointmentDecoration { Text = id % 2 == 0 ? "Scheduled" : "Confirmed", Position = DecorationPosition.Bottom, BackColor = id % 2 == 0 ? Microsoft.UI.Colors.LightSteelBlue : Microsoft.UI.Colors.PaleGreen, ForeColor = Microsoft.UI.Colors.Black, Tooltip = "Status tile" };
         if (_tileKeys.Contains("tech"))
             yield return new AppointmentDecoration { Glyph = "", Text = id switch { 1 or 2 => "Alex", 3 or 4 => "Bailey", _ => "Casey" }, Position = DecorationPosition.Bottom, Tooltip = "Technician tile" };
+        if (_tileKeys.Contains("balance") && CustomerBalances.ContainsKey(id))
+        {
+            var due = CustomerBalances[id] > 0;
+            yield return new AppointmentDecoration
+            {
+                Glyph = "", Text = BalanceText(id), Position = DecorationPosition.Bottom, Bold = due,
+                BackColor = due ? Microsoft.UI.Colors.MistyRose : Microsoft.UI.Colors.Honeydew,
+                ForeColor = due ? Microsoft.UI.Colors.Firebrick : Microsoft.UI.Colors.DarkGreen,
+                Tooltip = "Customer balance, looked up by event id from the accounts data",
+            };
+        }
     }
 
     private static AppointmentIndicator Icon(string glyph, string tip, Color? color) => new() { Glyph = glyph, Tooltip = tip, Color = color };
