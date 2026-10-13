@@ -142,8 +142,12 @@ public sealed partial class SchedulerPage : Grid
         {
             if (!_contextMenu) return;
             var menu = BuildContextMenu(e.Appointment);
-            if (e.Position is { } pos)
-                menu.ShowAt(_scheduler, new FlyoutShowOptions { Position = pos, Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft });
+            // Position is relative to the window root; ShowAt wants it relative to the target.
+            if (e.Position is { } rootPos && _scheduler.XamlRoot?.Content is UIElement root)
+            {
+                var local = root.TransformToVisual(_scheduler).TransformPoint(rootPos);
+                menu.ShowAt(_scheduler, new FlyoutShowOptions { Position = local, Placement = FlyoutPlacementMode.Right });
+            }
             else
                 menu.ShowAt(_scheduler);
             Log($"Context menu for '{e.Appointment.Subject}'");
