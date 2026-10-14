@@ -373,6 +373,12 @@ public partial class DockItem : ContentControl
 
     internal void RaiseReparented() => Reparented?.Invoke(this, EventArgs.Empty);
 
+    /// <summary>
+    /// The pane's floating window frame the last time it floated (physical screen pixels), kept after it
+    /// docks again so the next float reopens where and how big the user left it. Saved with the layout.
+    /// </summary>
+    internal DockWindowBounds? LastFloatBounds { get; set; }
+
     // ---- Layout invalidation --------------------------------------------------------------------
 
     /// <summary>

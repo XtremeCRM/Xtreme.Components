@@ -69,6 +69,8 @@ public sealed partial class MainPage : Page
                 Host.UpdateLayout();
                 if (Host.Content is TableViewPage table && await table.SelfCheckAsync() is { Count: > 0 } problems)
                     throw new InvalidOperationException("RowFlagDecorator checks failed: " + string.Join("; ", problems));
+                if (Host.Content is DockingPage docking && await docking.SelfTestAsync() is { Count: > 0 } dockProblems)
+                    throw new InvalidOperationException("Dock drag checks failed: " + string.Join("; ", dockProblems));
                 Console.WriteLine($"selftest: {entry.Tag} ok ({Host.ActualWidth:0}x{Host.ActualHeight:0})");
             }
             catch (Exception ex)

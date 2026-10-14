@@ -50,7 +50,156 @@ public sealed partial class DockingPage : Grid
         Children.Add(_host);
     }
 
-    private DockHost BuildHost()
+    /// <summary>
+    /// <c>--selftest</c> checks for the drag pipeline, run against a throwaway host with no persistence
+    /// (the saved layout is left alone): the guides appear, drops land, and every way a drag can end —
+    /// cancel, a placement that throws, a rebuild under it, a float window that won't open — leaves no
+    /// guides behind, the pane where it belongs, and the next drag working.
+    /// </summary>
+    internal async Task<List<string>> SelfTestAsync()
+    {
+        var problems = new List<string>();
+        var host = BuildHost(persist: false);
+        if (_host is not null) Children.Remove(_host);
+        _host = host;
+        SetRow(host, 1);
+        Children.Add(host);
+        await Task.Delay(600);
+
+        DockItem Item(string id) => host.Items.First(i => i.DockId == id);
+        void Check(bool ok, string what)
+        {
+            if (!ok) problems.Add(what);
+        }
+
+        void CheckEnded(string scenario, int overlayBaseline)
+        {
+            Check(!host.IsDragActive, $"{scenario}: drag still active");
+            Check(host.DragVisualCount == 0, $"{scenario}: {host.DragVisualCount} drag visual(s) left");
+            Check(host.OverlayChildCount == overlayBaseline, $"{scenario}: overlay has {host.OverlayChildCount} children, expected {overlayBaseline}");
+        }
+
+        async Task NextDragWorks(string scenario)
+        {
+            await Task.Delay(300);
+            var started = host.SelfTestBeginDrag(Item("output"));
+            Check(started, $"{scenario}: the next drag would not start");
+            host.SelfTestCancel();
+        }
+
+        try
+        {
+            var baseline = host.OverlayChildCount;
+            var properties = Item("properties");
+
+            // 1. The guides appear: four edge markers and two document-compass buttons per edge.
+            Check(host.SelfTestBeginDrag(properties), "guides: drag did not start");
+            Check(host.EdgeMarkerCount == 4, $"guides: {host.EdgeMarkerCount} edge markers, expected 4");
+            Check(host.DocumentGuideCount == 8, $"guides: {host.DocumentGuideCount} document-compass buttons, expected 8");
+            host.SelfTestMoveTo(host.SelfTestItemCenter(Item("explorer")));
+            Check(host.ClusterGuideCount == 5, $"guides: {host.ClusterGuideCount} slot-compass buttons over Explorer, expected 5");
+            await SnapshotAsync(host, "slot-compass");
+            if (host.SelfTestDocumentGuideCenter(DockEdge.Left, DockBand.Inner) is { } hover)
+            {
+                host.SelfTestMoveTo(hover);
+                await SnapshotAsync(host, "document-compass");
+            }
+            host.SelfTestCancel();
+            CheckEnded("cancel", baseline);
+            Check(properties.Edge == DockEdge.Right, "cancel: the pane moved");
+
+            // 2. A release over an edge marker docks there.
+            await Task.Delay(300);
+            Check(host.SelfTestBeginDrag(properties), "drag did not start");
+            if (host.SelfTestMarkerCenter(DockEdge.Left) is { } left) host.SelfTestMoveTo(left);
+            host.SelfTestRelease();
+            CheckEnded("edge drop", baseline);
+            Check(properties.Edge == DockEdge.Left && properties.Band == DockBand.Outer, $"edge drop: landed {properties.Edge}/{properties.Band}, expected Left/Outer");
+
+            // 3. The document compass's inner button docks against the document.
+            await Task.Delay(300);
+            Check(host.SelfTestBeginDrag(properties), "drag did not start");
+            if (host.SelfTestDocumentGuideCenter(DockEdge.Right, DockBand.Inner) is { } inner) host.SelfTestMoveTo(inner);
+            host.SelfTestRelease();
+            CheckEnded("inner drop", baseline);
+            Check(properties.Edge == DockEdge.Right && properties.Band == DockBand.Inner, $"inner drop: landed {properties.Edge}/{properties.Band}, expected Right/Inner");
+
+            // 4. A placement that throws: nothing stranded, no guides, the next drag works.
+            await Task.Delay(300);
+            var output = Item("output");
+            host.FaultInjector = point => point == DockFault.ApplyDrop;
+            Check(host.SelfTestBeginDrag(output), "throwing drop: drag did not start");
+            if (host.SelfTestMarkerCenter(DockEdge.Top) is { } top) host.SelfTestMoveTo(top);
+            host.SelfTestRelease();
+            host.FaultInjector = null;
+            CheckEnded("throwing drop", baseline);
+            Check(host.Items.Contains(output) && output.IsOpen && !output.IsFloating, "throwing drop: the pane was stranded");
+            await NextDragWorks("throwing drop");
+
+            // 5. A rebuild under a drag ends it cleanly.
+            await Task.Delay(300);
+            Check(host.SelfTestBeginDrag(properties), "drag did not start");
+            host.SelfTestRebuild();
+            CheckEnded("rebuild mid-drag", host.OverlayChildCount);
+            await NextDragWorks("rebuild mid-drag");
+
+            // 6. A float whose window won't open re-docks the pane instead of losing it.
+            if (host.PlatformServices.SupportsFloatingWindows)
+            {
+                await Task.Delay(300);
+                host.FaultInjector = point => point == DockFault.FloatWindow;
+                Check(host.SelfTestBeginDrag(properties), "failed float: drag did not start");
+                host.SelfTestMoveTo(host.SelfTestDocumentCenter());
+                host.SelfTestRelease();
+                host.FaultInjector = null;
+                await Task.Delay(300);
+                CheckEnded("failed float", baseline);
+                Check(!properties.IsFloating && properties.IsOpen && properties.Parent is not null, "failed float: the pane was stranded");
+                await NextDragWorks("failed float");
+            }
+        }
+        catch (Exception ex)
+        {
+            problems.Add($"threw: {ex}");
+        }
+        finally
+        {
+            host.FaultInjector = null;
+            ShowHost(); // back to the persisted host
+        }
+
+        return problems;
+    }
+
+    /// <summary>
+    /// With <c>XC_SELFTEST_SNAPSHOTS</c> set to a folder, saves a PNG of the host mid-drag there — a way
+    /// to look at the guides from a headless run. Does nothing otherwise.
+    /// </summary>
+    private static async Task SnapshotAsync(FrameworkElement element, string name)
+    {
+        if (Environment.GetEnvironmentVariable("XC_SELFTEST_SNAPSHOTS") is not { Length: > 0 } folder) return;
+
+        try
+        {
+            await Task.Delay(250); // let the guides render
+            var bitmap = new Microsoft.UI.Xaml.Media.Imaging.RenderTargetBitmap();
+            await bitmap.RenderAsync(element);
+            var pixels = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(await bitmap.GetPixelsAsync());
+
+            using var image = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(
+                bitmap.PixelWidth, bitmap.PixelHeight, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul));
+            System.Runtime.InteropServices.Marshal.Copy(pixels, 0, image.GetPixels(), pixels.Length);
+            using var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+            Directory.CreateDirectory(folder);
+            await File.WriteAllBytesAsync(System.IO.Path.Combine(folder, $"dock-{name}.png"), data.ToArray());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"selftest: docking snapshot '{name}' failed: {ex.Message}");
+        }
+    }
+
+    private DockHost BuildHost(bool persist = true)
     {
         // The shipped Windows implementation: float affordances appear on Windows desktop and nowhere
         // else (it reports no float support on other runtimes).
@@ -61,8 +210,8 @@ public sealed partial class DockingPage : Grid
 
         var host = new DockHost
         {
-            PersistenceKey = PersistenceKey,
-            Persistence = _persistence,
+            PersistenceKey = persist ? PersistenceKey : null,
+            Persistence = persist ? _persistence : null,
             Document = Panel("Document", "#FF2D5B8A"),
             EdgePriority = [DockEdge.Right, DockEdge.Top, DockEdge.Bottom, DockEdge.Left],
             PlatformServices = platform,

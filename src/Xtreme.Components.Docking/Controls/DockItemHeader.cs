@@ -36,6 +36,9 @@ internal sealed partial class DockItemHeader : Grid
 
     internal event EventHandler? DragCompleted;
 
+    /// <summary>The drag ended without a release — the pointer was canceled or its capture taken away.</summary>
+    internal event EventHandler? DragCanceled;
+
     internal DockItemHeader(DockItem item, bool platformSupportsFloating)
     {
         Height = 22; // the compact DX-style title bar
@@ -57,11 +60,17 @@ internal sealed partial class DockItemHeader : Grid
         var dragging = false;
         var pressLocal = default(Windows.Foundation.Point);
 
+        // A release commits the drop; a canceled pointer or a capture taken away abandons it — the
+        // user never let go over a target, so nothing may move.
         void FinishDrag(bool commit)
         {
-            if (dragging && commit) DragCompleted?.Invoke(this, EventArgs.Empty);
+            var wasDragging = dragging;
             pressed = false;
             dragging = false;
+            if (!wasDragging) return;
+
+            if (commit) DragCompleted?.Invoke(this, EventArgs.Empty);
+            else DragCanceled?.Invoke(this, EventArgs.Empty);
         }
 
         AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) =>
@@ -101,15 +110,24 @@ internal sealed partial class DockItemHeader : Grid
 
         AddHandler(PointerCanceledEvent, new PointerEventHandler((_, e) =>
         {
-            if (pressed && e.Pointer.PointerId == pressedPointer) FinishDrag(commit: true);
+            if (pressed && e.Pointer.PointerId == pressedPointer) FinishDrag(commit: false);
         }), handledEventsToo: true);
 
         PointerCaptureLost += (_, e) =>
         {
             // Only this header's own capture ending matters; a child button losing ITS capture
-            // bubbles through here and must not end a drag.
+            // bubbles through here and must not end a drag. The cancel waits one dispatcher turn: a
+            // normal release also ends the capture, and whichever of the two events arrives first,
+            // the release then gets to commit before this runs and finds the drag already over.
             if (pressed && dragging && e.Pointer.PointerId == pressedPointer && ReferenceEquals(e.OriginalSource, this))
-                FinishDrag(commit: true);
+            {
+                void CancelIfStillDragging()
+                {
+                    if (pressed && dragging) FinishDrag(commit: false);
+                }
+
+                if (DispatcherQueue?.TryEnqueue(CancelIfStillDragging) != true) CancelIfStillDragging();
+            }
         };
 
         // Right-click menu — where DevExpress and Visual Studio put "Float", and the reason it exists
