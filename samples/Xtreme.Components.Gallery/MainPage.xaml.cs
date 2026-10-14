@@ -65,6 +65,8 @@ public sealed partial class MainPage : Page
                 {
                     scheduler.EnableAllExamples();   // tiles, icons, adornments, resource picker
                     await Task.Delay(700);
+                    if (await scheduler.PickerSelfTestAsync() is { Count: > 0 } pickerProblems)
+                        throw new InvalidOperationException("Date picker checks failed: " + string.Join("; ", pickerProblems));
                 }
                 Host.UpdateLayout();
                 if (Host.Content is TableViewPage table && await table.SelfCheckAsync() is { Count: > 0 } problems)

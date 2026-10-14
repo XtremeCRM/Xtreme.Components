@@ -1220,4 +1220,7 @@ public sealed partial class SchedulerControl : UserControl
     // Period-button caption for a scattered multi-date set, e.g. "4 days · Jul 4 – 25, 2026".
     private static string BuildMultiDateLabel(IReadOnlyList<DateTime> dates) =>
         $"{dates.Count} days · {DateRange(dates[0], dates[^1])}";
+
+    /// <summary>The Gallery's <c>--selftest</c> date-range picker checks (see <see cref="SchedulerToolbar.PickerSelfTestAsync"/>).</summary>
+    internal Task<List<string>> PickerSelfTestAsync(Action<string> log) => Toolbar.PickerSelfTestAsync(log);
 }

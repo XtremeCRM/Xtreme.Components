@@ -280,6 +280,10 @@ public sealed partial class SchedulerPage : Grid
         _scheduler.CurrentView = SchedulerView.Week;
     }
 
+    /// <summary><c>--selftest</c>: the toolbar's date-range picker opens inside the window with months
+    /// showing, and resizes from a fixed corner.</summary>
+    internal Task<List<string>> PickerSelfTestAsync() => _scheduler.PickerSelfTestAsync(Console.WriteLine);
+
     // ---- Appointment editor -------------------------------------------------------------------
 
     private void BuildEditor()

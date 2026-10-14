@@ -6,6 +6,8 @@
   <ItemGroup>
     <!-- Headless tests reach the pure helpers (TimeInputParser, ChipPickerControl.MergePicked). -->
     <InternalsVisibleTo Include="Xtreme.Components.Primitives.Tests" />
+    <!-- The Scheduler toolbar's picker self-test reads VisibleMonthCount. -->
+    <InternalsVisibleTo Include="Xtreme.Components.Scheduler" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />
