@@ -7,6 +7,30 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Changed
+- `Xtreme.Components.Docking`: the docking guides are redrawn. Each button is a small window
+  picture with the landing part filled in, the buttons of a compass share one raised cross-shaped
+  plate, the document compass shows the document at its center, and the inner and outer buttons
+  picture the difference between the two bands. Colors come from the new optional
+  `XcDockGuide<Role>Brush` tokens; the landing wash is a lighter tint that stays visible over a
+  blue pane.
+- `Xtreme.Components.Docking`: floating windows are placed. A first float opens over the pane at
+  its docked size (capped at 80% of the monitor), a drag float opens under the pointer with the
+  grab point kept, a pane that floated before reopens at its last size (and, from the menu, its
+  last position), and every new window is fitted onto a connected monitor. A docked pane's last
+  floating bounds are saved in the layout. On Windows the screen mapping uses the real client area
+  instead of an estimated title bar.
+
+### Fixed
+- `Xtreme.Components.Docking`: a canceled pointer or a lost pointer capture no longer commits the
+  drag (it could float or move the pane); it cancels. Escape cancels an in-host drag.
+- `Xtreme.Components.Docking`: a drop whose placement throws, a window that fails to construct, the
+  host unloading mid-drag, or a floating pane closing during its drag-back no longer leaves guides
+  on screen, a pane stranded with no window, or a drag armed that blocks every later drag.
+- `Win32DockPlatformServices`: a throwing drag callback no longer silences the tracker, a dead
+  window stops its tracker, and a disposed tracker forgets an in-progress carry so a pooled window
+  can't inherit it.
+
 ## [0.1.0-preview.1] - 2026-10-14
 
 First release from the public repository. The code was extracted from

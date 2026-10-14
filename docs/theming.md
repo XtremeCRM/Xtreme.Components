@@ -94,6 +94,23 @@ Used by `MultiMonthDateNavigator` and the pickers built on it:
 `SecondaryForeground`, `MinorLine`, `SelectionFill`, `SelectionForeground`, `OutsideMonthFill`,
 `OutsideMonthForeground`, `HeaderForeground`, `WeekendForeground`.
 
+### Dock guide roles (`XcDockGuide<Role>Brush`, optional)
+
+The docking guides shown while dragging a pane, resolved the same way as the scheduler roles
+(theme-keyed first, then flat, then the built-in Light or Dark value). A high-contrast palette
+should define all of them.
+
+| Role | Built-in Light / Dark | Paints |
+|---|---|---|
+| `Plate` | `#F2F7F7F7` / `#F22D2D2D` | the raised plate the guide buttons sit on |
+| `PlateOutline` | `#66000000` / `#70FFFFFF` | the plate's outline |
+| `PlateShadow` | `#30000000` / `#60000000` | the soft shadow under the plate |
+| `Glyph` | `#FF5C5C5C` / `#FFC8C8C8` | the window outlines on each button |
+| `Landing` | `#FF2F6FB5` / `#FF4A90E2` | the part of each picture where the pane lands; a hovered button's outline |
+| `Hover` | `#382F6FB5` / `#484A90E2` | a hovered button's fill |
+| `Preview` | `#8CA8CEF5` / `#807FB2EE` | the wash over the region a release would fill |
+| `PreviewOutline` | `#FF2F6FB5` / `#FFA8CEF5` | that wash's outline |
+
 ### TableView
 
 `RowFlag.BrushKey` names any brush resource; it resolves for the row's actual theme. Name your
@@ -114,8 +131,8 @@ it. See [tableview.md](tableview.md#custom-look).
 
 ## 4. Still hard-coded
 
-The dock manager's chrome washes (guide overlays, drag ghosts, scrims, hover tints in
-`DockHost`, `DockItemHeader`, `DockSplitter`) are translucent grays and blues painted from code.
-They read correctly in both themes and under the surface overrides above, so they have not been
-tokenized; a `XcDock<Role>Brush` set following the scheduler pattern is the next step when a
+The rest of the dock manager's chrome washes (drag ghosts, scrims, hover tints in `DockHost`,
+`DockItemHeader`, `DockSplitter`) are translucent grays and blues painted from code. They read
+correctly in both themes and under the surface overrides above, so they have not been tokenized;
+the docking guides are (see Dock guide roles above), and the rest can follow that pattern when a
 consumer needs it.

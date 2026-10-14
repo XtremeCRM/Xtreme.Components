@@ -466,6 +466,22 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
         var dragging = false;
         var draggedHwnd = IntPtr.Zero;
 
+        // The dock manager's callbacks run inside the tick. A throw from one is THEIR failure, not the
+        // window's: report it and keep tracking, so one bad drop can't leave the tracker half-reset or
+        // silence it for the rest of the window's life.
+        void Report(Action<Windows.Graphics.PointInt32> callback, Windows.Graphics.PointInt32 point, string name)
+        {
+            try { callback(point); }
+            catch (Exception ex) { Log?.Invoke($"[DockWin] tracker: {name} callback threw — {ex.GetType().Name}: {ex.Message}"); }
+        }
+
+        void EndDrag()
+        {
+            dragging = false;
+            NativeMethods.TrySetWindowOpacity(draggedHwnd, 1.0);
+            draggedHwnd = IntPtr.Zero;
+        }
+
         timer.Tick += (_, _) =>
         {
             try
@@ -499,18 +515,17 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
 
                     if (buttonDown)
                     {
-                        dragMoved(carried);
+                        Report(dragMoved, carried, "dragMoved");
                     }
                     else
                     {
                         // Released: this is the drop. Hand the tracker back to its normal life, already
-                        // idle-armed, so a later re-grab of this window behaves exactly as before.
+                        // idle-armed, so a later re-grab of this window behaves exactly as before. State is
+                        // reset BEFORE the callback, so a throwing drop still leaves a usable tracker.
                         _carriedWindows.Remove(window);
-                        dragging = false;
                         sawIdle = true;
-                        NativeMethods.TrySetWindowOpacity(draggedHwnd, 1.0);
-                        draggedHwnd = IntPtr.Zero;
-                        dropped(carried);
+                        EndDrag();
+                        Report(dropped, carried, "dropped");
                     }
 
                     last = window.AppWindow.Position;
@@ -546,35 +561,102 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
 
                 if (buttonDown)
                 {
-                    dragMoved(cursor);
+                    Report(dragMoved, cursor, "dragMoved");
                 }
                 else
                 {
-                    dragging = false;
-                    NativeMethods.TrySetWindowOpacity(draggedHwnd, 1.0);
-                    draggedHwnd = IntPtr.Zero;
-                    dropped(cursor);
+                    EndDrag();
+                    Report(dropped, cursor, "dropped");
                 }
             }
             catch
             {
-                // The window died mid-tick (AppWindow gone); the dock manager disposes us right after.
+                // The window itself died mid-tick (AppWindow gone). Stop here rather than throwing on
+                // every tick until someone disposes us, and never leave it see-through or carried.
+                timer.Stop();
+                _carriedWindows.Remove(window);
+                EndDrag();
             }
         };
 
         timer.Start();
 
-        // Disposal also restores opacity, so a tracker torn down mid-drag (host unloading, pane
-        // re-docked) can never strand a see-through window.
-        return new TimerHandle(timer, () => NativeMethods.TrySetWindowOpacity(draggedHwnd, 1.0));
+        // Disposal restores opacity and forgets any carry in progress, so a tracker torn down
+        // mid-drag (host unloading, pane re-docked or closed) can never strand a see-through window,
+        // and a pooled window re-floated later can't inherit this drag's carry.
+        return new TimerHandle(timer, () =>
+        {
+            _carriedWindows.Remove(window);
+            EndDrag();
+        });
     }
 
     /// <summary>
-    /// Whether a physical screen point lies on any connected display: true/false on Windows, null where
-    /// this implementation can't tell. The host uses it before restoring a saved floating-window position.
+    /// The work area (screen minus taskbar) of every connected monitor, in physical pixels. Empty where
+    /// this implementation can't tell; the dock manager then skips fitting windows onto a monitor.
     /// </summary>
-    internal bool? IsOnAnyDisplay(Windows.Graphics.PointInt32 point)
-        => OperatingSystem.IsWindows() ? NativeMethods.IsOnAnyMonitor(point) : null;
+    internal IReadOnlyList<Controls.DockWindowBounds> GetWorkAreas()
+        => OperatingSystem.IsWindows() ? NativeMethods.MonitorWorkAreas() : [];
+
+    /// <summary>
+    /// Where the window's client area starts on screen, in physical pixels — the point its XAML root's
+    /// (0,0) is drawn at. Null when the window's handle can't be resolved; the dock manager then
+    /// estimates the title bar instead.
+    /// </summary>
+    internal Windows.Graphics.PointInt32? TryGetClientOrigin(Window window)
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+
+        var hwnd = ResolveHwnd(window);
+        return hwnd != IntPtr.Zero && NativeMethods.TryGetClientRect(hwnd, out var origin, out _, out _) ? origin : null;
+    }
+
+    /// <summary>
+    /// How much the window's frame adds around its client area, measured against
+    /// <c>AppWindow.Position</c>/<c>Size</c> so the result is in the same terms the dock manager moves
+    /// and resizes the window with. Null when it can't be measured (the handle isn't resolvable yet).
+    /// </summary>
+    internal Controls.FrameInsets? TryGetFrameInsets(Window window)
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+
+        try
+        {
+            var hwnd = ResolveHwnd(window);
+            if (hwnd == IntPtr.Zero || !NativeMethods.TryGetClientRect(hwnd, out var origin, out var width, out var height))
+                return null;
+
+            var pos = window.AppWindow.Position;
+            var size = window.AppWindow.Size;
+            var insets = new Controls.FrameInsets(
+                origin.X - pos.X,
+                origin.Y - pos.Y,
+                pos.X + size.Width - (origin.X + width),
+                pos.Y + size.Height - (origin.Y + height));
+
+            // A window not yet laid out reports nonsense (a zero-size frame, a client larger than it);
+            // the caller's estimate is better than that.
+            return insets.Left is >= 0 and < 200 && insets.Top is >= 0 and < 200
+                && insets.Right is >= 0 and < 200 && insets.Bottom is >= 0 and < 200
+                    ? insets
+                    : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The window's HWND: Uno's own handle lookup first, and for the shell the handle captured at
+    /// startup (<see cref="CaptureShellWindowHandle"/>).
+    /// </summary>
+    private IntPtr ResolveHwnd(Window window)
+    {
+        var hwnd = NativeMethods.TryGetHwnd(window);
+        if (hwnd == IntPtr.Zero && ReferenceEquals(window, HostWindow)) hwnd = _shellWindowHandle;
+        return NativeMethods.IsWindowAlive(hwnd) ? hwnd : IntPtr.Zero;
+    }
 
     private sealed class TimerHandle(Microsoft.UI.Dispatching.DispatcherQueueTimer timer, Action onDispose) : IDisposable
     {
@@ -639,16 +721,85 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
             return unchecked((uint)Environment.TickCount - info.dwTime);
         }
 
-        private const uint MONITOR_DEFAULTTONULL = 0;
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public uint cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        private delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, IntPtr rect, IntPtr param);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromPoint(POINT point, uint flags);
+        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr param);
 
-        /// <summary>Whether the point is on a connected monitor. A failing call answers null (unknown).</summary>
-        public static bool? IsOnAnyMonitor(Windows.Graphics.PointInt32 point)
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ClientToScreen(IntPtr hwnd, ref POINT point);
+
+        /// <summary>Every monitor's work area. A failing enumeration answers empty (unknown).</summary>
+        public static IReadOnlyList<Controls.DockWindowBounds> MonitorWorkAreas()
         {
-            try { return MonitorFromPoint(new POINT { X = point.X, Y = point.Y }, MONITOR_DEFAULTTONULL) != IntPtr.Zero; }
-            catch { return null; }
+            var areas = new List<Controls.DockWindowBounds>();
+            try
+            {
+                EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (monitor, _, _, _) =>
+                {
+                    var info = new MONITORINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+                    if (GetMonitorInfo(monitor, ref info))
+                    {
+                        var w = info.rcWork;
+                        if (w.Right > w.Left && w.Bottom > w.Top)
+                            areas.Add(new Controls.DockWindowBounds(w.Left, w.Top, w.Right - w.Left, w.Bottom - w.Top));
+                    }
+
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch
+            {
+                areas.Clear();
+            }
+
+            return areas;
+        }
+
+        /// <summary>The client area's screen origin and size, in physical pixels.</summary>
+        public static bool TryGetClientRect(IntPtr hwnd, out Windows.Graphics.PointInt32 origin, out int width, out int height)
+        {
+            origin = default;
+            width = height = 0;
+            try
+            {
+                if (!GetClientRect(hwnd, out var rect)) return false;
+                var point = new POINT();
+                if (!ClientToScreen(hwnd, ref point)) return false;
+
+                origin = new Windows.Graphics.PointInt32 { X = point.X, Y = point.Y };
+                width = rect.Right - rect.Left;
+                height = rect.Bottom - rect.Top;
+                return width > 0 && height > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static bool TryGetCursorPos(out Windows.Graphics.PointInt32 point)

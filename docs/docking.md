@@ -279,10 +279,14 @@ Pane headers and tab-strip tabs are drag handles. A drag starts after 6 px of po
 plain click on a header button is never a drag. While dragging:
 
 - A ghost of the header follows the pointer. The real pane does not move until release.
+- Every guide button is a small window picture with the part the pane would occupy filled in, so a
+  button shows what it does. Buttons of one compass sit edge to edge on a single raised,
+  cross-shaped plate. The colors are theme tokens (see [Theming](theming.md)).
 - **Edge markers** appear at the host border for each edge in the item's `AllowedDockEdges`.
-- A **document compass** appears at the document's center with doubled arrows per direction: the
-  inner arrow docks to the document's extent (`DockBand.Inner`), the outer arrow docks against the
-  whole border (`DockBand.Outer`).
+- A **document compass** appears at the document's center, with the document drawn in the middle and
+  two buttons per allowed direction: the inner one docks to the document's extent, inside the panes
+  already on that edge (`DockBand.Inner`); the outer one docks against the whole border
+  (`DockBand.Outer`).
 - Hovering a docked pane raises a **pane compass** over it: the center button joins it as a tab
   group; up and down insert a new layer above or below; left and right place the pane side by side
   in that pane's layer.
@@ -303,7 +307,10 @@ The right-click menu on a pane header offers **Float** (when floating is availab
 reachable from the menu because a pane docked against the outer edge of the app cannot be dragged
 32 DIP past the host.
 
-A rebuild during an in-host drag (for example an `IsOpen` change from code) cancels that drag.
+A drag that ends any way other than a release changes nothing: **Escape**, a canceled pointer, the
+pointer's capture being taken away, the host unloading, or a rebuild during the drag (for example an
+`IsOpen` change from code). Every ending removes the guides, and if applying a drop fails the grid is
+still rebuilt from the items, so a pane is never left off-screen and the next drag always works.
 
 ## Floating windows
 
@@ -330,7 +337,7 @@ platform.PrimePoolWhenIdle(mainWindow.DispatcherQueue);        // pre-build wind
 
 | Member | What it does | If you skip it |
 |---|---|---|
-| `HostWindow` | The app's main window. Used to map between in-host and screen coordinates (placing a torn-out window at the cursor, lighting guides during drag-back). | Floats still work but open at the OS default position, and drag-back-to-redock cannot map the cursor onto the host. |
+| `HostWindow` | The app's main window. Used to map between in-host and screen coordinates (placing a floated window over its pane or at the cursor, lighting guides during drag-back). The mapping uses the window's real client area on Windows. | Floats still work but open at the OS default position (or their remembered bounds), and drag-back-to-redock cannot map the cursor onto the host. |
 | `CaptureShellWindowHandle(dispatcher)` | Polls until the main window's native handle exists, then caches it. Call while the main window is the only window. | Float windows are not owned by the main window, so clicking the main window can bury them. |
 | `PrimePoolWhenIdle(dispatcher)` | Starts filling a pool of three spare windows once the user is idle. | The host also calls `WarmFloatSupport` whenever a floatable item is hosted, so the pool still fills, just later. |
 | `Log` | Receives `[DockPerf]` / `[DockWin]` diagnostic lines, including the host's own float and re-dock timings. | Silent. The library never writes to the console. |
@@ -343,6 +350,12 @@ Set `PlatformServices` before the host loads. The gallery sets it in the constru
 - A pane floats by drag (past the host bounds, or released in open space) or from the header menu.
   The same `DockItem` instance moves into the new window, so its view state is kept. `IsFloating`
   becomes `true` and `Reparented` is raised.
+- **Where the window opens.** A pane that has never floated opens over the spot it came from, at
+  the size it had while docked (at most 80% of the monitor's work area). A drag tear-out or an
+  open-space release opens it under the pointer, with the point you grabbed kept under the cursor.
+  A pane that has floated before reopens at its last floating size, and from the menu also at its
+  last position. Every new window is fitted onto the monitor it overlaps most; a remembered
+  position on a monitor that has since been unplugged moves to the nearest connected one.
 - With `Win32DockPlatformServices` on Windows, a drag tear-out continues under the held button: the
   window follows the cursor until release.
 - Dragging a floating window by its title bar back over the host lights the same edge markers and
@@ -353,9 +366,9 @@ Set `PlatformServices` before the host loads. The gallery sets it in the constru
   to the host closed (`IsOpen = false`) and the layout is saved; reopen it from the restore pill or
   by setting `IsOpen = true`.
 - Setting `IsOpen = false` on a floating pane from code closes its window the same way.
-- Floating state and the window's position and size are persisted (best effort). After a restart a
-  previously floating pane floats again at its saved bounds; the position is skipped if it no
-  longer lands on a connected display, and only the size is restored. A window closed by app
+- Floating state and the window's position and size are persisted (best effort), and a docked pane
+  keeps its last floating bounds in the layout too. After a restart a previously floating pane
+  floats again at its saved bounds, fitted onto a connected monitor. A window closed by app
   shutdown rather than by its close button does not save, so the last saved document still has the
   pane floating.
 - Float windows are owned by the main window (with `CaptureShellWindowHandle`), so a floating pane

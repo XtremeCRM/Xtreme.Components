@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Xtreme.Components.Docking.Tests" />
+    <!-- The gallery's selftest drives the drag pipeline through DockHost.SelfTest.cs. -->
+    <InternalsVisibleTo Include="Xtreme.Components.Gallery" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Xtreme.Components.Core/Xtreme.Components.Core.csproj" />

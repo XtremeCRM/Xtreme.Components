@@ -287,6 +287,10 @@ public partial class DockHost : ContentControl
         // host that is leaving the tree. The windows themselves stay up (existing behavior).
         foreach (var entry in _floatingWindows.Values)
             entry.DragTracker?.Dispose();
+
+        // And end any drag in flight: its pointer stream and its tracker are both gone now, so nothing
+        // would ever finish it, and a drag left armed blocks every gesture after the host returns.
+        if (_dragItem is not null) ClearDragState();
     }
 
     private void OnHostSizeChanged(object sender, SizeChangedEventArgs e)
@@ -350,13 +354,13 @@ public partial class DockHost : ContentControl
 
     private void RebuildCore()
     {
-        // A rebuild tears down the very elements an in-flight IN-HOST drag rides — its handle, the
-        // slot chrome, its overlay visuals. Cancel the drag rather than let it outlive its hardware:
-        // a stuck _dragItem otherwise blocks every later gesture (observed live: a drag whose element
-        // died mid-gesture left the re-dock guides unable to arm until an unrelated commit cleared
-        // it). Re-dock drags are exempt — they hold no in-host element, and their guides re-raise on
-        // the next tracker callback.
-        if (_dragItem is not null && !_redockActive)
+        // A rebuild tears down the very elements an in-flight drag rides — its handle, the slot chrome,
+        // its overlay visuals. End the drag rather than let it outlive its hardware: a stuck _dragItem
+        // otherwise blocks every later gesture (observed live: a drag whose element died mid-gesture
+        // left the re-dock guides unable to arm until an unrelated commit cleared it). A floating
+        // window's drag-back loses nothing by this: the tracker's next move re-arms it with fresh
+        // guides, where keeping it armed here would leave it tracking guides the clear below removed.
+        if (_dragItem is not null)
         {
             ClearDragState();
         }
@@ -1138,9 +1142,16 @@ public partial class DockHost : ContentControl
         var pressPoint = default(Windows.Foundation.Point); // overlay coords
         var grabOffset = default(Windows.Foundation.Point); // within the grabbed tab
 
+        // A release commits the drop; a canceled pointer or a capture taken away abandons it — the
+        // user never let go over a target, so nothing may move.
         void Finish(bool commit)
         {
-            if (dragging && commit) CommitHeaderDrag();
+            if (dragging)
+            {
+                if (commit) CommitHeaderDrag();
+                else CancelHeaderDrag();
+            }
+
             armed = false;
             dragging = false;
             armedTab = null;
@@ -1213,16 +1224,25 @@ public partial class DockHost : ContentControl
 
         strip.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, e) =>
         {
-            if (armed && e.Pointer.PointerId == armedPointer) Finish(commit: true);
+            if (armed && e.Pointer.PointerId == armedPointer) Finish(commit: false);
         }), handledEventsToo: true);
 
         strip.PointerCaptureLost += (_, e) =>
         {
             // Only the STRIP's own capture ending matters here. The armed item's capture-lost — the
             // direct consequence of the steal above — bubbles through this handler too, and treating
-            // it as the end would kill the drag the moment it started.
+            // it as the end would kill the drag the moment it started. The cancel waits one dispatcher
+            // turn: a normal release also ends the capture, and whichever of the two events arrives
+            // first, the release then gets to commit before this runs and finds the drag already over.
             if (armed && dragging && e.Pointer.PointerId == armedPointer && ReferenceEquals(e.OriginalSource, strip))
-                Finish(commit: true);
+            {
+                void CancelIfStillDragging()
+                {
+                    if (armed && dragging) Finish(commit: false);
+                }
+
+                if (strip.DispatcherQueue?.TryEnqueue(CancelIfStillDragging) != true) CancelIfStillDragging();
+            }
         };
     }
 
@@ -1286,6 +1306,7 @@ public partial class DockHost : ContentControl
         header.DragStarted += (_, grabOffset) => BeginHeaderDrag(item, header, grabOffset);
         header.DragMoved += cumulative => UpdateHeaderDrag(cumulative);
         header.DragCompleted += (_, _) => CommitHeaderDrag();
+        header.DragCanceled += (_, _) => CancelHeaderDrag();
 
         Grid.SetRow(header, 0);
         Grid.SetRow(item, 1);
@@ -1324,9 +1345,22 @@ public partial class DockHost : ContentControl
     /// </summary>
     private void Trace(string line) => (PlatformServices as Platform.Win32DockPlatformServices)?.Log?.Invoke(line);
 
-    private void FloatItem(DockItem item)
+    /// <summary>
+    /// Floats <paramref name="item"/> into its own window. With a <paramref name="pointer"/> (overlay
+    /// coords) the window opens under it, <paramref name="grabX"/> DIPs in from its left edge; with
+    /// <paramref name="restoreBounds"/> it opens at that saved frame; otherwise at the pane's remembered
+    /// frame, or over the pane itself. See <see cref="FloatPlacement"/> for the rules.
+    /// </summary>
+    private void FloatItem(
+        DockItem item,
+        Windows.Foundation.Point? pointer = null,
+        double grabX = DefaultGrabX,
+        DockWindowBounds? restoreBounds = null)
     {
         if (item.IsFloating || !item.AllowFloat || !PlatformServices.SupportsFloatingWindows) return;
+
+        // Measured while the pane is still docked: orphaning it below takes its position with it.
+        var pane = TryGetPaneScreenBounds(item);
 
         // Mark floating FIRST: the rebuild this triggers drops the item's chrome out of the docked
         // tree. The chrome grid still holds the item as a child, so explicitly orphan it — an element
@@ -1338,7 +1372,9 @@ public partial class DockHost : ContentControl
         // The library's fallback when the platform has no ready window is construct-on-demand, paying
         // the platform's construction cost under the gesture.
         var floatSw = System.Diagnostics.Stopwatch.StartNew();
-        var window = PlatformServices.TryAcquireFloatWindow();
+        Window? window = null;
+        try { window = PlatformServices.TryAcquireFloatWindow(); }
+        catch (Exception ex) { Trace($"[DockPerf] FloatItem: pool threw — {ex.GetType().Name}"); }
         var warm = window is not null;
 
         // A single-child shell rather than window.Content = item directly: the re-dock path detaches
@@ -1350,13 +1386,21 @@ public partial class DockHost : ContentControl
         // be closed by hand, and then throw from Window.Activate() on the next float. Pools should
         // evict on Closed, but the library still refuses to trust them: present defensively, retry with
         // a fresh window, and revert the whole transition if even that fails, so the pane can never be
-        // stranded invisible (dropped from the docked tree, no window).
+        // stranded invisible (dropped from the docked tree, no window). Construction itself is inside
+        // the guard too: a constructor that throws is the same failure as a window that won't present.
         if (window is null || !TryPresentFloatWindow(item, window, wrapper))
         {
             if (warm) Trace("[DockPerf] FloatItem: pooled window failed to present — constructing fresh");
+            if (window is not null) CloseWindowGuarded(window); // never leave a failed window open and unowned
             warm = false;
-            if (!TryPresentFloatWindow(item, new Window(), wrapper))
+
+            window = null;
+            try { window = new Window(); }
+            catch (Exception ex) { Trace($"[DockPerf] FloatItem: window construction threw — {ex.GetType().Name}"); }
+
+            if (window is null || !TryPresentFloatWindow(item, window, wrapper))
             {
+                if (window is not null) CloseWindowGuarded(window);
                 if (item.Parent is Panel p) p.Children.Remove(item);
                 item.IsFloating = false; // triggers the rebuild that re-docks the pane
                 Trace("[DockPerf] FloatItem: fresh window also failed — float reverted");
@@ -1364,11 +1408,135 @@ public partial class DockHost : ContentControl
             }
         }
 
+        PlaceFloatWindow(item, window, pane, pointer, grabX, restoreBounds);
+
         // The item now lives under the new window's XamlRoot — let content resync per-root state.
         item.RaiseReparented();
         SchedulePersist();
 
         Trace($"[DockPerf] FloatItem: warm={warm}, total={floatSw.ElapsedMilliseconds}ms");
+    }
+
+    /// <summary>Where along the title bar a float with no recorded grab point is held: near its left end.</summary>
+    private const double DefaultGrabX = 60;
+
+    /// <summary>
+    /// Title-bar height assumed when the platform can't measure the real frame — the old fixed estimate,
+    /// kept as the fallback so placement degrades to what it always did.
+    /// </summary>
+    private const double EstimatedCaptionDip = 32;
+
+    /// <summary>Sizes and positions a just-presented floating window. Best effort: the float stands either way.</summary>
+    private void PlaceFloatWindow(
+        DockItem item,
+        Window window,
+        DockWindowBounds? pane,
+        Windows.Foundation.Point? pointer,
+        double grabX,
+        DockWindowBounds? restoreBounds)
+    {
+        try
+        {
+            var scale = XamlRoot?.RasterizationScale ?? 1.0;
+            var win32 = PlatformServices as Platform.Win32DockPlatformServices;
+            var insets = win32?.TryGetFrameInsets(window)
+                ?? new FrameInsets(0, (int)Math.Round(EstimatedCaptionDip * scale), 0, 0);
+
+            (int X, int Y)? cursor = null;
+            if (pointer is { } p && OverlayToScreen(p) is { } screen) cursor = (screen.X, screen.Y);
+
+            // Nothing measured at all (no host window to map from) and nothing remembered: leave the
+            // window where the OS put it, exactly as before placement existed.
+            var remembered = restoreBounds ?? item.LastFloatBounds;
+            if (pane is null && cursor is null && remembered is null) return;
+
+            var plan = FloatPlacement.Plan(new FloatPlacementRequest
+            {
+                Pane = pane,
+                Remembered = remembered,
+                Cursor = cursor,
+                GrabX = (int)Math.Round(grabX * scale),
+                Insets = insets,
+                FallbackClientSize = ((int)(Math.Max(item.DockLength, 240) * scale), (int)(320 * scale)),
+                WorkAreas = win32?.GetWorkAreas() ?? [],
+            });
+
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = plan.Width, Height = plan.Height });
+            window.AppWindow.Move(new Windows.Graphics.PointInt32 { X = plan.X, Y = plan.Y });
+            item.LastFloatBounds = plan;
+        }
+        catch (Exception ex)
+        {
+            Trace($"[DockPerf] float placement failed — {ex.GetType().Name}");
+        }
+    }
+
+    /// <summary>
+    /// The docked pane's chrome (header + content) in physical screen pixels, or null when it isn't
+    /// laid out or can't be mapped to the screen.
+    /// </summary>
+    private DockWindowBounds? TryGetPaneScreenBounds(DockItem item)
+    {
+        try
+        {
+            var chrome = item.Parent is FrameworkElement { ActualWidth: > 0 } parent ? parent : (FrameworkElement)item;
+            if (chrome.XamlRoot is null || chrome.ActualWidth <= 0 || chrome.ActualHeight <= 0) return null;
+            if (HostClientOrigin() is not { } origin) return null;
+
+            var scale = XamlRoot?.RasterizationScale ?? 1.0;
+            var topLeft = chrome.TransformToVisual(null).TransformPoint(new Windows.Foundation.Point(0, 0));
+            return new DockWindowBounds(
+                origin.X + (int)Math.Round(topLeft.X * scale),
+                origin.Y + (int)Math.Round(topLeft.Y * scale),
+                (int)Math.Round(chrome.ActualWidth * scale),
+                (int)Math.Round(chrome.ActualHeight * scale));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Where the host window's XAML root origin sits on screen, in physical pixels. Measured by the
+    /// platform when it can; otherwise the window frame's position plus an estimated title bar.
+    /// </summary>
+    private Windows.Graphics.PointInt32? HostClientOrigin()
+    {
+        if (PlatformServices.HostWindow is not { } host) return null;
+        if ((PlatformServices as Platform.Win32DockPlatformServices)?.TryGetClientOrigin(host) is { } exact) return exact;
+
+        try
+        {
+            var scale = XamlRoot?.RasterizationScale ?? 1.0;
+            var pos = host.AppWindow.Position;
+            return new Windows.Graphics.PointInt32 { X = pos.X, Y = pos.Y + (int)Math.Round(EstimatedCaptionDip * scale) };
+        }
+        catch
+        {
+            return null; // host window mid-teardown
+        }
+    }
+
+    /// <summary>An overlay point in physical screen pixels — the inverse of <see cref="ScreenToOverlay"/>.</summary>
+    private Windows.Graphics.PointInt32? OverlayToScreen(Windows.Foundation.Point point)
+    {
+        if (HostClientOrigin() is not { } origin) return null;
+
+        try
+        {
+            var scale = XamlRoot?.RasterizationScale ?? 1.0;
+            var overlayOrigin = _overlayLayer.TransformToVisual(null).TransformPoint(new Windows.Foundation.Point(0, 0));
+            return new Windows.Graphics.PointInt32
+            {
+                X = origin.X + (int)Math.Round((overlayOrigin.X + point.X) * scale),
+                Y = origin.Y + (int)Math.Round((overlayOrigin.Y + point.Y) * scale),
+            };
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -1380,6 +1548,7 @@ public partial class DockHost : ContentControl
     {
         try
         {
+            ThrowIfFaulted(DockFault.FloatWindow);
             window.Title = item.Title ?? "Panel";
             window.Content = wrapper;
             window.Activate();
@@ -1403,6 +1572,7 @@ public partial class DockHost : ContentControl
         {
             if (_closingWindowProgrammatically) return;
             closeAsked = true;
+            RememberFloatBounds(item); // the last chance to read the frame; the window is gone after this
             if (!item.RaiseCloseRequested(fromFloatingWindow: true))
             {
                 args.Cancel = true;
@@ -1429,10 +1599,13 @@ public partial class DockHost : ContentControl
             finally { _suppressPersist--; }
         };
 
-        // Moving or resizing the window changes the layout document (its bounds are saved).
+        // Moving or resizing the window changes the layout document (its bounds are saved), and is what
+        // the next float of this pane reopens at.
         Windows.Foundation.TypedEventHandler<Microsoft.UI.Windowing.AppWindow, Microsoft.UI.Windowing.AppWindowChangedEventArgs> onChanged = (_, args) =>
         {
-            if (args.DidPositionChange || args.DidSizeChange) SchedulePersist();
+            if (!args.DidPositionChange && !args.DidSizeChange) return;
+            RememberFloatBounds(item);
+            SchedulePersist();
         };
 
         window.Closed += onClosed;
@@ -1482,6 +1655,13 @@ public partial class DockHost : ContentControl
     private void DockItemBack(DockItem item, bool reopen, bool windowAlreadyClosed = false)
     {
         if (!item.IsFloating) return;
+
+        // A drag-back of THIS pane can't outlive its window: the tracker that would have delivered
+        // its drop is disposed below, so an armed re-dock would otherwise sit forever and block every
+        // later drag in the host.
+        if (_redockActive && ReferenceEquals(_dragItem, item)) ClearDragState();
+
+        if (!windowAlreadyClosed) RememberFloatBounds(item);
 
         Window? windowToClose = null;
         if (_floatingWindows.Remove(item, out var entry))
@@ -1593,10 +1773,17 @@ public partial class DockHost : ContentControl
         }
     }
 
+    /// <summary>Records the pane's current floating frame as the one its next float reopens at.</summary>
+    private void RememberFloatBounds(DockItem item)
+    {
+        if (TryGetFloatBounds(item) is { } bounds) item.LastFloatBounds = bounds;
+    }
+
     /// <summary>
-    /// Re-floats the items a restored document recorded as floating, at their saved bounds. Deferred to
-    /// a low-priority dispatcher pass so the docked layout paints first and the platform has had its
-    /// chance to finish window setup (owner handle, pool) in the same startup.
+    /// Re-floats the items a restored document recorded as floating, at their saved bounds (fitted onto
+    /// a connected monitor — one may have been unplugged since). Deferred to a low-priority dispatcher
+    /// pass so the docked layout paints first and the platform has had its chance to finish window setup
+    /// (owner handle, pool) in the same startup.
     /// </summary>
     private void RestoreFloatingItems(List<(DockItem Item, DockWindowBounds? Bounds)> floats)
     {
@@ -1607,43 +1794,9 @@ public partial class DockHost : ContentControl
             foreach (var (item, bounds) in floats)
             {
                 if (!Items.Contains(item) || !item.IsOpen || item.IsFloating || !item.AllowFloat) continue;
-
-                FloatItem(item);
-                if (bounds is { } b && _floatingWindows.TryGetValue(item, out var entry))
-                    ApplyWindowBounds(entry.Window, b);
+                FloatItem(item, restoreBounds: bounds);
             }
         });
-    }
-
-    /// <summary>
-    /// Best-effort placement of a restored floating window. The saved position is applied only when its
-    /// title area still lands on a display (a monitor may have been unplugged since); otherwise only the
-    /// size is restored and the window stays where the OS put it.
-    /// </summary>
-    private void ApplyWindowBounds(Window window, DockWindowBounds bounds)
-    {
-        try
-        {
-            window.AppWindow.Resize(new Windows.Graphics.SizeInt32
-            {
-                Width = Math.Max(bounds.Width, 160),
-                Height = Math.Max(bounds.Height, 120),
-            });
-
-            // Probe a point inside the title bar rather than the corner: a window whose corner is just
-            // off-screen is still reachable, one whose title bar is off-screen is not. DisplayArea's
-            // lookups are not implemented on Uno, so the check goes through the Win32 platform; a
-            // platform that can't answer gets the saved position as stored.
-            var probe = new Windows.Graphics.PointInt32 { X = bounds.X + 40, Y = bounds.Y + 12 };
-            var onScreen = (PlatformServices as Platform.Win32DockPlatformServices)?.IsOnAnyDisplay(probe);
-            if (onScreen != false)
-                window.AppWindow.Move(new Windows.Graphics.PointInt32 { X = bounds.X, Y = bounds.Y });
-        }
-        catch
-        {
-            // Placement is garnish; the pane is floating either way.
-            Trace("[DockPerf] restore: floating window bounds could not be applied");
-        }
     }
 
     // ---- Persistence ----------------------------------------------------------------------------
@@ -1689,7 +1842,8 @@ public partial class DockHost : ContentControl
                 Band = i.Band,
                 LayerGroup = i.LayerGroup,
                 IsFloating = i.IsFloating,
-                FloatBounds = i.IsFloating ? TryGetFloatBounds(i) : null,
+                // A docked pane keeps its last floating frame too: it is where its next float reopens.
+                FloatBounds = (i.IsFloating ? TryGetFloatBounds(i) : null) ?? i.LastFloatBounds,
                 IsSelectedTab = i.TabGroup is { } group
                     && _tabSelection.TryGetValue(group, out var selected)
                     && ReferenceEquals(selected, i),
@@ -1732,6 +1886,7 @@ public partial class DockHost : ContentControl
             if (record.Version >= 5) item.LayerGroup = record.LayerGroup;
             if (record.ColumnWeight is { } column) _columnWeights[SlotKey(item)] = column;
             if (record.IsSelectedTab && item.TabGroup is { } group) _tabSelection[group] = item;
+            if (record.FloatBounds is { } floatBounds) item.LastFloatBounds = floatBounds;
             if (record.IsFloating) floats.Add((item, record.FloatBounds));
         }
 
@@ -1855,16 +2010,31 @@ public partial class DockHost : ContentControl
 
     // ---- Header drag: intra-host re-dock ---------------------------------------------------------
     //
-    // Drag a pane's header toward an edge; docking-guide INDICATORS (small squares at each allowed
-    // edge's midpoint, after the UnoDock prior art) show where a drop is
-    // legal; hovering one previews the landing region; releasing over it re-docks the item there.
-    // Everything is visual-only until release — a mid-drag rebuild would destroy the very element
-    // being dragged, so the model is mutated only at commit.
+    // Drag a pane's header toward an edge; docking-guide buttons (DockGuideVisuals: small window
+    // pictures with the landing part filled in) show where a drop is legal; hovering one previews the
+    // landing region; releasing over it re-docks the item there. Everything is visual-only until
+    // release — a mid-drag rebuild would destroy the very element being dragged, so the model is
+    // mutated only at commit.
+    //
+    // Every way a drag ends goes through ClearDragState, which removes the guide visuals itself
+    // (each step independently), so no ending — a commit that throws, a cancel, the host unloading —
+    // can leave guides on screen or a drag armed that blocks the next one.
 
-    private const double GuideSize = 44;
     private const double GuideInset = 16;
-    private const double GuideHitPadding = 8; // forgiving hover on a 44px target
+    private const double GuideHitPadding = 8; // forgiving hover on the lone edge markers
     private const double PreviewThickness = 72;
+
+    // The current drag's colors, resolved once when its guides go up.
+    private DockGuidePalette _guidePalette = DockGuidePalette.For(ElementTheme.Light);
+
+    // Plates under the edge markers and the document compass; the slot cluster's are kept apart
+    // because they come and go with the hovered slot.
+    private readonly List<UIElement> _guidePlates = new();
+    private readonly List<UIElement> _clusterPlates = new();
+
+    // Escape cancels an in-host drag. Hooked on the window's root for the drag's duration only.
+    private UIElement? _escapeTarget;
+    private Microsoft.UI.Xaml.Input.KeyEventHandler? _escapeHandler;
 
     /// <summary>What releasing the drag right now would do.</summary>
     private enum DropKind { None, Edge, Group, InsertAbove, InsertBelow, InsertLeft, InsertRight }
@@ -1920,6 +2090,7 @@ public partial class DockHost : ContentControl
         _dragLastPointer = _dragPointer;
 
         ShowDragGuides(item);
+        HookEscape();
 
         // A lightweight ghost of the header follows the drag; the real pane stays where it is until
         // the drop commits. The "❐ float" tag lights up whenever a release RIGHT NOW would float
@@ -1979,72 +2150,86 @@ public partial class DockHost : ContentControl
     /// </summary>
     private void ShowDragGuides(DockItem item)
     {
+        _guidePalette = DockGuidePalette.For(ActualTheme);
         ShowDocumentCompass(item);
 
-        // One guide square per edge the item may legally land on — a disallowed edge never appears
-        // (the AllowedDockEdges contract). Glyphs are half-filled squares spelled as escapes: plain
-        // BMP unicode, no symbol font (the mojibake lesson).
+        // One marker per edge the item may legally land on — a disallowed edge never appears (the
+        // AllowedDockEdges contract). Each sits on its own small plate against the host border and
+        // shows the outer-edge picture: the pane against the window frame.
         foreach (var edge in new[] { DockEdge.Left, DockEdge.Right, DockEdge.Top, DockEdge.Bottom })
         {
             if (!item.AllowedDockEdges.HasFlag(edge)) continue;
 
-            // Arrows pointing into their edge — matching the DevExpress edge markers and the cluster's
-            // cross-axis arrows, so one visual language covers both guide tiers.
-            var glyph = edge switch
-            {
-                DockEdge.Left => "←",
-                DockEdge.Right => "→",
-                DockEdge.Top => "↑",
-                _ => "↓",
-            };
+            var (cx, cy) = MarkerCenter(edge);
+            var (plates, _) = DockGuideVisuals.Plate(cx, cy, 0, 0, 0, 0, _guidePalette);
+            AddGuidePlates(_guidePlates, plates);
 
-            var guide = new Border
-            {
-                Width = GuideSize,
-                Height = GuideSize,
-                CornerRadius = new CornerRadius(6),
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0xD8, 0x2B, 0x2B, 0x2B)),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF)),
-                BorderThickness = new Thickness(1),
-                IsHitTestVisible = false,
-                Tag = edge,
-                Child = new TextBlock
-                {
-                    Text = glyph,
-                    FontSize = 20,
-                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                },
-            };
-
-            switch (edge)
-            {
-                case DockEdge.Left:
-                    guide.HorizontalAlignment = HorizontalAlignment.Left;
-                    guide.VerticalAlignment = VerticalAlignment.Center;
-                    guide.Margin = new Thickness(GuideInset, 0, 0, 0);
-                    break;
-                case DockEdge.Right:
-                    guide.HorizontalAlignment = HorizontalAlignment.Right;
-                    guide.VerticalAlignment = VerticalAlignment.Center;
-                    guide.Margin = new Thickness(0, 0, GuideInset, 0);
-                    break;
-                case DockEdge.Top:
-                    guide.HorizontalAlignment = HorizontalAlignment.Center;
-                    guide.VerticalAlignment = VerticalAlignment.Top;
-                    guide.Margin = new Thickness(0, GuideInset, 0, 0);
-                    break;
-                default:
-                    guide.HorizontalAlignment = HorizontalAlignment.Center;
-                    guide.VerticalAlignment = VerticalAlignment.Bottom;
-                    guide.Margin = new Thickness(0, 0, 0, GuideInset);
-                    break;
-            }
-
-            _dragZones.Add(guide);
-            _overlayLayer.Children.Add(guide);
+            var marker = DockGuideVisuals.Button(GuideGlyph.EdgeOuter, edge, _guidePalette,
+                cx - DockGuideVisuals.Cell / 2, cy - DockGuideVisuals.Cell / 2);
+            marker.Tag = edge;
+            _dragZones.Add(marker);
+            _overlayLayer.Children.Add(marker);
         }
+    }
+
+    /// <summary>Center of an edge's marker, in overlay coordinates: midway along the border, inset from it.</summary>
+    private (double X, double Y) MarkerCenter(DockEdge edge)
+    {
+        var w = _overlayLayer.ActualWidth;
+        var h = _overlayLayer.ActualHeight;
+        var reach = GuideInset + DockGuideVisuals.Cell / 2 + DockGuideVisuals.PlatePadding;
+        return edge switch
+        {
+            DockEdge.Left => (reach, h / 2),
+            DockEdge.Right => (w - reach, h / 2),
+            DockEdge.Top => (w / 2, reach),
+            _ => (w / 2, h - reach),
+        };
+    }
+
+    /// <summary>Adds plate layers to the overlay, tracked in <paramref name="registry"/> for removal.</summary>
+    private void AddGuidePlates(List<UIElement> registry, UIElement[] plates)
+    {
+        foreach (var plate in plates)
+        {
+            registry.Add(plate);
+            _overlayLayer.Children.Add(plate);
+        }
+    }
+
+    /// <summary>Hooks Escape on the window's root so it can cancel the drag in flight.</summary>
+    private void HookEscape()
+    {
+        if (_escapeTarget is not null || XamlRoot?.Content is not UIElement root) return;
+
+        _escapeHandler = (_, e) =>
+        {
+            if (e.Key != Windows.System.VirtualKey.Escape || _dragItem is null || _redockActive) return;
+            e.Handled = true;
+            CancelHeaderDrag();
+        };
+
+        try
+        {
+            root.AddHandler(KeyDownEvent, _escapeHandler, handledEventsToo: true);
+            _escapeTarget = root;
+        }
+        catch
+        {
+            _escapeHandler = null; // no keyboard route on this root; the drag just isn't Escape-cancelable
+        }
+    }
+
+    private void UnhookEscape()
+    {
+        if (_escapeTarget is not null && _escapeHandler is not null)
+        {
+            try { _escapeTarget.RemoveHandler(KeyDownEvent, _escapeHandler); }
+            catch { /* root already gone */ }
+        }
+
+        _escapeTarget = null;
+        _escapeHandler = null;
     }
 
     /// <summary>
@@ -2200,29 +2385,27 @@ public partial class DockHost : ContentControl
             RebuildSlotCluster(slotIndex);
         }
 
-        // Highlight whatever the current drop target is.
+        // Highlight whatever the current drop target is. A marker and a document-compass button can
+        // both mean "this edge, outer band"; only the one actually under the pointer lights.
+        var markerHit = false;
         foreach (var zone in _dragZones)
         {
-            var isHover = _dropKind == DropKind.Edge && (DockEdge)zone.Tag! == hoverEdge && hoverBand == DockBand.Outer;
-            zone.Background = new SolidColorBrush(isHover
-                ? Windows.UI.Color.FromArgb(0xE8, 0x2D, 0x5B, 0x8A)
-                : Windows.UI.Color.FromArgb(0xD8, 0x2B, 0x2B, 0x2B));
+            var isHover = _dropKind == DropKind.Edge && (DockEdge)zone.Tag! == hoverEdge && hoverBand == DockBand.Outer
+                && GuideRect(hoverEdge).Contains(pointer);
+            markerHit |= isHover;
+            DockGuideVisuals.SetHover(zone, isHover, _guidePalette);
         }
 
         foreach (var (guide, edge, band, _) in _documentGuides)
         {
-            var isHover = _dropKind == DropKind.Edge && edge == hoverEdge && band == hoverBand;
-            guide.Background = new SolidColorBrush(isHover
-                ? Windows.UI.Color.FromArgb(0xE8, 0x2D, 0x5B, 0x8A)
-                : Windows.UI.Color.FromArgb(0xD8, 0x2B, 0x2B, 0x2B));
+            var isHover = !markerHit && _dropKind == DropKind.Edge && edge == hoverEdge && band == hoverBand;
+            DockGuideVisuals.SetHover(guide, isHover, _guidePalette);
         }
 
         foreach (var (guide, kind, edge, _) in _clusterGuides)
         {
             var isHover = _dropKind == kind && (kind != DropKind.Edge || edge == hoverEdge);
-            guide.Background = new SolidColorBrush(isHover
-                ? Windows.UI.Color.FromArgb(0xE8, 0x2D, 0x5B, 0x8A)
-                : Windows.UI.Color.FromArgb(0xD8, 0x2B, 0x2B, 0x2B));
+            DockGuideVisuals.SetHover(guide, isHover, _guidePalette);
         }
 
         // Would releasing here float the pane? Drives both float affordances below.
@@ -2246,17 +2429,34 @@ public partial class DockHost : ContentControl
     }
 
     /// <summary>
-    /// The approximate frame a float at <paramref name="pointer"/> would occupy: the pane's current
-    /// docked size when it has one, its DockLength otherwise, anchored the way the real tear-out
-    /// window is (the cursor lands on the would-be title area).
+    /// The approximate frame a float at <paramref name="pointer"/> would occupy, matching what
+    /// <see cref="FloatPlacement"/> will open: the remembered floating size when the pane has floated
+    /// before, its docked size otherwise, held at the grab point.
     /// </summary>
     private Windows.Foundation.Rect FloatPreviewRect(Windows.Foundation.Point pointer)
     {
         var item = _dragItem!;
-        var w = Math.Clamp(item.ActualWidth > 40 ? item.ActualWidth : item.DockLength, 200, 520);
-        var h = Math.Clamp(item.ActualHeight > 40 ? item.ActualHeight : 260, 160, 420);
-        return new Windows.Foundation.Rect(pointer.X - 60, pointer.Y - 16, w, h);
+        var scale = XamlRoot?.RasterizationScale ?? 1.0;
+        var chrome = item.Parent as FrameworkElement ?? item;
+
+        double w, h;
+        if (item.LastFloatBounds is { } remembered)
+        {
+            w = remembered.Width / scale;
+            h = remembered.Height / scale;
+        }
+        else
+        {
+            w = chrome.ActualWidth > 40 ? chrome.ActualWidth : item.DockLength;
+            h = chrome.ActualHeight > 40 ? chrome.ActualHeight : 260;
+        }
+
+        var grabX = Math.Clamp(DragGrabX(), 16, Math.Max(16, w - 16));
+        return new Windows.Foundation.Rect(pointer.X - grabX, pointer.Y - 12, Math.Max(w, FloatPlacement.MinWidth / scale), Math.Max(h, FloatPlacement.MinHeight / scale));
     }
+
+    /// <summary>How far into the dragged header the user grabbed it — kept under the cursor when it floats.</summary>
+    private double DragGrabX() => Math.Max(_dragPointer.X - _dragOrigin.X, 0);
 
     /// <summary>
     /// Ends the drag by floating the pane at the cursor — the mid-drag gesture for dragging clearly
@@ -2266,8 +2466,9 @@ public partial class DockHost : ContentControl
     private void TearOutToFloat(Windows.Foundation.Point pointer)
     {
         var item = _dragItem!;
+        var grabX = DragGrabX();
         ClearDragState();
-        FloatAtPointer(item, pointer);
+        FloatAtPointer(item, pointer, grabX);
 
         // The user's button is still down, so keep the gesture going — the window then
         // follows the cursor and lands where they RELEASE, which is what a tear-out should do. Before
@@ -2276,7 +2477,9 @@ public partial class DockHost : ContentControl
         // keeps that behavior.
         if (_floatingWindows.TryGetValue(item, out var floated))
         {
-            var carried = PlatformServices.BeginWindowDrag(floated.Window);
+            var carried = false;
+            try { carried = PlatformServices.BeginWindowDrag(floated.Window); }
+            catch (Exception ex) { Trace($"[DockPerf] tear-out: BeginWindowDrag threw — {ex.GetType().Name}"); }
             Trace($"[DockPerf] tear-out float committed (osDrag={carried})");
             return;
         }
@@ -2284,35 +2487,9 @@ public partial class DockHost : ContentControl
         Trace("[DockPerf] tear-out float committed");
     }
 
-    /// <summary>Floats <paramref name="item"/> and best-effort places its window at the pointer.</summary>
-    private void FloatAtPointer(DockItem item, Windows.Foundation.Point pointer)
-    {
-        FloatItem(item);
-
-        // Best-effort cursor placement: host frame origin + the overlay's offset within the XamlRoot
-        // + the pointer, scaled to physical pixels, nudged so the cursor lands on the new title area.
-        // The content-to-frame offset (title bar) isn't exposed, so ~32 DIP approximates it — v1
-        // accuracy is cosmetic, and a null HostWindow simply leaves the window at the OS default.
-        if (_floatingWindows.TryGetValue(item, out var entry) && PlatformServices.HostWindow is { } host)
-        {
-            try
-            {
-                var scale = XamlRoot?.RasterizationScale ?? 1.0;
-                var overlayOrigin = _overlayLayer.TransformToVisual(null)
-                    .TransformPoint(new Windows.Foundation.Point(0, 0));
-                var basePos = host.AppWindow.Position;
-                entry.Window.AppWindow.Move(new Windows.Graphics.PointInt32
-                {
-                    X = basePos.X + (int)((overlayOrigin.X + pointer.X - 60) * scale),
-                    Y = basePos.Y + (int)((overlayOrigin.Y + pointer.Y + 16) * scale),
-                });
-            }
-            catch
-            {
-                // Positioning is garnish; the float itself already succeeded.
-            }
-        }
-    }
+    /// <summary>Floats <paramref name="item"/> with its window under the pointer, held <paramref name="grabX"/> DIPs in.</summary>
+    private void FloatAtPointer(DockItem item, Windows.Foundation.Point pointer, double grabX)
+        => FloatItem(item, pointer, grabX);
 
     /// <summary>
     /// Builds (or clears) the guide cluster over the hovered slot, in the DevExpress compass shape:
@@ -2323,7 +2500,9 @@ public partial class DockHost : ContentControl
     private void RebuildSlotCluster(int slotIndex)
     {
         foreach (var (guide, _, _, _) in _clusterGuides) _overlayLayer.Children.Remove(guide);
+        foreach (var plate in _clusterPlates) _overlayLayer.Children.Remove(plate);
         _clusterGuides.Clear();
+        _clusterPlates.Clear();
         _clusterBounds = default;
 
         if (slotIndex < 0 || slotIndex >= _slotRegistry.Count) return;
@@ -2332,83 +2511,48 @@ public partial class DockHost : ContentControl
         var topLeft = chrome.TransformToVisual(_overlayLayer).TransformPoint(new Windows.Foundation.Point(0, 0));
         var cx = topLeft.X + chrome.ActualWidth / 2;
         var cy = topLeft.Y + chrome.ActualHeight / 2;
+        const double c = DockGuideVisuals.Cell;
 
-        const double s = 34;
-        const double gap = 6;
-        const double step = s + gap;
-
-        // The full per-pane compass, four buttons around a center one (regions are two-level:
-        // layers of side-by-side slots):
-        //   center = join this slot as a tab group — drawn as a mini TABBED PANE, the DevExpress
-        //            folder-tab silhouette for targets whose landing zone produces tabs
-        //   ↑ / ↓  = a new full-span layer above/below this slot's layer
-        //   ← / →  = side-by-side with this slot, inside its layer
+        // The per-pane compass: one cross-shaped plate, five buttons edge to edge (regions are
+        // two-level: layers of side-by-side slots):
+        //   center = join this slot as a tab group (the tabbed-window picture)
+        //   up/down    = a new full-span layer above/below this slot's layer
+        //   left/right = side by side with this slot, inside its layer
         // Docking to a full HOST edge is always and only the edge markers / document compass.
-        AddClusterGuide(MakeTabbedPaneIcon(), cx - s / 2, cy - s / 2, s, DropKind.Group, DockEdge.None);
-        AddClusterGuide("↑", cx - s / 2, cy - s / 2 - step, s, DropKind.InsertAbove, DockEdge.None);
-        AddClusterGuide("↓", cx - s / 2, cy - s / 2 + step, s, DropKind.InsertBelow, DockEdge.None);
-        AddClusterGuide("←", cx - s / 2 - step, cy - s / 2, s, DropKind.InsertLeft, DockEdge.None);
-        AddClusterGuide("→", cx - s / 2 + step, cy - s / 2, s, DropKind.InsertRight, DockEdge.None);
+        var (plates, bounds) = DockGuideVisuals.Plate(cx, cy, 1, 1, 1, 1, _guidePalette);
+        AddGuidePlates(_clusterPlates, plates);
 
-        // The compass footprint, for the hover-territory stabiliser: the union of every guide's hit
-        // rect, so travelling between buttons (or onto ones overhanging a thin slot) stays "inside".
-        var bounds = _clusterGuides[0].Hit;
-        foreach (var (_, _, _, hit) in _clusterGuides)
-        {
-            var x1 = Math.Min(bounds.X, hit.X);
-            var y1 = Math.Min(bounds.Y, hit.Y);
-            var x2 = Math.Max(bounds.X + bounds.Width, hit.X + hit.Width);
-            var y2 = Math.Max(bounds.Y + bounds.Height, hit.Y + hit.Height);
-            bounds = new Windows.Foundation.Rect(x1, y1, x2 - x1, y2 - y1);
-        }
+        AddClusterGuide(GuideGlyph.Tab, DockEdge.None, cx, cy, DropKind.Group);
+        AddClusterGuide(GuideGlyph.Split, DockEdge.Top, cx, cy - c, DropKind.InsertAbove);
+        AddClusterGuide(GuideGlyph.Split, DockEdge.Bottom, cx, cy + c, DropKind.InsertBelow);
+        AddClusterGuide(GuideGlyph.Split, DockEdge.Left, cx - c, cy, DropKind.InsertLeft);
+        AddClusterGuide(GuideGlyph.Split, DockEdge.Right, cx + c, cy, DropKind.InsertRight);
 
+        // The compass footprint, for the hover-territory stabiliser: the whole plate, so travelling
+        // between buttons (or onto ones overhanging a thin slot) stays "inside".
         _clusterBounds = bounds;
     }
 
-    private void AddClusterGuide(string glyph, double x, double y, double size, DropKind kind, DockEdge edge)
-        => AddClusterGuide(MakeGuideGlyph(glyph), x, y, size, kind, edge);
-
-    private void AddClusterGuide(UIElement content, double x, double y, double size, DropKind kind, DockEdge edge)
+    /// <summary>One slot-cluster button centered on (<paramref name="cx"/>, <paramref name="cy"/>).</summary>
+    private void AddClusterGuide(GuideGlyph glyph, DockEdge direction, double cx, double cy, DropKind kind)
     {
-        var guide = MakeGuide(content, x, y, size);
+        var x = cx - DockGuideVisuals.Cell / 2;
+        var y = cy - DockGuideVisuals.Cell / 2;
+        var guide = DockGuideVisuals.Button(glyph, direction, _guidePalette, x, y);
         _overlayLayer.Children.Add(guide);
-        _clusterGuides.Add((guide, kind, edge, new Windows.Foundation.Rect(
-            x - GuideHitPadding, y - GuideHitPadding,
-            size + GuideHitPadding * 2, size + GuideHitPadding * 2)));
+
+        // Buttons share edges, so their hit areas are exactly their cells — padding would overlap the
+        // neighbor. The plate around them is hover territory anyway (see _clusterBounds).
+        _clusterGuides.Add((guide, kind, DockEdge.None,
+            new Windows.Foundation.Rect(x, y, DockGuideVisuals.Cell, DockGuideVisuals.Cell)));
     }
 
     /// <summary>
-    /// The tab-target icon: a miniature tabbed pane (tab notch over a body), so a target whose drop
-    /// PRODUCES tabs advertises it — the DevExpress folder-tab look.
-    /// </summary>
-    private static UIElement MakeTabbedPaneIcon()
-    {
-        var icon = new Grid { Width = 20, Height = 16, IsHitTestVisible = false };
-        icon.Children.Add(new Border
-        {
-            Width = 9,
-            Height = 5,
-            CornerRadius = new CornerRadius(2, 2, 0, 0),
-            Background = new SolidColorBrush(Microsoft.UI.Colors.White),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top,
-        });
-        icon.Children.Add(new Border
-        {
-            Height = 12,
-            CornerRadius = new CornerRadius(0, 2, 2, 2),
-            Background = new SolidColorBrush(Microsoft.UI.Colors.White),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Bottom,
-        });
-        return icon;
-    }
-
-    /// <summary>
-    /// The document compass (from the DevExpress demo): anchored at the document's center, no center
-    /// button, DOUBLED arrows per direction distinguished by distance — INNER docks only the
-    /// document's extent (<see cref="DockBand.Inner"/>), OUTER against the entire host border
-    /// (<see cref="DockBand.Outer"/>). Same glyph both distances, exactly like the reference.
+    /// The document compass (after the DevExpress dock manager): anchored at the document's center,
+    /// a non-interactive document picture in the middle, and TWO buttons per direction on one
+    /// cross-shaped plate — the INNER one docks only the document's extent (<see cref="DockBand.Inner"/>,
+    /// the pane lands inside the panes already on that edge), the OUTER one against the entire host
+    /// border (<see cref="DockBand.Outer"/>). Their pictures show the difference.
     /// </summary>
     private void ShowDocumentCompass(DockItem item)
     {
@@ -2430,78 +2574,51 @@ public partial class DockHost : ContentControl
 
         var cx = origin.X + docW / 2;
         var cy = origin.Y + docH / 2;
-        const double s = 34;
-        const double gap = 6;
-        const double step = s + gap;
+        const double c = DockGuideVisuals.Cell;
+
+        int Arm(DockEdge edge) => item.AllowedDockEdges.HasFlag(edge) ? 2 : 0;
+        var (plates, _) = DockGuideVisuals.Plate(cx, cy, Arm(DockEdge.Top), Arm(DockEdge.Right), Arm(DockEdge.Bottom), Arm(DockEdge.Left), _guidePalette);
+        AddGuidePlates(_guidePlates, plates);
+
+        // The center is the document itself: drawn, never a target.
+        var center = DockGuideVisuals.Button(GuideGlyph.Document, DockEdge.None, _guidePalette, cx - c / 2, cy - c / 2);
+        _guidePlates.Add(center);
+        _overlayLayer.Children.Add(center);
 
         foreach (var edge in new[] { DockEdge.Left, DockEdge.Right, DockEdge.Top, DockEdge.Bottom })
         {
             if (!item.AllowedDockEdges.HasFlag(edge)) continue;
 
-            var (dx, dy, glyph) = edge switch
+            var (dx, dy) = edge switch
             {
-                DockEdge.Left => (-1.0, 0.0, "←"),
-                DockEdge.Right => (1.0, 0.0, "→"),
-                DockEdge.Top => (0.0, -1.0, "↑"),
-                _ => (0.0, 1.0, "↓"),
+                DockEdge.Left => (-1.0, 0.0),
+                DockEdge.Right => (1.0, 0.0),
+                DockEdge.Top => (0.0, -1.0),
+                _ => (0.0, 1.0),
             };
 
-            AddDocumentGuide(glyph, cx - s / 2 + dx * step, cy - s / 2 + dy * step, s, edge, DockBand.Inner);
-            AddDocumentGuide(glyph, cx - s / 2 + dx * step * 2, cy - s / 2 + dy * step * 2, s, edge, DockBand.Outer);
+            AddDocumentGuide(GuideGlyph.EdgeInner, cx + dx * c, cy + dy * c, edge, DockBand.Inner);
+            AddDocumentGuide(GuideGlyph.EdgeOuter, cx + dx * c * 2, cy + dy * c * 2, edge, DockBand.Outer);
         }
     }
 
-    private void AddDocumentGuide(string glyph, double x, double y, double size, DockEdge edge, DockBand band)
+    /// <summary>One document-compass button centered on (<paramref name="cx"/>, <paramref name="cy"/>).</summary>
+    private void AddDocumentGuide(GuideGlyph glyph, double cx, double cy, DockEdge edge, DockBand band)
     {
-        var guide = MakeGuide(MakeGuideGlyph(glyph), x, y, size);
+        var x = cx - DockGuideVisuals.Cell / 2;
+        var y = cy - DockGuideVisuals.Cell / 2;
+        var guide = DockGuideVisuals.Button(glyph, edge, _guidePalette, x, y);
         _overlayLayer.Children.Add(guide);
-        _documentGuides.Add((guide, edge, band, new Windows.Foundation.Rect(
-            x - GuideHitPadding, y - GuideHitPadding,
-            size + GuideHitPadding * 2, size + GuideHitPadding * 2)));
+        _documentGuides.Add((guide, edge, band,
+            new Windows.Foundation.Rect(x, y, DockGuideVisuals.Cell, DockGuideVisuals.Cell)));
     }
 
-    /// <summary>One guide square, absolutely positioned in overlay coordinates via RenderTransform.</summary>
-    private static Border MakeGuide(UIElement content, double x, double y, double size)
-    {
-        return new Border
-        {
-            Width = size,
-            Height = size,
-            CornerRadius = new CornerRadius(6),
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0xD8, 0x2B, 0x2B, 0x2B)),
-            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF)),
-            BorderThickness = new Thickness(1),
-            IsHitTestVisible = false,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top,
-            RenderTransform = new Microsoft.UI.Xaml.Media.TranslateTransform { X = x, Y = y },
-            Child = content,
-        };
-    }
-
-    private static TextBlock MakeGuideGlyph(string glyph) => new()
-    {
-        Text = glyph,
-        FontSize = 18,
-        Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-        HorizontalAlignment = HorizontalAlignment.Center,
-        VerticalAlignment = VerticalAlignment.Center,
-    };
-
-    /// <summary>The hit rectangle for an edge's guide square, padded to be forgiving on a small target.</summary>
+    /// <summary>The hit rectangle for an edge's marker, padded to be forgiving on a lone small target.</summary>
     private Windows.Foundation.Rect GuideRect(DockEdge edge)
     {
-        var w = _overlayLayer.ActualWidth;
-        var h = _overlayLayer.ActualHeight;
-        const double s = GuideSize + GuideHitPadding * 2;
-
-        return edge switch
-        {
-            DockEdge.Left => new Windows.Foundation.Rect(GuideInset - GuideHitPadding, (h - s) / 2, s, s),
-            DockEdge.Right => new Windows.Foundation.Rect(w - GuideInset - GuideSize - GuideHitPadding, (h - s) / 2, s, s),
-            DockEdge.Top => new Windows.Foundation.Rect((w - s) / 2, GuideInset - GuideHitPadding, s, s),
-            _ => new Windows.Foundation.Rect((w - s) / 2, h - GuideInset - GuideSize - GuideHitPadding, s, s),
-        };
+        var (cx, cy) = MarkerCenter(edge);
+        var half = DockGuideVisuals.Cell / 2 + DockGuideVisuals.PlatePadding + GuideHitPadding;
+        return new Windows.Foundation.Rect(cx - half, cy - half, half * 2, half * 2);
     }
 
     /// <summary>
@@ -2600,8 +2717,8 @@ public partial class DockHost : ContentControl
             // landing region's exact boundary is visible.
             _dragPreview = new Border
             {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x80, 0x2D, 0x5B, 0x8A)),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0xE0, 0x4A, 0x82, 0xC4)),
+                Background = _guidePalette.Preview,
+                BorderBrush = _guidePalette.PreviewOutline,
                 BorderThickness = new Thickness(2),
                 IsHitTestVisible = false,
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -2623,9 +2740,31 @@ public partial class DockHost : ContentControl
 
     private int _generatedGroupCounter;
 
-    /// <summary>Resets every drag field. Guide/ghost VISUALS die in the rebuild that always follows.</summary>
+    /// <summary>
+    /// Ends the current drag, whatever ended it: resets every drag field and takes the guide, ghost and
+    /// preview visuals off the overlay. Each removal is independent, so one that fails can't leave the
+    /// rest behind — and the fields are reset regardless, so the next drag can always arm.
+    /// </summary>
     private void ClearDragState()
     {
+        void Remove(UIElement? element)
+        {
+            if (element is null) return;
+            try { _overlayLayer.Children.Remove(element); }
+            catch (Exception ex) { Trace($"[DockPerf] drag teardown: removing a visual threw — {ex.GetType().Name}"); }
+        }
+
+        Remove(_dragGhost);
+        Remove(_dragPreview);
+        foreach (var zone in _dragZones) Remove(zone);
+        foreach (var (guide, _, _, _) in _documentGuides) Remove(guide);
+        foreach (var (guide, _, _, _) in _clusterGuides) Remove(guide);
+        foreach (var plate in _guidePlates) Remove(plate);
+        foreach (var plate in _clusterPlates) Remove(plate);
+
+        try { UnhookEscape(); }
+        catch (Exception ex) { Trace($"[DockPerf] drag teardown: unhooking Escape threw — {ex.GetType().Name}"); }
+
         _dragItem = null;
         _dragGhost = null;
         _dragGhostFloatHint = null;
@@ -2633,12 +2772,25 @@ public partial class DockHost : ContentControl
         _dragZones.Clear();
         _documentGuides.Clear();
         _clusterGuides.Clear();
+        _guidePlates.Clear();
+        _clusterPlates.Clear();
         _clusterBounds = default;
         _dragHoverEdge = DockEdge.None;
         _dragHoverBand = DockBand.Outer;
         _dropKind = DropKind.None;
         _hoverSlotIndex = -1;
         _redockActive = false;
+    }
+
+    /// <summary>
+    /// Abandons an in-host drag with nothing moved — the pointer was canceled, its capture was taken
+    /// away, or the user pressed Escape. The pane stays exactly where it was.
+    /// </summary>
+    private void CancelHeaderDrag()
+    {
+        if (_dragItem is null || _redockActive) return;
+        ClearDragState();
+        Trace("[DockPerf] drag canceled");
     }
 
     private void CommitHeaderDrag()
@@ -2653,6 +2805,7 @@ public partial class DockHost : ContentControl
         var targetBand = _dragHoverBand;
         var slotIndex = _hoverSlotIndex;
         var releasePoint = _dragLastPointer;
+        var grabX = DragGrabX();
 
         ClearDragState();
 
@@ -2664,18 +2817,30 @@ public partial class DockHost : ContentControl
             // still over the pane's own slot — that reads as a canceled drag, not a float request.
             if (item.AllowFloat && PlatformServices.SupportsFloatingWindows && !IsOverOwnSlot(item, releasePoint))
             {
-                FloatAtPointer(item, releasePoint);
+                FloatAtPointer(item, releasePoint, grabX);
                 Trace("[DockPerf] none-drop float committed");
-                return;
             }
 
-            Rebuild(); // nothing moved — rebuild only to clear the guides and ghost from the overlay
             return;
         }
 
-        var moved = ApplyDropPlacement(item, kind, targetEdge, targetBand, slotIndex);
-        // Items reordering rebuilds already, but property-only paths need one too.
-        Rebuild();
+        // The drop is applied in full or reported; either way the grid is rebuilt from the items, so
+        // whatever state the model reached is what the user sees — never a pane stranded off-grid.
+        var moved = false;
+        try
+        {
+            moved = ApplyDropPlacement(item, kind, targetEdge, targetBand, slotIndex);
+        }
+        catch (Exception ex)
+        {
+            Trace($"[DockPerf] drop placement threw — {ex.GetType().Name}: {ex.Message}");
+        }
+        finally
+        {
+            // Items reordering rebuilds already, but property-only paths need one too.
+            Rebuild();
+        }
+
         if (moved) PersistLayoutAsync();
     }
 
@@ -2698,6 +2863,7 @@ public partial class DockHost : ContentControl
     /// </summary>
     private bool ApplyDropPlacement(DockItem item, DropKind kind, DockEdge targetEdge, DockBand targetBand, int slotIndex)
     {
+        ThrowIfFaulted(DockFault.ApplyDrop);
         var moved = false;
         switch (kind)
         {
@@ -2795,12 +2961,26 @@ public partial class DockHost : ContentControl
     /// </summary>
     private void MoveItemNear(DockItem item, List<DockItem> slotItems, bool after)
     {
-        var list = (ObservableCollection<DockItem>)Items;
-        list.Remove(item);
         var anchor = after ? slotItems[^1] : slotItems[0];
-        var index = list.IndexOf(anchor);
-        if (index < 0) { list.Add(item); return; } // anchor vanished mid-drag; append rather than throw
-        list.Insert(after ? index + 1 : index, item);
+        MoveItemTo(item, anchor, after);
+    }
+
+    /// <summary>
+    /// Moves <paramref name="item"/> to just before or after <paramref name="anchor"/> in Items with a
+    /// single Move — never a Remove followed by an Insert, which would drop the pane from the host
+    /// altogether if anything went wrong between the two. A vanished anchor leaves the order alone.
+    /// </summary>
+    private void MoveItemTo(DockItem item, DockItem anchor, bool after)
+    {
+        var list = (ObservableCollection<DockItem>)Items;
+        var from = list.IndexOf(item);
+        var anchorIndex = list.IndexOf(anchor);
+        if (from < 0 || anchorIndex < 0 || ReferenceEquals(item, anchor)) return;
+
+        // Index in the list as it will be once the item is out of its old place.
+        if (from < anchorIndex) anchorIndex--;
+        var to = after ? anchorIndex + 1 : anchorIndex;
+        if (to != from) list.Move(from, to);
     }
 
     /// <summary>
@@ -2811,15 +2991,13 @@ public partial class DockHost : ContentControl
     /// </summary>
     private void MoveItemBorderMost(DockItem item, DockEdge edge, DockBand band)
     {
-        var list = (ObservableCollection<DockItem>)Items;
-        var peers = list.Where(i => !ReferenceEquals(i, item) && i.Edge == edge && i.Band == band).ToList();
+        var peers = Items.Where(i => !ReferenceEquals(i, item) && i.Edge == edge && i.Band == band).ToList();
         if (peers.Count == 0) return;
 
-        list.Remove(item);
         if (edge.IsFarSide())
-            list.Insert(list.IndexOf(peers[^1]) + 1, item);
+            MoveItemTo(item, peers[^1], after: true);
         else
-            list.Insert(list.IndexOf(peers[0]), item);
+            MoveItemTo(item, peers[0], after: false);
     }
 
     // ---- Floating-window drag-back-to-redock ----------------------------------------------------
@@ -2885,40 +3063,46 @@ public partial class DockHost : ContentControl
         var slotIndex = _hoverSlotIndex;
         ClearDragState();
 
-        if (kind == DropKind.None)
-        {
-            Rebuild(); // dropped outside every guide — the pane stays floating, just clear the visuals
-            return;
-        }
+        // Dropped outside every guide: the pane stays floating (ClearDragState took the guides down).
+        if (kind == DropKind.None) return;
 
         // Placement BEFORE the un-float: mutations on a still-floating item skip the docked grid, so
         // the one visible transition is DockItemBack landing the pane directly where it was dropped.
-        ApplyDropPlacement(item, kind, targetEdge, targetBand, slotIndex);
+        // A placement that throws re-docks nothing — the pane stays floating rather than landing
+        // somewhere half-decided.
+        try
+        {
+            ApplyDropPlacement(item, kind, targetEdge, targetBand, slotIndex);
+        }
+        catch (Exception ex)
+        {
+            Trace($"[DockPerf] float-drag drop placement threw — {ex.GetType().Name}: {ex.Message}");
+            Rebuild();
+            return;
+        }
+
         DockItemBack(item, reopen: true);
         PersistLayoutAsync();
         Trace("[DockPerf] float-drag redock committed");
     }
 
     /// <summary>
-    /// Maps an OS screen point into overlay coordinates — the inverse of TearOutToFloat's mapping,
-    /// sharing its approximation (AppWindow.Position is the FRAME origin and the frame-to-client
-    /// offset isn't exposed, so the title bar is estimated at ~32 DIP). The guide targets carry
-    /// enough hit padding to absorb the error; exact conversion can ride the platform interface
-    /// later if the estimate ever feels off.
+    /// Maps an OS screen point into overlay coordinates — the inverse of <see cref="OverlayToScreen"/>.
+    /// Exact where the platform can measure the host's client area; otherwise it shares that method's
+    /// title-bar estimate, which the guide targets' hit areas absorb.
     /// </summary>
     private Windows.Foundation.Point? ScreenToOverlay(Windows.Graphics.PointInt32 screen)
     {
-        if (PlatformServices.HostWindow is not { } host) return null;
+        if (HostClientOrigin() is not { } origin) return null;
 
         try
         {
             var scale = XamlRoot?.RasterizationScale ?? 1.0;
             var overlayOrigin = _overlayLayer.TransformToVisual(null)
                 .TransformPoint(new Windows.Foundation.Point(0, 0));
-            var basePos = host.AppWindow.Position;
             return new Windows.Foundation.Point(
-                (screen.X - basePos.X) / scale - overlayOrigin.X,
-                (screen.Y - basePos.Y) / scale - overlayOrigin.Y - 32);
+                (screen.X - origin.X) / scale - overlayOrigin.X,
+                (screen.Y - origin.Y) / scale - overlayOrigin.Y);
         }
         catch
         {
