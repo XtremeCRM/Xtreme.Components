@@ -7,6 +7,8 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.2] - 2026-10-14
+
 ### Changed
 - `Xtreme.Components.Docking`: the docking guides are redrawn. Each button is a small window
   picture with the landing part filled in, the buttons of a compass share one raised cross-shaped
@@ -141,5 +143,6 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.1...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.2...HEAD
+[0.1.0-preview.2]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.1...v0.1.0-preview.2
 [0.1.0-preview.1]: https://github.com/XtremeCRM/Xtreme.Components/releases/tag/v0.1.0-preview.1
