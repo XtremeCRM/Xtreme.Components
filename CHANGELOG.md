@@ -7,6 +7,8 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.3] - 2026-10-14
+
 ### Added
 - `Xtreme.Components.Primitives`: `MultiMonthDateNavigator.OneMonthHeight`, the height the
   navigator needs to show one whole month, for hosts that size it.
@@ -156,6 +158,7 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.2...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.3...HEAD
+[0.1.0-preview.3]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.2...v0.1.0-preview.3
 [0.1.0-preview.2]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.1...v0.1.0-preview.2
 [0.1.0-preview.1]: https://github.com/XtremeCRM/Xtreme.Components/releases/tag/v0.1.0-preview.1
