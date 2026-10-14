@@ -168,6 +168,11 @@ jobs:
         with:
           name: nuget-packages
           path: artifacts/packages
+      # Only global.json is needed here (it pins the SDK); the packages come from the artifact.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: global.json
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
