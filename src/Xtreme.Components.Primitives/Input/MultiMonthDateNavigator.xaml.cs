@@ -334,6 +334,41 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         ApplyHighlight();
     }
 
+    /// <summary>
+    /// The height this navigator needs to show one whole month: its header row plus one month tile.
+    /// A host that sizes the navigator (a resizable picker panel, say) can keep it at least this tall so
+    /// the month grid never ends up empty. Zero until the header has been laid out.
+    /// </summary>
+    public double OneMonthHeight => HeaderRow.ActualHeight <= 0 ? 0 : HeaderRow.ActualHeight + LayoutRoot.RowSpacing + TileHeight;
+
+    /// <summary>How many month tiles are on screen in full: inside both this control's bounds and the
+    /// window. A self-test probe for the hosting picker (a tile clipped away by a too-small host or
+    /// the window edge does not count).</summary>
+    internal int VisibleMonthCount
+    {
+        get
+        {
+            if (XamlRoot?.Content is not UIElement root || MonthsHost.Children.Count == 0 || MonthsHost.Children[0] is not Grid tileGrid)
+            {
+                return 0;
+            }
+            var visible = TransformToVisual(root).TransformBounds(new Rect(0, 0, ActualWidth, ActualHeight));
+            visible.Intersect(new Rect(0, 0, XamlRoot.Size.Width, XamlRoot.Size.Height));
+            var shown = 0;
+            foreach (var tile in tileGrid.Children.OfType<FrameworkElement>().Take(_cols * _rows))
+            {
+                var r = tile.TransformToVisual(root).TransformBounds(new Rect(0, 0, tile.ActualWidth, tile.ActualHeight));
+                var height = r.Height;
+                r.Intersect(visible);
+                if (!r.IsEmpty && height > 0 && r.Height >= height - 1)
+                {
+                    shown++;
+                }
+            }
+            return shown;
+        }
+    }
+
     // ---- Month tile ----------------------------------------------------------------------------
 
     private FrameworkElement BuildMonthTile(DateTime month, bool fillAdjacent, bool showTitle)

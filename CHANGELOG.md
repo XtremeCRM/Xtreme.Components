@@ -7,6 +7,19 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Added
+- `Xtreme.Components.Primitives`: `MultiMonthDateNavigator.OneMonthHeight`, the height the
+  navigator needs to show one whole month, for hosts that size it.
+
+### Fixed
+- `Xtreme.Components.Scheduler`: the toolbar's date-range picker opens fully inside the window. A
+  remembered size bigger than the window (saved on a larger screen, or by another instance sharing
+  the settings) is shrunk to fit for that opening, without overwriting the remembered size; before,
+  the panel opened with its top, and the months, off screen.
+- `Xtreme.Components.Scheduler`: resizing the date-range picker grows and shrinks it from a fixed
+  top-left corner; the panel no longer jumps around while the grip is dragged. The grip stops at
+  the window edge, and the panel always stays tall enough to show one whole month.
+
 ## [0.1.0-preview.2] - 2026-10-14
 
 ### Changed

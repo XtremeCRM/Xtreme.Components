@@ -14,9 +14,10 @@ namespace Xtreme.Components.Docking.Controls;
 /// pane headers).
 /// </summary>
 /// <remarks>
-/// <para>Follows the same pattern as the scheduler's <c>ResizeGrip</c>, for the same two reasons:
-/// <c>Thumb</c> is sealed and cannot carry a cursor, and manipulation events stay reliable on Uno
-/// WASM where raw <c>PointerMoved</c> is not dependable during a held drag.</para>
+/// <para>A <c>Grid</c> driven by manipulation events rather than a <c>Thumb</c>: <c>Thumb</c> is
+/// sealed and cannot carry a cursor. (The splitter sits in the layout it resizes, so it does not
+/// move under the pointer the way the scheduler's popup <c>ResizeGrip</c> did; that grip now reads
+/// window-coordinate pointer positions instead, XU-930.)</para>
 /// <para>The splitter's grid track collapses to NOTHING: the root is <see cref="HitSpan"/> thick
 /// with negative margins canceling it out, so the neighbors meet flush along a thin dark line
 /// while the hit area still straddles the seam.

@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid RowSpacing="6">
+    <Grid x:Name="LayoutRoot" RowSpacing="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -14,7 +14,7 @@
 
         <!-- Header: paging arrows, the visible month-range label, a "Today" jump, and the
              Days/Range mode switch (so touch users without modifier keys can still build ranges). -->
-        <Grid Grid.Row="0" ColumnSpacing="6">
+        <Grid x:Name="HeaderRow" Grid.Row="0" ColumnSpacing="6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />

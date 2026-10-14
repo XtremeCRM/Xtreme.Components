@@ -11,5 +11,7 @@
   <ItemGroup>
     <!-- Headless unit tests reach the internal pure-logic helpers (tile placement, zoned copies). -->
     <InternalsVisibleTo Include="Xtreme.Components.Scheduler.Tests" />
+    <!-- The Gallery self-test drives the date-range picker checks. -->
+    <InternalsVisibleTo Include="Xtreme.Components.Gallery" />
   </ItemGroup>
 </Project>

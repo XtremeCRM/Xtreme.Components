@@ -257,6 +257,7 @@ Xtreme.Components.Primitives.MonthYearPicker.SelectedDateChanged -> System.Event
 Xtreme.Components.Primitives.MultiMonthDateNavigator
 Xtreme.Components.Primitives.MultiMonthDateNavigator.ClearSelection() -> void
 Xtreme.Components.Primitives.MultiMonthDateNavigator.FirstDayOfWeek.get -> System.DayOfWeek
+Xtreme.Components.Primitives.MultiMonthDateNavigator.OneMonthHeight.get -> double
 Xtreme.Components.Primitives.MultiMonthDateNavigator.FirstDayOfWeek.set -> void
 Xtreme.Components.Primitives.MultiMonthDateNavigator.GetSelection() -> System.Collections.Generic.IReadOnlyList<System.DateTime>!
 Xtreme.Components.Primitives.MultiMonthDateNavigator.MultiMonthDateNavigator() -> void

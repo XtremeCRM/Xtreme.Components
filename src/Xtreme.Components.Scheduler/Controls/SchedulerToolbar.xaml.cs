@@ -590,12 +590,22 @@ public sealed partial class SchedulerToolbar : UserControl
     // The first day of week to lay the month grids out from (mirrors the scheduler setting).
     private DayOfWeek _firstDay = DayOfWeek.Sunday;
 
+    private void OnPeriodButtonClick(object sender, RoutedEventArgs e) => OpenPicker();
+
     private void OnPeriodFlyoutOpening(object? sender, object e)
     {
-        RestorePickerSize();
         RangeCalendar.SetFirstDayOfWeek(_firstDay);
         RangeCalendar.SetSelection(_currentDates);
         UpdateRangeSummary();
+    }
+
+    // Now the panel is placed, re-fit it against where it really landed (OpenPicker worked from the
+    // presenter's expected chrome).
+    private void OnPeriodFlyoutOpened(object? sender, object e)
+    {
+        var max = MaxPickerSize();
+        PickerContainer.Width = Math.Max(PickerContainer.MinWidth, Math.Min(PickerContainer.Width, max.Width));
+        PickerContainer.Height = Math.Max(PickerContainer.MinHeight, Math.Min(PickerContainer.Height, max.Height));
     }
 
     private void OnNavigatorSelectionChanged(object? sender, EventArgs e) => UpdateRangeSummary();
@@ -629,17 +639,95 @@ public sealed partial class SchedulerToolbar : UserControl
             return; // Apply is disabled while empty, but guard anyway
         }
         DatesSelected?.Invoke(this, dates);
-        PeriodButton.Flyout?.Hide();
+        PeriodFlyout.Hide();
     }
 
     private void OnClearDates(object sender, RoutedEventArgs e) => RangeCalendar.ClearSelection();
 
     // ---- Resizable picker panel (size persisted to local user cache) ---------------------------
 
+    // Largest panel the grip can drag out to, on any screen.
+    private const double PickerMaxWidth = 1100;
+    private const double PickerMaxHeight = 900;
+
+    // The panel size before the user has resized it.
+    private const double PickerDefaultWidth = 560;
+    private const double PickerDefaultHeight = 460;
+
+    // The XAML MinHeight; OnPickerContainerSizeChanged raises it when one month needs more.
+    private const double PickerBaseMinHeight = 300;
+
+    // The FlyoutPresenter's border (1) + padding (12) on each side of the panel.
+    private const double PresenterInset = 13;
+
+    // Space kept clear between the presenter and the window edge.
+    private const double WindowGap = 8;
+
+    // Gap between the button and a panel opened below or above it.
+    private const double ButtonGap = 4;
+
     // Size snapshot taken at drag start; the cumulative translation is applied against it so a fast drag
     // tracks smoothly instead of summing per-frame deltas against a one-frame-stale ActualWidth.
     private double _resizeStartWidth;
     private double _resizeStartHeight;
+
+    // Opens the picker at the remembered size, fitted to the window, at a point placed so the whole panel
+    // is on screen. Opened at a point, Uno keeps the presenter's top-left corner there for as long as it
+    // fits, so the grip (which never grows the panel past the window) resizes from a fixed corner. Left
+    // to place itself against the button, the popup re-centered or flipped above the button as the size
+    // changed, and a saved size bigger than the window opened with its top (the month grid) off screen.
+    private void OpenPicker()
+    {
+        PickerContainer.MinHeight = PickerBaseMinHeight;
+        var size = SavedPickerSize();
+        var options = new FlyoutShowOptions { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        if (XamlRoot is { } root && PeriodButton.ActualHeight > 0)
+        {
+            var button = PeriodButton.TransformToVisual(null).TransformBounds(
+                new Rect(0, 0, PeriodButton.ActualWidth, PeriodButton.ActualHeight));
+            var (origin, fitted) = PlacePicker(button, root.Size, size,
+                new Size(PickerContainer.MinWidth, PickerContainer.MinHeight));
+            options.Position = new Point(origin.X - button.X, origin.Y - button.Y); // relative to the button
+            size = fitted;
+        }
+        PickerContainer.Width = size.Width;
+        PickerContainer.Height = size.Height;
+        PeriodFlyout.ShowAt(PeriodButton, options);
+    }
+
+    /// <summary>
+    /// Where the picker's presenter goes (top-left, window coordinates) and the panel size that fits
+    /// there. Below the button from its left edge when the panel fits; otherwise above it; otherwise as
+    /// low as the window allows. Shifted left when it would cross the right edge, and finally shrunk
+    /// (never below <paramref name="min"/>) to the room left between that corner and the window edges.
+    /// </summary>
+    internal static (Point Origin, Size Panel) PlacePicker(Rect button, Size window, Size desired, Size min)
+    {
+        var width = Math.Max(min.Width, Math.Min(desired.Width, PickerMaxWidth));
+        var height = Math.Max(min.Height, Math.Min(desired.Height, PickerMaxHeight));
+        var outerWidth = width + 2 * PresenterInset;
+        var outerHeight = height + 2 * PresenterInset;
+
+        var x = button.Left;
+        if (x + outerWidth > window.Width - WindowGap)
+        {
+            x = window.Width - WindowGap - outerWidth;
+        }
+        x = Math.Max(WindowGap, x);
+
+        var below = button.Bottom + ButtonGap;
+        var above = button.Top - ButtonGap - outerHeight;
+        var y = below + outerHeight <= window.Height - WindowGap ? below
+            : above >= WindowGap ? above
+            : Math.Max(WindowGap, Math.Min(below, window.Height - WindowGap - outerHeight));
+
+        var room = new Size(
+            window.Width - WindowGap - x - 2 * PresenterInset,
+            window.Height - WindowGap - y - 2 * PresenterInset);
+        return (new Point(x, y), new Size(
+            Math.Max(min.Width, Math.Min(width, room.Width)),
+            Math.Max(min.Height, Math.Min(height, room.Height))));
+    }
 
     private void OnResizeStarted(object? sender, EventArgs e)
     {
@@ -649,30 +737,70 @@ public sealed partial class SchedulerToolbar : UserControl
 
     private void OnResizeDrag(object? sender, Point cumulative)
     {
-        PickerContainer.Width = Math.Clamp(_resizeStartWidth + cumulative.X, PickerContainer.MinWidth, 1100);
-        PickerContainer.Height = Math.Clamp(_resizeStartHeight + cumulative.Y, PickerContainer.MinHeight, 900);
+        // Never grow past the window: a panel that no longer fits makes the popup re-place itself, which
+        // moves the corner the user is dragging from.
+        var max = MaxPickerSize();
+        PickerContainer.Width = Math.Clamp(_resizeStartWidth + cumulative.X, PickerContainer.MinWidth, Math.Max(PickerContainer.MinWidth, max.Width));
+        PickerContainer.Height = Math.Clamp(_resizeStartHeight + cumulative.Y, PickerContainer.MinHeight, Math.Max(PickerContainer.MinHeight, max.Height));
     }
 
     private void OnResizeCompleted(object? sender, EventArgs e) => SavePickerSize();
 
-    private void RestorePickerSize()
+    // Keep at least one whole month on show: when the rows below the month grid (the help text wraps
+    // more as the panel narrows) leave it too short for a month, raise the panel's minimum height by the
+    // shortfall, within the room left in the window.
+    private void OnPickerContainerSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        var shortfall = RangeCalendar.OneMonthHeight - RangeCalendar.ActualHeight;
+        if (shortfall <= 0.5 || RangeCalendar.ActualHeight <= 0)
+        {
+            return;
+        }
+        var needed = Math.Min(e.NewSize.Height + shortfall, MaxPickerSize().Height);
+        if (needed > PickerContainer.MinHeight)
+        {
+            PickerContainer.MinHeight = needed;
+            PickerContainer.Height = Math.Max(PickerContainer.Height, needed);
+        }
+    }
+
+    // The remembered size, or the default. The saved value is left alone when the window can't fit it, so
+    // a smaller window (or another app instance sharing these settings) doesn't overwrite the size the
+    // user chose on a bigger one.
+    private static Size SavedPickerSize()
+    {
+        var width = PickerDefaultWidth;
+        var height = PickerDefaultHeight;
         try
         {
             var v = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
             if (v.TryGetValue(PickerWidthKey, out var w) && w is double wd && wd > 0)
             {
-                PickerContainer.Width = Math.Clamp(wd, PickerContainer.MinWidth, 1100);
+                width = wd;
             }
             if (v.TryGetValue(PickerHeightKey, out var h) && h is double hd && hd > 0)
             {
-                PickerContainer.Height = Math.Clamp(hd, PickerContainer.MinHeight, 900);
+                height = hd;
             }
         }
         catch
         {
-            // No LocalSettings on this head (or access denied) — just use the XAML default size.
+            // No LocalSettings on this head (or access denied) — just use the default size.
         }
+        return new Size(width, height);
+    }
+
+    // The room from the open panel's top-left corner to the window's far edges.
+    private Size MaxPickerSize()
+    {
+        if (XamlRoot is not { } root || PickerContainer.ActualWidth <= 0)
+        {
+            return new Size(PickerMaxWidth, PickerMaxHeight);
+        }
+        var origin = PickerContainer.TransformToVisual(null).TransformPoint(default);
+        return new Size(
+            Math.Min(PickerMaxWidth, root.Size.Width - WindowGap - PresenterInset - origin.X),
+            Math.Min(PickerMaxHeight, root.Size.Height - WindowGap - PresenterInset - origin.Y));
     }
 
     private void SavePickerSize()

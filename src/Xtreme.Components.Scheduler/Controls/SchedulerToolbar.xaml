@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Xtreme.Components.Scheduler.Controls"
     xmlns:primitives="using:Xtreme.Components.Primitives"
+    xmlns:winuiprimitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -44,9 +45,15 @@
                             FontSize="16"
                             FontWeight="SemiBold"
                             MinWidth="120"
-                            HorizontalContentAlignment="Center">
-                <DropDownButton.Flyout>
-                    <Flyout Opening="OnPeriodFlyoutOpening">
+                            HorizontalContentAlignment="Center"
+                            Click="OnPeriodButtonClick">
+                <!-- Attached rather than DropDownButton.Flyout: the click handler opens it at a point it
+                     works out itself (below the button when the panel fits there), so the panel's top-left
+                     corner stays put while the grip resizes it (XU-930). -->
+                <winuiprimitives:FlyoutBase.AttachedFlyout>
+                    <Flyout x:Name="PeriodFlyout"
+                            Opening="OnPeriodFlyoutOpening"
+                            Opened="OnPeriodFlyoutOpened">
                         <!-- Lift the FlyoutPresenter's default ~456px MaxWidth / MaxHeight caps (they clip
                              the multi-month grid + Apply/resize grip) and disable its scrollbars so the
                              resizable panel sizes to its own content. -->
@@ -71,7 +78,8 @@
                               Height="460"
                               MinWidth="280"
                               MinHeight="300"
-                              RowSpacing="6">
+                              RowSpacing="6"
+                              SizeChanged="OnPickerContainerSizeChanged">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
@@ -141,7 +149,7 @@
                             </Grid>
                         </Grid>
                     </Flyout>
-                </DropDownButton.Flyout>
+                </winuiprimitives:FlyoutBase.AttachedFlyout>
             </DropDownButton>
 
             <Button x:Name="NextButton" Content="&#x203A;" Width="36" Click="OnNext" />
