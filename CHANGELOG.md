@@ -7,59 +7,7 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
-Every package now has a full guide under `docs/`. Closing the API gaps found while writing them
-(XU-898..902):
-
-### Added
-- Scheduler: `AppointmentModel.Clone()`, `EmptySlotSelectedArgs.IsAllDay`. The Planner gains
-  click and Ctrl multi-select, double-click edit and create, `EmptySlotSelected`, hover cards,
-  context menus (also read-only), `HideIdleResources` and `GroupMode.ByDay` interaction. Month
-  and Agenda raise select, edit and context events; Month double-click creates an all-day item.
-  Tiles honor `Position`, `Alignment`, offsets, `Glyph`, colors and `Tooltip`; the adornment
-  toolbar group honors `IsToggle`, `IsChecked`, `Command` and `MenuItems`.
-- Docking: `DockItemCloseRequestedEventArgs` (cancelable, also raised by a floating window's
-  close button), `DockHost.PersistenceProperty` and `EdgePriorityProperty`. Layout document v6
-  persists floating state and bounds, the selected tab per group and in-layer column ratios
-  (v1 to v5 still read). Panes hidden by `DockNarrowBehavior.Hide` are listed in the restore menu.
-- Primitives: `InputMask` letter (`A`), alphanumeric (`*`) and escape (`\`) slots plus
-  `ExtractSlots`; `MaskedTextBox.CharacterCasing`; `PagingControl.CurrentPageChanged`,
-  `PageSizeChanged`, `LayoutMode`, `ShownLayout` and `PagingLayoutMode`;
-  `MonthYearPicker.SelectedDateChanged`; `CriteriaPanel.FieldValueChanged`;
-  `MultiMonthDateNavigator.FirstDayOfWeek` and keyboard navigation; `XcExcludedBrush`,
-  `XcChipBackgroundBrush` and `XcChipForegroundBrush`.
-- Cards: `SectionCard.SelectedIndex`, `SelectedTab`, `SelectionChanged`; `SectionCardTab.Icon`;
-  `CardDockerPanel.PreferredColumn`; `CardDockerControl` text and brush properties; panel drag
-  and keyboard moves (Ctrl+arrows, Delete).
-- Core: `ComponentHost.PrepareDialog(ContentDialog, XamlRoot?)`.
-- TableView: `RowFlagOptions`, `RowFlagDecorator.Detach` and `IsAttached`.
-
-### Changed
-- Scheduler: the Planner's zoned lanes report the host's original appointment; a single click
-  on an empty Planner lane selects instead of creating. `TimeIncrement` defaults per control.
-  The time contract is documented: wall-clock, except Planner lanes with a `TimeZoneId` (UTC).
-- Docking: every `IsOpen` change persists; `DockItem.CloseRequested` carries
-  `DockItemCloseRequestedEventArgs`; floating windows are Windows-only; `DockSplitter` follows
-  live theme changes; diagnostics go through the `Log` hook.
-- Primitives: `TypeableTimeBox` parses `930`, `4` and `4p` (the bare-hour format threw
-  before); `ChipPicker.SaveAsync` always receives the whole list; `DateTimePicker.Header` is
-  `object` and `ValueChanged` fires on code changes; `MonthYearPicker` values are always the
-  1st of the month; inert members (`FrontSizeRatio`, `ChipMaxWidth`, `ShowTitle`, `CanRemove`,
-  `DefaultPageSize`) now work.
-- Cards: `SectionCard` follows later changes to tabs, title and headers; the
-  `CardDockerControl.Layout` getter returns a copy; `LayoutChanged` no longer fires for no-op
-  drops; lowering then raising `ColumnCount` restores panels.
-- Core: `TryGetBrush` searches merged theme dictionaries for the requested theme and only
-  swallows lookup failures; surface brushes are cached per theme.
-- TableView: the row flag frame is an overlay, so rows keep their own border and height.
-- US English spelling throughout the docs and comments.
-
-### Removed
-- Scheduler: public `TimeGridView`, `PlannerView`, `MonthView`, `AgendaView`, `DayColumnPanel`,
-  `TimelineLanePanel`, `AllDayBanner` and `ResizeGrip` (now internal; `SchedulerControl` is the
-  entry point) and the unimplemented default-editor fallback.
-- Primitives: public `ChipPickerControl.WorkingItems`.
-
-## [0.1.0-preview.1] - 2026-10-13
+## [0.1.0-preview.1] - 2026-10-14
 
 First release from the public repository. The code was extracted from
 [XtremeCRM.Uno](https://github.com/XtremeCRM/XtremeCRM.Uno) `ClientApps/Xtreme.Components`
@@ -114,6 +62,60 @@ family on a shared version.
 - High-contrast surface keys renamed from `XtremeDockSurfaceBrush` /
   `XtremeDockSurfaceOutlineBrush` (sentinel `XtremeHcCardColor`) to `XcSurfaceBrush` /
   `XcSurfaceOutlineBrush` (sentinel `XcHighContrast`).
+
+### Since extraction: guides and API completeness
+
+Every package has a full guide under `docs/`. Writing them surfaced API gaps, closed before
+this first release (XU-898..902). Changes below are relative to the extracted code.
+
+#### Added
+- Scheduler: `AppointmentModel.Clone()`, `EmptySlotSelectedArgs.IsAllDay`. The Planner gains
+  click and Ctrl multi-select, double-click edit and create, `EmptySlotSelected`, hover cards,
+  context menus (also read-only), `HideIdleResources` and `GroupMode.ByDay` interaction. Month
+  and Agenda raise select, edit and context events; Month double-click creates an all-day item.
+  Tiles honor `Position`, `Alignment`, offsets, `Glyph`, colors and `Tooltip`; the adornment
+  toolbar group honors `IsToggle`, `IsChecked`, `Command` and `MenuItems`.
+- Docking: `DockItemCloseRequestedEventArgs` (cancelable, also raised by a floating window's
+  close button), `DockHost.PersistenceProperty` and `EdgePriorityProperty`. Layout document v6
+  persists floating state and bounds, the selected tab per group and in-layer column ratios
+  (v1 to v5 still read). Panes hidden by `DockNarrowBehavior.Hide` are listed in the restore menu.
+- Primitives: `InputMask` letter (`A`), alphanumeric (`*`) and escape (`\`) slots plus
+  `ExtractSlots`; `MaskedTextBox.CharacterCasing`; `PagingControl.CurrentPageChanged`,
+  `PageSizeChanged`, `LayoutMode`, `ShownLayout` and `PagingLayoutMode`;
+  `MonthYearPicker.SelectedDateChanged`; `CriteriaPanel.FieldValueChanged`;
+  `MultiMonthDateNavigator.FirstDayOfWeek` and keyboard navigation; `XcExcludedBrush`,
+  `XcChipBackgroundBrush` and `XcChipForegroundBrush`.
+- Cards: `SectionCard.SelectedIndex`, `SelectedTab`, `SelectionChanged`; `SectionCardTab.Icon`;
+  `CardDockerPanel.PreferredColumn`; `CardDockerControl` text and brush properties; panel drag
+  and keyboard moves (Ctrl+arrows, Delete).
+- Core: `ComponentHost.PrepareDialog(ContentDialog, XamlRoot?)`.
+- TableView: `RowFlagOptions`, `RowFlagDecorator.Detach` and `IsAttached`.
+
+#### Changed
+- Scheduler: the Planner's zoned lanes report the host's original appointment; a single click
+  on an empty Planner lane selects instead of creating. `TimeIncrement` defaults per control.
+  The time contract is documented: wall-clock, except Planner lanes with a `TimeZoneId` (UTC).
+- Docking: every `IsOpen` change persists; `DockItem.CloseRequested` carries
+  `DockItemCloseRequestedEventArgs`; floating windows are Windows-only; `DockSplitter` follows
+  live theme changes; diagnostics go through the `Log` hook.
+- Primitives: `TypeableTimeBox` parses `930`, `4` and `4p` (the bare-hour format threw
+  before); `ChipPicker.SaveAsync` always receives the whole list; `DateTimePicker.Header` is
+  `object` and `ValueChanged` fires on code changes; `MonthYearPicker` values are always the
+  1st of the month; inert members (`FrontSizeRatio`, `ChipMaxWidth`, `ShowTitle`, `CanRemove`,
+  `DefaultPageSize`) now work.
+- Cards: `SectionCard` follows later changes to tabs, title and headers; the
+  `CardDockerControl.Layout` getter returns a copy; `LayoutChanged` no longer fires for no-op
+  drops; lowering then raising `ColumnCount` restores panels.
+- Core: `TryGetBrush` searches merged theme dictionaries for the requested theme and only
+  swallows lookup failures; surface brushes are cached per theme.
+- TableView: the row flag frame is an overlay, so rows keep their own border and height.
+- US English spelling throughout the docs and comments.
+
+#### Removed
+- Scheduler: public `TimeGridView`, `PlannerView`, `MonthView`, `AgendaView`, `DayColumnPanel`,
+  `TimelineLanePanel`, `AllDayBanner` and `ResizeGrip` (now internal; `SchedulerControl` is the
+  entry point) and the unimplemented default-editor fallback.
+- Primitives: public `ChipPickerControl.WorkingItems`.
 
 [Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.1...HEAD
 [0.1.0-preview.1]: https://github.com/XtremeCRM/Xtreme.Components/releases/tag/v0.1.0-preview.1
