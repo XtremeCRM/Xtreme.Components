@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Markup;
 
 namespace Xtreme.Components.Cards;
@@ -24,6 +25,10 @@ namespace Xtreme.Components.Cards;
 /// reacts to tabs being added or removed, to <see cref="Title"/>, <see cref="Body"/> and to every
 /// tab property.</para>
 ///
+/// <para><b>Header fitting</b> — set <see cref="HeaderFit"/> to <see cref="SectionCardHeaderFit.Abbreviate"/>
+/// and the tab headers shorten as the card narrows (measured, not by breakpoint), down to icon only,
+/// before any tab is pushed into the overflow menu.</para>
+///
 /// <para>Per-list actions (Add) belong at the bottom of each tab's own content, not in this header.</para>
 /// </summary>
 [ContentProperty(Name = nameof(Body))]
@@ -37,11 +42,26 @@ public sealed partial class SectionCard : UserControl
     private bool _syncingIndex;
     private SectionCardTab? _selectedTab;
 
+    // Header fitting (HeaderFit = Abbreviate). Tab chrome (padding, icon, gap) and the strip's own
+    // overhead are learned from the laid-out strip rather than assumed, so a theme or font change
+    // needs no retuning.
+    private readonly TextBlock _probe = new();
+    private readonly Dictionary<bool, double> _textChrome = new();   // keyed by "tab has an icon"
+    private double? _iconOnlyWidth;
+    private double _stripOverhead;
+    private FrameworkElement? _topNavGrid;   // NavigationView template part; read for the strip overhead
+    private double _fittedWidth = double.NaN;
+    private int _fitVersion;
+
     public SectionCard()
     {
         InitializeComponent();
         _tabs.CollectionChanged += OnTabsChanged;
         Loaded += OnLoaded;
+        TabNav.SizeChanged += (_, e) =>
+        {
+            if (e.NewSize.Width != _fittedWidth) ScheduleHeaderFit();
+        };
     }
 
     /// <summary>
@@ -87,6 +107,36 @@ public sealed partial class SectionCard : UserControl
     private void OnTitleChanged()
     {
         if (_isBuilt && _tabs.Count == 0) UpdateTitle();
+    }
+
+    // ---- Header fitting ----
+    public static readonly DependencyProperty HeaderFitProperty = DependencyProperty.Register(
+        nameof(HeaderFit), typeof(SectionCardHeaderFit), typeof(SectionCard),
+        new PropertyMetadata(SectionCardHeaderFit.Overflow, (d, _) => ((SectionCard)d).OnHeaderFitChanged()));
+
+    /// <summary>
+    /// What the tab strip does when the headers do not fit. <see cref="SectionCardHeaderFit.Overflow"/>
+    /// (the default) leaves them whole and lets NavigationView move tabs into its overflow menu;
+    /// <see cref="SectionCardHeaderFit.Abbreviate"/> shortens them first, measured against the strip.
+    /// </summary>
+    public SectionCardHeaderFit HeaderFit
+    {
+        get => (SectionCardHeaderFit)GetValue(HeaderFitProperty);
+        set => SetValue(HeaderFitProperty, value);
+    }
+
+    private void OnHeaderFitChanged()
+    {
+        if (!_isBuilt) return;
+        if (HeaderFit == SectionCardHeaderFit.Abbreviate)
+        {
+            ScheduleHeaderFit();
+        }
+        else
+        {
+            _fitVersion++;   // drop any pass still queued
+            foreach (var (item, tab) in StripItems()) ShowHeader(item, tab.Header ?? string.Empty, tab.Header ?? string.Empty);
+        }
     }
 
     // ---- Selection ----
@@ -171,6 +221,7 @@ public sealed partial class SectionCard : UserControl
         {
             item.Content = tab.Header ?? string.Empty;
             item.Icon = tab.Icon;
+            ScheduleHeaderFit();
         }
     }
 
@@ -223,6 +274,8 @@ public sealed partial class SectionCard : UserControl
         {
             _updatingStrip = false;
         }
+
+        ScheduleHeaderFit();
     }
 
     private void UpdateTitle()
@@ -243,6 +296,7 @@ public sealed partial class SectionCard : UserControl
     {
         if (_updatingStrip) return;
         if ((args.SelectedItem as NavigationViewItem)?.Tag is SectionCardTab tab) Select(tab);
+        ScheduleHeaderFit();   // the selected tab can draw wider (bolder) than the others
     }
 
     private void SelectInStrip(SectionCardTab tab)
@@ -272,6 +326,161 @@ public sealed partial class SectionCard : UserControl
         try { SelectedIndex = _selectedTab is null ? -1 : _tabs.IndexOf(_selectedTab); }
         finally { _syncingIndex = false; }
     }
+
+    // ---- Header fitting passes ----
+    //
+    // A pass runs after layout (low priority) so the strip's width and the tabs' widths are real:
+    //   1. learn each kind of tab's chrome (tab width minus its measured text width) and the strip's
+    //      overhead (NavigationView's TopNavGrid desired width minus the tabs);
+    //   2. pick the largest shared letter count at which the measured strip fits (TabHeaderFitSolver);
+    //   3. apply it and lay the strip out again on the spot. If NavigationView still has a tab in its
+    //      overflow menu, re-add the items so it starts clean; if one is still out after that, the
+    //      overhead was underestimated: learn it and go one letter shorter.
+    // A newer pass (resize, tab change) supersedes a queued one through _fitVersion.
+
+    private void ScheduleHeaderFit()
+    {
+        if (!_isBuilt || HeaderFit != SectionCardHeaderFit.Abbreviate || _tabs.Count == 0) return;
+        var version = ++_fitVersion;
+        DispatcherQueue?.TryEnqueue(DispatcherQueuePriority.Low, () => FitHeaders(version));
+    }
+
+    private void FitHeaders(int version)
+    {
+        if (version != _fitVersion || HeaderFit != SectionCardHeaderFit.Abbreviate) return;
+
+        TabNav.UpdateLayout();   // measure against the strip as it is now, not a frame ago
+        var strip = TabNav.ActualWidth;
+        var items = StripItems().ToList();
+        if (strip <= 0 || items.Count == 0) return;
+        _fittedWidth = strip;
+
+        double Measure(string text) => MeasureText(items[0].Item, text);
+        var cap = int.MaxValue;
+        while (true)
+        {
+            LearnChrome(items);
+            var entries = items.Select(p => Entry(p.Item, p.Tab)).ToList();
+            var letters = Math.Min(cap, TabHeaderFitSolver.LargestFittingLetters(entries, Measure, strip - _stripOverhead - 1));
+            for (var i = 0; i < items.Count; i++)
+                ShowHeader(items[i].Item, TabHeaderFitSolver.HeaderAt(entries[i], letters), entries[i].Header);
+
+            TabNav.UpdateLayout();
+            if (AnyTabOverflowed(items))
+            {
+                // NavigationView only brings a tab back from its overflow menu once there is room for
+                // its "More" button too, so a strip that overflowed earlier can stay overflowed after
+                // the headers shrank. Re-adding the items makes it lay the strip out from scratch.
+                ResetStrip();
+                TabNav.UpdateLayout();
+            }
+
+            if (letters <= 0 || !AnyTabOverflowed(items)) return;
+
+            // Still overflowing from a clean layout: the strip has overhead the summed tabs did not
+            // include (a template without TopNavGrid, or one not yet laid out). Learn at least
+            // enough to make this count fail.
+            _stripOverhead = Math.Max(_stripOverhead, strip - TabHeaderFitSolver.TotalWidth(entries, Measure, letters) + 1);
+            cap = letters - 1;
+        }
+    }
+
+    /// <summary>Re-adds the strip's items (same instances, same selection) so NavigationView re-measures them.</summary>
+    private void ResetStrip()
+    {
+        _updatingStrip = true;
+        try
+        {
+            var items = TabNav.MenuItems.ToList();
+            var selected = TabNav.SelectedItem;
+            TabNav.MenuItems.Clear();
+            foreach (var item in items) TabNav.MenuItems.Add(item);
+            TabNav.SelectedItem = selected;
+        }
+        finally
+        {
+            _updatingStrip = false;
+        }
+    }
+
+    private void LearnChrome(List<(NavigationViewItem Item, SectionCardTab Tab)> items)
+    {
+        var slots = 0.0;
+        foreach (var (item, _) in items)
+        {
+            if (!IsInStrip(item)) continue;
+            var slot = item.ActualWidth + item.Margin.Left + item.Margin.Right;
+            slots += slot;
+            if (item.Content is string { Length: > 0 } text)
+                _textChrome[item.Icon is not null] = Math.Max(0, slot - MeasureText(item, text));
+            else if (item.Icon is not null)
+                _iconOnlyWidth = slot;
+        }
+
+        // NavigationView overflows when its top grid's desired width (the tabs plus its padding and
+        // the other top-pane columns) exceeds the strip. With every tab in the strip that desired
+        // width is exact, so the difference from the tabs is the strip's real overhead.
+        _topNavGrid ??= FindNamed(TabNav, "TopNavGrid");
+        if (_topNavGrid is { } grid && !AnyTabOverflowed(items))
+            _stripOverhead = Math.Max(0, grid.DesiredSize.Width - slots);
+    }
+
+    private static FrameworkElement? FindNamed(DependencyObject root, string name)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement { Name: var n } fe && n == name) return fe;
+            if (FindNamed(child, name) is { } found) return found;
+        }
+        return null;
+    }
+
+    private TabHeaderFitEntry Entry(NavigationViewItem item, SectionCardTab tab)
+    {
+        var hasIcon = item.Icon is not null;
+        // A kind of tab not laid out yet borrows the other kind's chrome; the overflow check corrects it.
+        var chrome = _textChrome.TryGetValue(hasIcon, out var own) ? own
+            : _textChrome.TryGetValue(!hasIcon, out var other) ? other : 0;
+        return new TabHeaderFitEntry(tab.Header ?? string.Empty, hasIcon, chrome, _iconOnlyWidth ?? chrome);
+    }
+
+    private double MeasureText(NavigationViewItem item, string text)
+    {
+        _probe.FontSize = item.FontSize;
+        _probe.FontFamily = item.FontFamily;
+        _probe.FontWeight = item.FontWeight;
+        _probe.Text = text;
+        _probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return _probe.DesiredSize.Width;
+    }
+
+    // A tab in the strip sits under TabNav in the visual tree, with a width; one moved into the
+    // overflow menu lives in that menu's popup instead. (IsLoaded is no help: it lags a re-add.)
+    private bool IsInStrip(NavigationViewItem item)
+    {
+        if (item.ActualWidth <= 0) return false;
+        for (DependencyObject? node = item; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (ReferenceEquals(node, TabNav)) return true;
+        }
+        return false;
+    }
+
+    private bool AnyTabOverflowed(List<(NavigationViewItem Item, SectionCardTab Tab)> items)
+        => items.Any(p => !IsInStrip(p.Item));
+
+    private static void ShowHeader(NavigationViewItem item, string text, string full)
+    {
+        if (!Equals(item.Content, text)) item.Content = text;
+        ToolTipService.SetToolTip(item, text != full ? full : null);
+        AutomationProperties.SetName(item, full);
+    }
+
+    private IEnumerable<(NavigationViewItem Item, SectionCardTab Tab)> StripItems()
+        => TabNav.MenuItems.OfType<NavigationViewItem>()
+            .Where(i => i.Tag is SectionCardTab)
+            .Select(i => (i, (SectionCardTab)i.Tag));
 
     private NavigationViewItem? ItemFor(SectionCardTab tab)
         => TabNav.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => ReferenceEquals(i.Tag, tab));

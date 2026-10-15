@@ -32,6 +32,10 @@ track the selected tab.
 </Page>
 ```
 
+Set `HeaderFit="Abbreviate"` and the tab headers shorten as the card narrows ("Contact Det..",
+then icon only), measured against the strip rather than looked up by breakpoint, before any tab
+moves into the overflow menu. The same rule is public as `LabelAbbreviation.Abbreviate`.
+
 The title font size reads the `XcFontSizeTitle` resource (16 in Core's defaults) and falls
 back to 14 only when no such resource exists.
 

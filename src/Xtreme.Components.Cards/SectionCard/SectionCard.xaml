@@ -51,7 +51,13 @@
                                 IsSettingsVisible="False"
                                 IsPaneToggleButtonVisible="False"
                                 Background="Transparent"
-                                SelectionChanged="TabNav_SelectionChanged" />
+                                SelectionChanged="TabNav_SelectionChanged">
+                    <NavigationView.Resources>
+                        <!-- The top pane reserves a 48px column for PaneCustomContent, which a card
+                             never sets; without this the tabs give up that width for nothing. -->
+                        <x:Double x:Key="TopNavigationViewPaneCustomContentMinWidth">0</x:Double>
+                    </NavigationView.Resources>
+                </NavigationView>
 
                 <ContentControl x:Name="BodyHost"
                                 Grid.Row="1"

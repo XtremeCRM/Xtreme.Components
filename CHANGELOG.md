@@ -7,6 +7,21 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Added
+- `Xtreme.Components.Cards`: `SectionCard.HeaderFit`. Set it to `SectionCardHeaderFit.Abbreviate`
+  and the tab headers shorten as the card narrows, down to icon only, before any tab moves into
+  the overflow menu. The fit is measured (each header at the strip's real font against the strip's
+  real width), not a breakpoint table, and a shortened tab shows its full header as a tooltip. The
+  default, `Overflow`, keeps today's behavior.
+- `Xtreme.Components.Cards`: `LabelAbbreviation`, the shortening rule behind it (first N letters
+  plus ".."; zero letters means icon only), public so hosts can shorten their own labels the same way.
+- Gallery: the Cards page has a header-fitting demo, a width slider over an `Abbreviate` card and
+  an `Overflow` card.
+
+### Changed
+- `Xtreme.Components.Cards`: `SectionCard`'s tab strip no longer reserves NavigationView's empty
+  48px `PaneCustomContent` column, so more tabs fit before the overflow menu appears.
+
 ## [0.1.0-preview.3] - 2026-10-14
 
 ### Added

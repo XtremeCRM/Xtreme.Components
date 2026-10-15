@@ -24,6 +24,8 @@ and the appointment editor in [`SchedulerPage.cs`](https://github.com/XtremeCRM/
   - [C#](#c)
   - [Composed example: an appointment editor](#composed-example-an-appointment-editor)
   - [SectionCard members](#sectioncard-members)
+  - [Header fitting](#header-fitting)
+  - [LabelAbbreviation](#labelabbreviation)
   - [SectionCardTab members](#sectioncardtab-members)
   - [SectionCard behavior](#sectioncard-behavior)
 - [CardDockerControl](#carddockercontrol)
@@ -177,6 +179,69 @@ the chrome stays put while long forms scroll inside it.
 | `SelectedIndexProperty` | static readonly field | `DependencyProperty` | | Identifier for `SelectedIndex`. |
 | `SelectedTab` | property (get-only) | `SectionCardTab?` | `null` | The selected tab; `null` before load or with no tabs. |
 | `SelectionChanged` | event | `EventHandler?` | | Raised when `SelectedTab` changes. Read `SelectedTab` / `SelectedIndex` for the result. |
+| `HeaderFit` | dependency property | `SectionCardHeaderFit` | `Overflow` | What the strip does when the headers do not fit: move tabs into the overflow menu (`Overflow`), or shorten the headers first (`Abbreviate`). See [header fitting](#header-fitting). |
+| `HeaderFitProperty` | static readonly field | `DependencyProperty` | | Identifier for `HeaderFit`. |
+
+### Header fitting
+
+By default a strip whose headers do not fit behaves like any top-pane `NavigationView`: the tabs
+that do not fit move into its "More" overflow menu. Set `HeaderFit="Abbreviate"` and the card
+shortens the headers instead, keeping every tab one click away:
+
+```xml
+<cards:SectionCard HeaderFit="Abbreviate">
+  <cards:SectionCard.Tabs>
+    <cards:SectionCardTab Header="Contact Details"> ... </cards:SectionCardTab>
+    <cards:SectionCardTab Header="Payment Accounts"> ... </cards:SectionCardTab>
+  </cards:SectionCard.Tabs>
+</cards:SectionCard>
+```
+
+```csharp
+card.HeaderFit = SectionCardHeaderFit.Abbreviate;
+```
+
+How it works:
+
+- **Measured, not tabulated.** After every layout that changes the strip's width (and after tabs,
+  headers, icons or the selection change) the card measures each header at the font the strip
+  really uses, reads each tab's chrome (padding, icon, gap) and the strip's overhead from the
+  laid-out `NavigationView`, and picks the **largest letter count, shared by all tabs, at which the
+  strip fits**. A different font size, theme or `NavigationViewItem` style needs no retuning.
+- **Shared count, short headers whole.** Every header is cut to the same number of letters with
+  [`LabelAbbreviation`](#labelabbreviation); a header already that short stays whole, so the long
+  ones give way first ("Contact Details" becomes "Contact Det.." while "Notes" stays "Notes").
+- **Icon only last.** At zero letters a tab with an `Icon` shows its icon alone. A tab without an
+  icon keeps at least one letter.
+- **Overflow as the final step.** Only when even the shortest form does not fit do tabs move into
+  NavigationView's overflow menu.
+- **Full name stays available.** A shortened tab gets its full header as a tooltip, and every tab's
+  automation name is its full header, so screen readers are unaffected.
+- **One pass per change.** The fit runs at low priority once layout has settled (so the first frame
+  after a resize can still show the previous headers) and lays the strip out again on the spot. If
+  NavigationView had already moved tabs into its overflow menu (it only brings them back once
+  there is room for its "More" button too), the card re-adds the same items so the strip is laid
+  out from scratch with the shortened headers.
+- **No wasted column.** The card's NavigationView sets `TopNavigationViewPaneCustomContentMinWidth`
+  to 0, so the 48px the top pane normally reserves for `PaneCustomContent` (which a card never
+  sets) goes to the tabs. This applies in both modes.
+
+Switching `HeaderFit` back to `Overflow` restores the full headers.
+
+### LabelAbbreviation
+
+`public static class LabelAbbreviation`: the shortening rule the card uses, public so a host can
+shorten its own buttons and labels the same way.
+
+| Member | Kind | Purpose |
+|---|---|---|
+| `Suffix` | `const string` (`".."`) | Appended to a shortened label. |
+| `Abbreviate(string? text, int maxLetters)` | static method, returns `string` | The first `maxLetters` letters (trailing spaces trimmed) plus `Suffix`. Empty when `maxLetters` is zero or less (show the icon alone). The text comes back whole when cutting would not make it shorter: `"Notes"` at 3 letters stays `"Notes"`, not `"Not.."`. |
+
+```csharp
+LabelAbbreviation.Abbreviate("Payment Accounts", 8);   // "Payment.."
+LabelAbbreviation.Abbreviate("Addresses", 0);          // "" (icon only)
+```
 
 ### SectionCardTab members
 
@@ -220,7 +285,9 @@ the chrome stays put while long forms scroll inside it.
   back/settings/pane-toggle buttons hidden and a transparent background. Each tab is a
   `NavigationViewItem` whose `Tag` is the `SectionCardTab`. NavigationView was chosen over
   `SelectorBar` for its built-in top overflow, hierarchy and per-tab icon support; overflow (items
-  that do not fit move into NavigationView's own overflow menu) and icons are used today.
+  that do not fit move into NavigationView's own overflow menu) and icons are used today. With
+  `HeaderFit="Abbreviate"` the headers shorten before overflow is used (see
+  [header fitting](#header-fitting)).
 - **Lazy tab bodies.** `SectionCardTab` is a `DependencyObject`, not a control, so its `Content`
   is held as data and parented into the card only while selected. Unselected tab bodies are out of
   the visual tree; switching tabs unloads one body and loads the other (control state such as
@@ -520,6 +587,10 @@ runtime, call `ComponentHost.NotifyResourcesChanged()` as described in
 ## Known limitations
 
 - `XcFontSizeTitle` is not tracked live by `SectionCard` (it is read when the header is built).
+- With `HeaderFit="Abbreviate"`, tabs that still end up in the overflow menu (the strip is too
+  narrow even for icons) show their shortened header there too.
+- Header fitting needs the card to be given a width. A card in an auto-width host (a horizontal
+  `StackPanel`, say) is as wide as its full headers, so nothing is shortened.
 - A `{Binding}` on `SectionCardTab.Header` has no inherited `DataContext`.
 - `CardDockerControl` keyboard moves cover reordering, moving between panels, panels between
   columns, and set aside / bring back; there is no keyboard path to resize a panel.
@@ -538,6 +609,17 @@ and `PublicAPI.Unshipped.txt`.
 - `int SelectedIndex { get; set; }` / `static readonly DependencyProperty SelectedIndexProperty`
 - `SectionCardTab? SelectedTab { get; }`
 - `event EventHandler? SelectionChanged`
+- `SectionCardHeaderFit HeaderFit { get; set; }` / `static readonly DependencyProperty HeaderFitProperty`
+
+**`SectionCardHeaderFit`** : `enum`
+
+- `Overflow = 0`
+- `Abbreviate = 1`
+
+**`LabelAbbreviation`** : static class
+
+- `const string Suffix = ".."`
+- `static string Abbreviate(string? text, int maxLetters)`
 
 **`SectionCardTab`** : `DependencyObject` (sealed)
 

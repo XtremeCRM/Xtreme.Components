@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Headless tests for the Cards package. Only the XAML-free layout rules (CardDockerLayoutRules,
-    internal, reached through InternalsVisibleTo) are exercised: nothing here creates a control, so
+    Headless tests for the Cards package. Only XAML-free code is exercised (the CardDocker layout rules,
+    LabelAbbreviation and the SectionCard header-fit solver; the internal ones reached through
+    InternalsVisibleTo): nothing here creates a control, so
     no Uno renderer or dispatcher is needed and the tests run anywhere `dotnet test` does.
   -->
   <PropertyGroup>
