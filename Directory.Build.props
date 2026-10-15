@@ -7,7 +7,7 @@
     match this value, so bumping a release is a one-line change plus a CHANGELOG section.
   -->
   <PropertyGroup>
-    <Version>0.1.0-preview.3</Version>
+    <Version>0.1.0-preview.4</Version>
 
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
