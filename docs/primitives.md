@@ -19,6 +19,7 @@ third-party dependencies; it references only `Xtreme.Components.Core` (theme tok
   - [DateTimePicker](#datetimepicker)
   - [MonthYearPicker](#monthyearpicker)
   - [CompactCalendarDatePicker](#compactcalendardatepicker)
+  - [TypeableDatePicker](#typeabledatepicker)
   - [MultiMonthDateNavigator](#multimonthdatenavigator)
   - [ChipPickerControl, ChipItem and ChipPickerDialog](#chippickercontrol-chipitem-and-chippickerdialog)
 - Paging
@@ -271,6 +272,42 @@ new members; use it exactly like `CalendarDatePicker`.
 
 The body size reads the `XcFontSizeBody` token (the control's own resources first, then the app's).
 The two "first of" label sizes stay at 11, below the smallest token in the type ramp.
+
+## TypeableDatePicker
+
+A `CompactCalendarDatePicker` you can type into. The date label is a text box, so the user can type
+`10/15/2026`, `10/15/26`, `10/15` (this year), `101526`, `10152026` or `t` for today; the calendar
+button, Alt+Down and F4 still open the calendar. It IS a `CalendarDatePicker`, so replacing one is a
+tag rename: `Date`, `DateChanged` (with its real event args), `MinDate`/`MaxDate`, `Header`,
+`PlaceholderText` and code typed as `CalendarDatePicker` all keep working.
+
+```xml
+<xc:TypeableDatePicker Date="{x:Bind ViewModel.Date, Mode=TwoWay}" />
+```
+
+| Member | Type | Purpose |
+|---|---|---|
+| `HasInvalidEntry` | `bool` (DP, read-only) | True while the box holds text that is not an acceptable date. `Date` keeps the last good value; check this before a save. |
+| `Editor` | `TextBox?` | The text box inside the template. |
+| `FocusEditor(FocusState)` | method | Focuses the text box. The picker itself is not a tab stop, so `Focus()` on it does nothing. |
+| `Commit()` | method | Applies the box's text now (it also runs on Enter and when focus leaves). |
+
+Behavior:
+
+- Field order follows the culture's short date pattern (month/day/year for en-US, day first for
+  en-GB, year first for en-CA). A 1-2 digit year uses the calendar's `TwoDigitYearMax` window
+  (2049 by default: `26` is 2026, `85` is 1985). Month names (`Oct 15 2026`) go to the culture parser.
+- Empty clears the date. A typed date is stored as local midnight, the same as a calendar pick, and
+  retyping the current date raises no `DateChanged`.
+- Text that isn't a date, or a date outside `MinDate`/`MaxDate`, stays on screen with a red border
+  and a message in `Description`; Escape reverts it. A host's own `BorderBrush` and `Description`
+  come back when the error clears.
+- Enter commits but is not marked handled, so a dialog's default button still fires after the date
+  is in.
+- The placeholder is the host's `PlaceholderText` when it set one, otherwise the format to type
+  (`mm/dd/yyyy`).
+
+Tokens: `XcFontSizeBody`, `XcFontSizeCaption`; brush `SystemFillColorCriticalBrush` for the error.
 
 ## MultiMonthDateNavigator
 
