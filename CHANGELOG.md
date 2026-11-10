@@ -7,6 +7,18 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.6] - 2026-11-10
+
+### Fixed
+- `Xtreme.Components.Scheduler`: a long list of adornment toggles no longer crowds the toolbar. When
+  the bar doesn't fit, the adornment button row folds into its "Adornments" dropdown first, before
+  any other command moves into the overflow menu, so the view switcher, date navigation and host
+  buttons (such as a Map toggle) stay on the bar at any window width. Before, the row folded only
+  below the 720px narrow threshold, so a wide window with many adornments pushed the view switcher
+  into the overflow menu or off the edge.
+- `Xtreme.Components.Scheduler`: the toolbar re-runs its fit when the Tiles button appears or
+  disappears, so a late-arriving Tiles button can't leave the bar overflowing.
+
 ## [0.1.0-preview.5] - 2026-11-10
 
 ### Added
@@ -183,7 +195,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.5...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.6...HEAD
+[0.1.0-preview.6]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.5...v0.1.0-preview.6
 [0.1.0-preview.5]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.4...v0.1.0-preview.5
 [0.1.0-preview.4]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.3...v0.1.0-preview.4
 [0.1.0-preview.3]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.2...v0.1.0-preview.3
