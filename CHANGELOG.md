@@ -7,6 +7,18 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Fixed
+- `Xtreme.Components.Scheduler`: the scheduler no longer goes blank for a moment when it is
+  reparented. A `DockHost` rebuild (a pane opening, closing, pinning or resizing) detaches the
+  document and re-adds it, which raises `Loaded` again; the control used to rebuild its whole grid on
+  every `Loaded`. It now renders on the first `Loaded` only, and on a later one only if the theme
+  changed while it was detached. The grid is already current because every property change
+  re-renders straight away.
+- `Xtreme.Components.Docking`: `DockHost` no longer shows an empty frame when a pane closes, pins
+  or unpins. A rebuild re-adds every pane and the document into new wrappers, and on Uno Skia a
+  frame could paint before they were laid out, leaving the whole host blank for about 100 ms. The
+  rebuild now runs a layout pass before returning.
+
 ## [0.1.0-preview.6] - 2026-11-10
 
 ### Fixed

@@ -78,7 +78,19 @@ public sealed partial class SchedulerControl : UserControl
         // Host-supplied per-tile on/off options in the "Visible tiles" menu; bubble toggles up to the host.
         Toolbar.TileOptionToggled += (_, o) => TileOptionToggled?.Invoke(this, o);
 
-        Loaded += (_, _) => { _lastRenderedTheme = ActualTheme; RenderActiveView(); };
+        // The first Loaded always renders. A REPEAT Loaded means the control was reparented — a DockHost
+        // rebuild (any pane opening, closing, pinning or resizing) detaches the document and re-adds it to a
+        // fresh wrapper. The grid is already current then (every DP change re-renders at once via
+        // OnSchedulerInvalidated, loaded or not), so rebuilding it here only blanked the scheduler for a frame
+        // each time the host's Event Editor opened or closed (XU-1141). Re-render only when the theme moved
+        // while the control was detached.
+        Loaded += (_, _) =>
+        {
+            if (_hasLoaded && ActualTheme == _lastRenderedTheme) return;
+            _hasLoaded = true;
+            _lastRenderedTheme = ActualTheme;
+            RenderActiveView();
+        };
 
         // Re-render on a REAL theme change only. Uno raises ActualThemeChanged on background elements when a
         // ContentDialog/popup opens (same theme, no actual change) — an unconditional RenderActiveView there
@@ -191,6 +203,9 @@ public sealed partial class SchedulerControl : UserControl
     // Last theme a full RenderActiveView ran under — so the ActualThemeChanged handler can skip the spurious
     // same-theme events Uno raises when a ContentDialog/popup opens (see the constructor).
     private ElementTheme _lastRenderedTheme = ElementTheme.Default;
+
+    // Set by the first Loaded; a later Loaded is a reparent and skips the full re-render (see the constructor).
+    private bool _hasLoaded;
     private bool _selectionSyncing;
 
     // Last body scroll offset, preserved across re-renders so a live appointment upsert (or any

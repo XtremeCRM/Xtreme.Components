@@ -345,6 +345,13 @@ public partial class DockHost : ContentControl
         try
         {
             RebuildCore();
+
+            // Lay the fresh tree out NOW, before control returns to the frame loop. RebuildCore clears the
+            // grid and re-adds every pane and the document into new, never-measured wrappers; on Uno Skia
+            // a frame could paint before the next layout pass, and that frame showed the whole host empty
+            // for ~100ms each time a pane closed or (un)pinned (XU-1141). Inside the guard on purpose: the
+            // SizeChanged this raises must not start a nested rebuild.
+            if (IsLoaded) UpdateLayout();
         }
         finally
         {
