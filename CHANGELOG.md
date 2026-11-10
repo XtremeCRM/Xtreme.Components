@@ -7,6 +7,8 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.7] - 2026-11-10
+
 ### Fixed
 - `Xtreme.Components.Scheduler`: the scheduler no longer goes blank for a moment when it is
   reparented. A `DockHost` rebuild (a pane opening, closing, pinning or resizing) detaches the
@@ -207,7 +209,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.6...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.7...HEAD
+[0.1.0-preview.7]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.6...v0.1.0-preview.7
 [0.1.0-preview.6]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.5...v0.1.0-preview.6
 [0.1.0-preview.5]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.4...v0.1.0-preview.5
 [0.1.0-preview.4]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.3...v0.1.0-preview.4
