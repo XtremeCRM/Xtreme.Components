@@ -7,6 +7,8 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.5] - 2026-11-10
+
 ### Added
 - `Xtreme.Components.Primitives`: `TypeableDatePicker`, a `CompactCalendarDatePicker` you can type
   a date into (`10/15/2026`, `10/15/26`, `101526`, `t` for today) with the calendar button kept. It
@@ -181,7 +183,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.4...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.5...HEAD
+[0.1.0-preview.5]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.4...v0.1.0-preview.5
 [0.1.0-preview.4]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.3...v0.1.0-preview.4
 [0.1.0-preview.3]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.2...v0.1.0-preview.3
 [0.1.0-preview.2]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.1...v0.1.0-preview.2
