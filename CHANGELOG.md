@@ -7,6 +7,12 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Added
+- `Xtreme.Components.Primitives`: `TypeableDatePicker`, a `CompactCalendarDatePicker` you can type
+  a date into (`10/15/2026`, `10/15/26`, `101526`, `t` for today) with the calendar button kept. It
+  is a `CalendarDatePicker`, so swapping one in is a tag rename. Invalid text is kept on screen with
+  a red border and a message instead of being dropped; `HasInvalidEntry` reports it.
+
 ## [0.1.0-preview.4] - 2026-10-15
 
 ### Added

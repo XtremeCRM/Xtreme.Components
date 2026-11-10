@@ -353,3 +353,14 @@ Xtreme.Components.Primitives.WrapPanel.ColumnSpacing.set -> void
 Xtreme.Components.Primitives.WrapPanel.RowSpacing.get -> double
 Xtreme.Components.Primitives.WrapPanel.RowSpacing.set -> void
 Xtreme.Components.Primitives.WrapPanel.WrapPanel() -> void
+override Xtreme.Components.Primitives.TypeableDatePicker.OnApplyTemplate() -> void
+override Xtreme.Components.Primitives.TypeableDatePicker.OnKeyDown(Microsoft.UI.Xaml.Input.KeyRoutedEventArgs! e) -> void
+override Xtreme.Components.Primitives.TypeableDatePicker.OnPointerPressed(Microsoft.UI.Xaml.Input.PointerRoutedEventArgs! e) -> void
+override Xtreme.Components.Primitives.TypeableDatePicker.OnPointerReleased(Microsoft.UI.Xaml.Input.PointerRoutedEventArgs! e) -> void
+static readonly Xtreme.Components.Primitives.TypeableDatePicker.HasInvalidEntryProperty -> Microsoft.UI.Xaml.DependencyProperty!
+Xtreme.Components.Primitives.TypeableDatePicker
+Xtreme.Components.Primitives.TypeableDatePicker.Commit() -> void
+Xtreme.Components.Primitives.TypeableDatePicker.Editor.get -> Microsoft.UI.Xaml.Controls.TextBox?
+Xtreme.Components.Primitives.TypeableDatePicker.FocusEditor(Microsoft.UI.Xaml.FocusState state = Microsoft.UI.Xaml.FocusState.Programmatic) -> bool
+Xtreme.Components.Primitives.TypeableDatePicker.HasInvalidEntry.get -> bool
+Xtreme.Components.Primitives.TypeableDatePicker.TypeableDatePicker() -> void
