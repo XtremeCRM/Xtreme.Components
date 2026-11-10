@@ -133,6 +133,9 @@ public sealed partial class SchedulerToolbar : UserControl
             TileOptionsMenu.Items.Add(item);
         }
         TilesButton.Visibility = options.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // The Tiles button arriving (or leaving) changes the bar's width, so re-run the fit.
+        ApplyResponsiveLayout(ActualWidth);
     }
 
     private void OnTileOptionChanged(object sender, RoutedEventArgs e)
@@ -465,17 +468,25 @@ public sealed partial class SchedulerToolbar : UserControl
         ViewCombo.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
 
         // The adornment group mirrors the view switcher: a button row when wide, an "Adornments" dropdown
-        // when narrow. Both hide when there are no adornments.
-        var hasAdornments = _adornments.Count > 0;
-        AdornmentGroupPanel.Visibility = hasAdornments && !narrow ? Visibility.Visible : Visibility.Collapsed;
-        AdornmentDropdown.Visibility = hasAdornments && narrow ? Visibility.Visible : Visibility.Collapsed;
-
-        UpdateOverflow(width);
+        // when narrow. UpdateOverflow also folds the row into the dropdown whenever it doesn't fit, so a
+        // long list of adornments never crowds out the view switcher or the host's buttons. Both hide when
+        // there are no adornments.
+        UpdateOverflow(width, adornmentsInline: !narrow);
     }
 
-    // Pull everything back inline, then — if the clusters still don't fit — reveal the hamburger and
-    // move collapsible items into its menu one at a time (lowest priority first) until the bar fits.
-    private void UpdateOverflow(double width)
+    // Show the adornment group as the inline button row or as the "Adornments" dropdown (or neither
+    // when there are no adornments).
+    private void ShowAdornmentsInline(bool inline)
+    {
+        var hasAdornments = _adornments.Count > 0;
+        AdornmentGroupPanel.Visibility = hasAdornments && inline ? Visibility.Visible : Visibility.Collapsed;
+        AdornmentDropdown.Visibility = hasAdornments && !inline ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // Pull everything back inline, then — if the clusters still don't fit — fold the adornment row into
+    // its dropdown first, and only then reveal the hamburger and move collapsible items into its menu one
+    // at a time (lowest priority first) until the bar fits.
+    private void UpdateOverflow(double width, bool adornmentsInline)
     {
         // 1) Reset: clear the menu and show every collapsible item, so the fit test below measures the
         //    full bar. (The view switcher's own segmented/combo choice was set by the caller.)
@@ -486,13 +497,25 @@ public sealed partial class SchedulerToolbar : UserControl
             child.Visibility = Visibility.Visible;
         }
         OverflowButton.Visibility = Visibility.Collapsed;
+        ShowAdornmentsInline(adornmentsInline);
 
         if (Fits(width))
         {
             return;
         }
 
-        // 2) Overflow: the hamburger now counts toward the width, so reveal it before re-measuring.
+        // 2) The adornment row is one button per template, so it is the first thing to give way: one
+        //    "Adornments" dropdown keeps every adornment a click away and frees the room for the rest.
+        if (adornmentsInline && _adornments.Count > 0)
+        {
+            ShowAdornmentsInline(false);
+            if (Fits(width))
+            {
+                return;
+            }
+        }
+
+        // 3) Overflow: the hamburger now counts toward the width, so reveal it before re-measuring.
         OverflowButton.Visibility = Visibility.Visible;
 
         foreach (var item in CollapseCandidates())
