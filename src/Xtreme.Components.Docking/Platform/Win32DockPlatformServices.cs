@@ -60,6 +60,24 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
     /// </summary>
     public bool SupportsFloatingWindows { get; } = OperatingSystem.IsWindows();
 
+    /// <summary>
+    /// Constructs every window this class hands out: the pool's spares and the dock manager's
+    /// fresh-window fallback (<see cref="CreateFloatWindow"/>). Null (the default) is a plain
+    /// <c>new Window()</c>.
+    /// </summary>
+    /// <remarks>
+    /// The hook exists so a host can build floating windows differently from its main window. The
+    /// motivating case: on Uno 6.7 Win32, a secondary window's background render thread can still be
+    /// mid-frame when the window closes, the OpenGL <c>wglMakeCurrent</c> fails, and Uno's error
+    /// formatting throws out of the render loop (unoplatform/uno#25373). A host that constructs its
+    /// floats with the software renderer, while the main window stays on OpenGL, has no GL context to
+    /// race.
+    /// </remarks>
+    public Func<Window>? WindowFactory { get; set; }
+
+    /// <summary>Constructs a window through <see cref="WindowFactory"/>, or <c>new Window()</c> without one.</summary>
+    public Window CreateFloatWindow() => WindowFactory?.Invoke() ?? new Window();
+
     /// <summary>The app's main window; the owner of every floating window. Set it once after the window exists.</summary>
     public Window? HostWindow { get; set; }
 
@@ -106,7 +124,7 @@ public sealed class Win32DockPlatformServices : IDockPlatformServices
         var created = 0;
         while (_pool.Count < PoolTarget)
         {
-            var window = new Window();
+            var window = CreateFloatWindow();
             window.Closed += OnPooledWindowClosed;
             _pool.Add(window);
             created++;

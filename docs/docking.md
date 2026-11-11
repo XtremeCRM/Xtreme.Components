@@ -341,6 +341,7 @@ platform.PrimePoolWhenIdle(mainWindow.DispatcherQueue);        // pre-build wind
 | `CaptureShellWindowHandle(dispatcher)` | Polls until the main window's native handle exists, then caches it. Call while the main window is the only window. | Float windows are not owned by the main window, so clicking the main window can bury them. |
 | `PrimePoolWhenIdle(dispatcher)` | Starts filling a pool of three spare windows once the user is idle. | The host also calls `WarmFloatSupport` whenever a floatable item is hosted, so the pool still fills, just later. |
 | `Log` | Receives `[DockPerf]` / `[DockWin]` diagnostic lines, including the host's own float and re-dock timings. | Silent. The library never writes to the console. |
+| `WindowFactory` | Constructs every float window: the pool's spares and the fallback when the pool is empty. Use it to give floats a different render backend from the main window (for example the software renderer, which avoids the Uno 6.7 OpenGL close crash, unoplatform/uno#25373). | Floats are plain `new Window()`, on the same backend as the main window. |
 
 Set `PlatformServices` before the host loads. The gallery sets it in the constructor and assigns
 `HostWindow` in `Loaded`.
@@ -398,6 +399,7 @@ implementation that does nothing or returns null/false.
 | `SupportsFloatingWindows` | Whether a pane can live in its own OS window. |
 | `HostWindow` | The window hosting the dock manager, or null. |
 | `TryAcquireFloatWindow()` | Return a ready window, or null to make the host construct one. |
+| `CreateFloatWindow()` | Construct a new float window, used when `TryAcquireFloatWindow` had none or the one it returned failed to present. |
 | `TryReleaseFloatWindow(window)` | Take back a freed window (content already detached). Return true only if you own it and it is verifiably off-screen; false makes the host close it. |
 | `TrackFloatingWindowDrag(window, dragMoved, dropped)` | Report the OS title-bar drag in screen coordinates on the UI thread; dispose to stop. Do not report the gesture already in progress when the window spawns. Null disables drag-back. |
 | `WarmFloatSupport(dispatcher)` | Hint that floating may happen soon. Must be safe to call repeatedly. |
@@ -774,6 +776,7 @@ Content property: `Items`.
 | `SupportsFloatingWindows` | `bool { get; }` | required |
 | `HostWindow` | `Window? { get; }` | `null` |
 | `TryAcquireFloatWindow` | `Window? TryAcquireFloatWindow()` | `null` |
+| `CreateFloatWindow` | `Window CreateFloatWindow()` | `new Window()` |
 | `TryReleaseFloatWindow` | `bool TryReleaseFloatWindow(Window window)` | `false` |
 | `TrackFloatingWindowDrag` | `IDisposable? TrackFloatingWindowDrag(Window window, Action<PointInt32> dragMoved, Action<PointInt32> dropped)` | `null` |
 | `WarmFloatSupport` | `void WarmFloatSupport(DispatcherQueue dispatcher)` | no-op |
@@ -794,11 +797,13 @@ Content property: `Items`.
 | `Win32DockPlatformServices()` | constructor | |
 | `HostWindow` | property | `Window?` (settable) |
 | `Log` | property | `Action<string>?` |
+| `WindowFactory` | property | `Func<Window>?` (null = `new Window()`) |
 | `SupportsFloatingWindows` | property (get) | `bool` (true on Windows only) |
 | `CaptureShellWindowHandle` | method | `void CaptureShellWindowHandle(DispatcherQueue dispatcher)` |
 | `PrimePoolWhenIdle` | method | `void PrimePoolWhenIdle(DispatcherQueue dispatcher)` |
 | `WarmFloatSupport` | method | `void WarmFloatSupport(DispatcherQueue dispatcher)` |
 | `TryAcquireFloatWindow` | method | `Window? TryAcquireFloatWindow()` |
+| `CreateFloatWindow` | method | `Window CreateFloatWindow()` (through `WindowFactory`) |
 | `TryReleaseFloatWindow` | method | `bool TryReleaseFloatWindow(Window window)` |
 | `TrackFloatingWindowDrag` | method | `IDisposable? TrackFloatingWindowDrag(Window, Action<PointInt32>, Action<PointInt32>)` (null off Windows) |
 | `BeginWindowDrag` | method | `bool BeginWindowDrag(Window window)` (false off Windows) |
