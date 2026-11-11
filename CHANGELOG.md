@@ -7,6 +7,8 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.8] - 2026-11-11
+
 ### Added
 - `Xtreme.Components.Docking`: a host can now choose how floating windows are constructed.
   `Win32DockPlatformServices.WindowFactory` builds the pool's spare windows and the fallback window
@@ -218,7 +220,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.7...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.8...HEAD
+[0.1.0-preview.8]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.7...v0.1.0-preview.8
 [0.1.0-preview.7]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.6...v0.1.0-preview.7
 [0.1.0-preview.6]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.5...v0.1.0-preview.6
 [0.1.0-preview.5]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.4...v0.1.0-preview.5
