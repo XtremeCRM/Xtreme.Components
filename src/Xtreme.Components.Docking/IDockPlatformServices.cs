@@ -50,6 +50,14 @@ public interface IDockPlatformServices
     bool TryReleaseFloatWindow(Window window) => false;
 
     /// <summary>
+    /// Constructs a new window for a float, used when <see cref="TryAcquireFloatWindow"/> has none
+    /// ready (or the one it handed over failed to present). The default is a plain
+    /// <c>new Window()</c>; a host overrides it to construct floats differently from its main window,
+    /// for example with another render backend.
+    /// </summary>
+    Window CreateFloatWindow() => new Window();
+
+    /// <summary>
     /// Starts watching a floating window for the OS title-bar drag, so the dock manager can light its
     /// docking guides and re-dock the pane on drop. <paramref name="dragMoved"/> fires repeatedly with
     /// the cursor in SCREEN coordinates while the user drags the window with the primary button held;

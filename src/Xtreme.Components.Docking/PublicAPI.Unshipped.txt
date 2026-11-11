@@ -127,6 +127,7 @@ Xtreme.Components.Docking.IDockPersistence.LoadAsync(string! key, System.Threadi
 Xtreme.Components.Docking.IDockPersistence.SaveAsync(string! key, string! document, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Xtreme.Components.Docking.IDockPlatformServices
 Xtreme.Components.Docking.IDockPlatformServices.BeginWindowDrag(Microsoft.UI.Xaml.Window! window) -> bool
+Xtreme.Components.Docking.IDockPlatformServices.CreateFloatWindow() -> Microsoft.UI.Xaml.Window!
 Xtreme.Components.Docking.IDockPlatformServices.HostWindow.get -> Microsoft.UI.Xaml.Window?
 Xtreme.Components.Docking.IDockPlatformServices.OnWindowSpawned(Microsoft.UI.Xaml.Window! window) -> void
 Xtreme.Components.Docking.IDockPlatformServices.SupportsFloatingWindows.get -> bool
@@ -137,6 +138,7 @@ Xtreme.Components.Docking.IDockPlatformServices.WarmFloatSupport(Microsoft.UI.Di
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.BeginWindowDrag(Microsoft.UI.Xaml.Window! window) -> bool
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.CaptureShellWindowHandle(Microsoft.UI.Dispatching.DispatcherQueue! dispatcher) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.CreateFloatWindow() -> Microsoft.UI.Xaml.Window!
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.HostWindow.get -> Microsoft.UI.Xaml.Window?
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.HostWindow.set -> void
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.Log.get -> System.Action<string!>?
@@ -148,4 +150,6 @@ Xtreme.Components.Docking.Platform.Win32DockPlatformServices.TrackFloatingWindow
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.TryAcquireFloatWindow() -> Microsoft.UI.Xaml.Window?
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.TryReleaseFloatWindow(Microsoft.UI.Xaml.Window! window) -> bool
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.WarmFloatSupport(Microsoft.UI.Dispatching.DispatcherQueue! dispatcher) -> void
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.WindowFactory.get -> System.Func<Microsoft.UI.Xaml.Window!>?
+Xtreme.Components.Docking.Platform.Win32DockPlatformServices.WindowFactory.set -> void
 Xtreme.Components.Docking.Platform.Win32DockPlatformServices.Win32DockPlatformServices() -> void

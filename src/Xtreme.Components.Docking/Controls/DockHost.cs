@@ -1402,7 +1402,7 @@ public partial class DockHost : ContentControl
             warm = false;
 
             window = null;
-            try { window = new Window(); }
+            try { window = PlatformServices.CreateFloatWindow(); }
             catch (Exception ex) { Trace($"[DockPerf] FloatItem: window construction threw — {ex.GetType().Name}"); }
 
             if (window is null || !TryPresentFloatWindow(item, window, wrapper))

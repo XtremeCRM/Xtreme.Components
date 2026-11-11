@@ -7,6 +7,15 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Added
+- `Xtreme.Components.Docking`: a host can now choose how floating windows are constructed.
+  `Win32DockPlatformServices.WindowFactory` builds the pool's spare windows and the fallback window
+  used when the pool is empty, and `IDockPlatformServices.CreateFloatWindow()` (default
+  `new Window()`) is what `DockHost` calls when the platform has no window ready. Use it to give
+  floats a different render backend from the main window. For example, building them with the
+  software renderer avoids the Uno 6.7 Win32 crash where a closing window's render thread is still
+  inside an OpenGL frame (unoplatform/uno#25373).
+
 ## [0.1.0-preview.7] - 2026-11-10
 
 ### Fixed
