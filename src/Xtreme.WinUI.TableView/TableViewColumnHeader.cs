@@ -607,8 +607,18 @@ public partial class TableViewColumnHeader : ContentControl
         }
     }
 
-    private async Task<RenderTargetBitmap> CreateDragVisualsAsync()
+    private async Task<RenderTargetBitmap?> CreateDragVisualsAsync()
     {
+        // Uno 7 (Uno.WinUI 7.0.32) workaround: RenderAsync of an element whose pixel size is 0 creates
+        // a zero-length pixel buffer. Its constructor throws in GC.AddMemoryPressure(0), and then the
+        // finalizer's GC.RemoveMemoryPressure(0) throws on the finalizer thread, which kills the
+        // process. Skip the snapshot when the header has no pixels; reordering just shows no drag visual.
+        var scale = XamlRoot?.RasterizationScale ?? 1d;
+        if (Math.Round(ActualWidth * scale) < 1 || Math.Round(ActualHeight * scale) < 1)
+        {
+            return null;
+        }
+
         var rtb = new RenderTargetBitmap();
         await rtb.RenderAsync(this);
         return rtb;

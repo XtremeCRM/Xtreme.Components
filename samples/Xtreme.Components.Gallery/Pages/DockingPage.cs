@@ -182,6 +182,16 @@ public sealed partial class DockingPage : Grid
         try
         {
             await Task.Delay(250); // let the guides render
+
+            // Uno 7 (Uno.WinUI 7.0.32): RenderAsync of a zero-pixel element kills the process from the
+            // finalizer thread (GC.RemoveMemoryPressure(0)), so check the size first. See DockHost.AnimateUnpinSlideOut.
+            var scale = element.XamlRoot?.RasterizationScale ?? 1d;
+            if (Math.Round(element.ActualWidth * scale) < 1 || Math.Round(element.ActualHeight * scale) < 1)
+            {
+                Console.WriteLine($"selftest: docking snapshot '{name}' skipped: element has no pixels");
+                return;
+            }
+
             var bitmap = new Microsoft.UI.Xaml.Media.Imaging.RenderTargetBitmap();
             await bitmap.RenderAsync(element);
             var pixels = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(await bitmap.GetPixelsAsync());

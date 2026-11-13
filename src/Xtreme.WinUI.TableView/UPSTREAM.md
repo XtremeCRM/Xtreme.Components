@@ -25,6 +25,11 @@ branches:
 2. `TableViewCell.cs`, the two `TableViewTemplateColumn` measure paths: Uno 7 removed
    `ContentPresenter.ContentTemplateRoot`. The template root is now the presenter's first visual
    child (`VisualTreeHelper.GetChild(presenter, 0)`).
+3. `TableViewColumnHeader.cs`, `CreateDragVisualsAsync`: this works around an Uno 7 bug rather than a
+   removed API. On Uno.WinUI 7.0.32, a `RenderTargetBitmap.RenderAsync` of a zero-pixel element kills
+   the process from the finalizer thread, because of `GC.RemoveMemoryPressure(0)`. The method now
+   returns null, so there is no drag visual, when the header rounds to under one physical pixel.
+   Drop this change once Uno fixes the bug.
 
 No other file differs from the base tag.
 

@@ -3494,7 +3494,12 @@ public partial class DockHost : ContentControl
                 .TransformPoint(new Windows.Foundation.Point(0, 0));
             w = chrome.ActualWidth;
             h = chrome.ActualHeight;
-            if (w > 0 && h > 0)
+            // Not just w > 0: on Uno 7 (Uno.WinUI 7.0.32), RenderAsync of an element that is under one
+            // physical pixel creates a zero-length pixel buffer. Its constructor throws in
+            // GC.AddMemoryPressure(0), and the finalizer's GC.RemoveMemoryPressure(0) then throws on the
+            // finalizer thread and kills the process. A catch here cannot stop that.
+            var scale = chrome.XamlRoot?.RasterizationScale ?? 1d;
+            if (Math.Round(w * scale) >= 1 && Math.Round(h * scale) >= 1)
             {
                 snapshot = new Microsoft.UI.Xaml.Media.Imaging.RenderTargetBitmap();
                 await snapshot.RenderAsync(chrome);
