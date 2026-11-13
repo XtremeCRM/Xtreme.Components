@@ -25,4 +25,4 @@ control families. No controls live here; the family packages reference it.
 <SolidColorBrush x:Key="XcSurfaceOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 ```
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

@@ -41,4 +41,4 @@ RowFlagDecorator.Detach(EventTypesTable);   // stop decorating; realized rows ar
 
 Attaching again to the same table replaces the earlier registration.
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

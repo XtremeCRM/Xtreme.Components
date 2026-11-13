@@ -4,7 +4,7 @@
     family at the same version. The ProjectReferences become package dependencies on pack.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <!-- No code means no .pdb; nuget.org rejects a symbol package without one. -->
     <IncludeSymbols>false</IncludeSymbols>

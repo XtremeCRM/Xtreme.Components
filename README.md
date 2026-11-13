@@ -1,7 +1,7 @@
 # Xtreme.Components
 
 App-agnostic, cross-platform [Uno Platform](https://platform.uno) controls, built from WinUI
-primitives only: no WebView, no third-party control licenses. One `net10.0` assembly per
+primitives only: no WebView, no third-party control licenses. One `net11.0` assembly per
 package runs on Desktop, Android, iOS and WebAssembly through the Uno Skia renderer.
 
 They grew up inside [XtremeCRM](https://github.com/XtremeCRM/XtremeCRM.Uno) and were
@@ -85,7 +85,7 @@ Every family has a live page in the gallery, published from `main` to
 **https://xtremecrm.github.io/Xtreme.Components/**. Run it locally on desktop with:
 
 ```bash
-dotnet run --project samples/Xtreme.Components.Gallery -f net10.0-desktop
+dotnet run --project samples/Xtreme.Components.Gallery -f net11.0-desktop
 ```
 
 `--selftest` opens every page in turn and exits non-zero if one throws.

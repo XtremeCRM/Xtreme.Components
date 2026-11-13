@@ -50,7 +50,7 @@
                     <ItemsRepeater.Layout>
                         <FlowLayout
                             Orientation="Horizontal"
-                            MinColumnSpacing="4" />
+                            MinItemSpacing="4" />
                     </ItemsRepeater.Layout>
 
                     <ItemsRepeater.ItemTemplate>

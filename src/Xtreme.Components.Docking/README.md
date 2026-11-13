@@ -59,4 +59,4 @@ platform.CaptureShellWindowHandle(MainWindow.DispatcherQueue);   // owned float 
 platform.PrimePoolWhenIdle(MainWindow.DispatcherQueue);          // pre-built windows, off the click
 ```
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

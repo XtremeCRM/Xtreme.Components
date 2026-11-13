@@ -77,4 +77,4 @@ Only a Planner lane whose resource sets `TimeZoneId` converts times (treating th
 showing that zone's wall-clock). Every other view and lane draws `Start`/`End` exactly as given,
 so pass local times unless you use per-resource zones. See the guide's Data section.
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

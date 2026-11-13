@@ -112,7 +112,7 @@ Adopted from Uno.Toolkit, CommunityToolkit and UnoDock, trimmed to what we need:
 
 - **`Sdk="Uno.Sdk"` library project**, `UnoSingleProject`, `GenerateLibraryLayout=true`,
   **`UnoFeatures` empty** (only an app head sets features).
-- **`net10.0` only.** The Skia renderer consumes one assembly on every head. Adding
+- **`net11.0` only.** The Skia renderer consumes one assembly on every head. Adding
   platform TFMs pulls a platform runtime into the library and conflicts with the head
   (UNOB0017). Revisit only if a native-WinUI consumer appears; UnoDock dual-targets
   for that reason and we do not have it.

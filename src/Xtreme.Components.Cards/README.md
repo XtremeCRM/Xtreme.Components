@@ -62,4 +62,4 @@ docker.LayoutChanged += (_, _) => Persist(docker.Layout);   // a user edit chang
 `Layout` is a value: every read returns a copy, and assigning stores a copy. `LayoutChanged` fires
 only for user edits that change the arrangement, never for assignments.
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

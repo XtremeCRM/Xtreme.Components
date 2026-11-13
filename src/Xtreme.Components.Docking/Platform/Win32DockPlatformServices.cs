@@ -10,7 +10,7 @@ namespace Xtreme.Components.Docking.Platform;
 /// <para>One class serves every head TFM: the platform facts are RUNTIME decisions
 /// (<see cref="SupportsFloatingWindows"/> is false on WASM/mobile, the user32 interop is guarded by
 /// <c>OperatingSystem.IsWindows()</c>), which is exactly the shape <see cref="IDockPlatformServices"/>
-/// exists to allow — Xtreme.Components is a single net10.0 assembly with no <c>#if WINDOWS</c>.</para>
+/// exists to allow — Xtreme.Components is a single net11.0 assembly with no <c>#if WINDOWS</c>.</para>
 /// <para>The pool's rules were all bought with observed failures:</para>
 /// <list type="bullet">
 /// <item><b>Verify the hide, don't trust it.</b> <c>AppWindow.Hide()</c> returns successfully WITHOUT

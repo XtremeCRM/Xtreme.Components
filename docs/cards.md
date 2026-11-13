@@ -1,7 +1,7 @@
 # Cards
 
 Package: `Xtreme.Components.Cards` (namespace `Xtreme.Components.Cards`). Depends on
-`Xtreme.Components.Core` only. Targets `net10.0`; the consuming Uno head supplies the renderer.
+`Xtreme.Components.Core` only. Targets `net11.0`; the consuming Uno head supplies the renderer.
 
 Two independent controls:
 

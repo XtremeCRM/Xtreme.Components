@@ -66,4 +66,4 @@ The package dictionary also defines theme-keyed brushes you can override: `XcExc
 chip picker's NOT marks), `XcChipBackgroundBrush` and `XcChipForegroundBrush` (pills for a
 `ChipItem` with no colors of its own).
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

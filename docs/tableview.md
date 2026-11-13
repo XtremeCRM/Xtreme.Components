@@ -31,7 +31,7 @@ by the [WinUI.TableView documentation](https://w-ahmad.dev/WinUI.TableView/), in
 The gallery merges no WinUI.TableView dictionary and renders the table on Desktop (Skia) and
 WebAssembly.
 
-Like every package in this repository it targets `net10.0` only; the consuming Uno head supplies
+Like every package in this repository it targets `net11.0` only; the consuming Uno head supplies
 the renderer.
 
 ## Setup
