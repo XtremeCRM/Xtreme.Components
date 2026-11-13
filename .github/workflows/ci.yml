@@ -93,7 +93,7 @@ jobs:
       - name: Publish the gallery for GitHub Pages
         run: >
           dotnet publish samples/Xtreme.Components.Gallery/Xtreme.Components.Gallery.csproj
-          -c Release -f net10.0-browserwasm -o artifacts/gallery
+          -c Release -f net11.0-browserwasm -o artifacts/gallery
           -p:GalleryBasePath=/Xtreme.Components/
       - name: Add a .nojekyll marker
         run: touch artifacts/gallery/wwwroot/.nojekyll

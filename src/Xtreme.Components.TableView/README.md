@@ -3,7 +3,9 @@
 Helpers for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) on
 [Uno Platform](https://platform.uno). Part of
 [Xtreme.Components](https://github.com/XtremeCRM/Xtreme.Components). Kept separate from
-`Xtreme.Components.Primitives` because it carries the `WinUI.TableView` dependency.
+`Xtreme.Components.Primitives` because it carries the WinUI.TableView dependency, which arrives as
+`Xtreme.WinUI.TableView` (WinUI.TableView built for Uno 7). Do not also reference the upstream
+`WinUI.TableView` package: it is built for Uno 6.5 and ships the same assembly.
 
 **Full guide:** [docs/tableview.md](https://github.com/XtremeCRM/Xtreme.Components/blob/main/docs/tableview.md) covers every option with samples.
 
@@ -41,4 +43,4 @@ RowFlagDecorator.Detach(EventTypesTable);   // stop decorating; realized rows ar
 
 Attaching again to the same table replaces the earlier registration.
 
-Targets `net10.0` only; the consuming Uno head supplies the renderer. MIT license.
+Targets `net11.0` only; the consuming Uno head supplies the renderer. MIT license.

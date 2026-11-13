@@ -1,0 +1,845 @@
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Shapes;
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
+using Windows.Foundation;
+using Windows.Foundation.Collections;
+using WinUI.TableView.Extensions;
+using WinUI.TableView.Helpers;
+
+namespace WinUI.TableView;
+
+/// <summary>
+/// Represents the header row in a TableView.
+/// </summary>
+[TemplateVisualState(Name = VisualStates.StateNormal, GroupName = VisualStates.GroupCommon)]
+[TemplateVisualState(Name = VisualStates.StateNoButton, GroupName = VisualStates.GroupCornerButton)]
+[TemplateVisualState(Name = VisualStates.StateSelectAllButton, GroupName = VisualStates.GroupCornerButton)]
+[TemplateVisualState(Name = VisualStates.StateSelectAllButtonDisabled, GroupName = VisualStates.GroupCornerButton)]
+[TemplateVisualState(Name = VisualStates.StateSelectAllCheckBox, GroupName = VisualStates.GroupCornerButton)]
+[TemplateVisualState(Name = VisualStates.StateSelectAllCheckBoxDisabled, GroupName = VisualStates.GroupCornerButton)]
+[TemplateVisualState(Name = VisualStates.StateOptionsButton, GroupName = VisualStates.GroupCornerButton)]
+[TemplateVisualState(Name = VisualStates.StateOptionsButtonDisabled, GroupName = VisualStates.GroupCornerButton)]
+public partial class TableViewHeaderRow : Control
+{
+    private Panel? _cornerButtonPanel;
+    private Button? _optionsButton;
+    private Button? _selectAllButton;
+    private CheckBox? _selectAllCheckBox;
+    private bool _isSyncingSelectAllCheckBox;
+    private Rectangle? _v_gridLine;
+    private Rectangle? _h_gridLine;
+    private StackPanel? _frozenHeadersPanel;
+    private StackPanel? _scrollableHeadersPanel;
+    private Border? _columnDropIndicator;
+    private TranslateTransform? _columnDropIndicatorTransform;
+    private Image? _dragHeaderImage;
+    private DispatcherTimer? _desiredWidthTimer;
+    private bool _calculatingHeaderWidths;
+    private int _dropColumnIndex;
+    private bool _isValidDropTarget;
+    private readonly Dictionary<DependencyProperty, long> _callbackTokens = [];
+
+    /// <summary>
+    /// Initializes a new instance of the TableViewHeaderRow class.
+    /// </summary>
+    public TableViewHeaderRow()
+    {
+        DefaultStyleKey = typeof(TableViewHeaderRow);
+    }
+
+    /// <inheritdoc/>
+    protected override void OnApplyTemplate()
+    {
+        base.OnApplyTemplate();
+
+        _selectAllButton?.Tapped -= OnSelectAllButtonClicked;
+        _selectAllCheckBox?.Checked -= OnSelectAllCheckBoxChecked;
+        _selectAllCheckBox?.Unchecked -= OnSelectAllCheckBoxUnchecked;
+
+        _cornerButtonPanel = GetTemplateChild("CornerButtonPanel") as Panel;
+        _optionsButton = GetTemplateChild("optionsButton") as Button;
+        _selectAllButton = GetTemplateChild("selectAllButton") as Button;
+        _selectAllCheckBox = GetTemplateChild("selectAllCheckBox") as CheckBox;
+        _v_gridLine = GetTemplateChild("VerticalGridLine") as Rectangle;
+        _h_gridLine = GetTemplateChild("HorizontalGridLine") as Rectangle;
+        _frozenHeadersPanel = GetTemplateChild("FrozenHeadersPanel") as StackPanel;
+        _scrollableHeadersPanel = GetTemplateChild("ScrollableHeadersPanel") as StackPanel;
+        _columnDropIndicator = GetTemplateChild("ColumnDropIndicator") as Border;
+        _columnDropIndicatorTransform = GetTemplateChild("ColumnDropIndicatorTransform") as TranslateTransform;
+        _dragHeaderImage = GetTemplateChild("DragHeaderImage") as Image;
+
+        if (TableView is null)
+        {
+            return;
+        }
+
+        _selectAllButton?.Tapped += OnSelectAllButtonClicked;
+        _selectAllCheckBox?.Checked += OnSelectAllCheckBoxChecked;
+        _selectAllCheckBox?.Unchecked += OnSelectAllCheckBoxUnchecked;
+
+        if (TableView.Columns is not null)
+        {
+            AddHeaders(TableView.Columns.VisibleColumns);
+        }
+
+        _cornerButtonPanel?.SetBinding(WidthProperty, new Binding
+        {
+            Source = TableView,
+            Path = new PropertyPath(nameof(TableView.CellsHorizontalOffset))
+        });
+
+        SetOptionCommands();
+        SetExportOptionsVisibility();
+        SetCornerButtonState();
+        SetHeadersVisibility();
+        SetCellsHorizontalOffset();
+        TableView.UpdateHorizontalScrollBarMargin();
+        EnsureGridLines();
+    }
+
+    /// <inheritdoc/>
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        finalSize = base.ArrangeOverride(finalSize);
+
+        if (_scrollableHeadersPanel is not null && _frozenHeadersPanel is not null && TableView is not null && _scrollableHeadersPanel.ActualWidth > 0)
+        {
+            var frozenOffset = _frozenHeadersPanel.ActualOffset.X + _frozenHeadersPanel.ActualWidth;
+            var headersOffset = -TableView.HorizontalOffset + frozenOffset;
+            // This reduces to TableView.HorizontalOffset, which is read live from the scroll viewer,
+            // while ActualWidth is left over from the previous arrange. Narrowing a column while the
+            // view is scrolled right can therefore leave the offset past the panel's own extent, which
+            // would give the clip below a zero or negative width - not a valid rectangle, and it hides
+            // every header. Clamp it into the panel's extent so the clip is always well formed.
+            var xClip = Math.Clamp((headersOffset * -1) + frozenOffset, 0, _scrollableHeadersPanel.ActualWidth);
+
+            _scrollableHeadersPanel.Arrange(new Rect(headersOffset, 0, _scrollableHeadersPanel.ActualWidth, _scrollableHeadersPanel.ActualHeight));
+            _scrollableHeadersPanel.Clip = headersOffset >= frozenOffset ? null :
+                new RectangleGeometry
+                {
+                    Rect = new Rect(xClip, 0, _scrollableHeadersPanel.ActualWidth - xClip, finalSize.Height)
+                };
+        }
+
+        return finalSize;
+    }
+
+    /// <summary>
+    /// Handles the collection changed event for the columns.
+    /// </summary>
+    private void OnTableViewColumnsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems?.OfType<TableViewColumn>() is IEnumerable<TableViewColumn> newItems)
+        {
+            AddHeaders(newItems.Where(x => x.Visibility == Visibility.Visible));
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems?.OfType<TableViewColumn>() is IEnumerable<TableViewColumn> oldItems)
+        {
+            RemoveHeaders(oldItems);
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Move && e.NewItems?.Count > 0)
+        {
+            MoveHeaders(e.NewItems.OfType<TableViewColumn>().First(), e.NewStartingIndex);
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Reset && _scrollableHeadersPanel is not null)
+        {
+            ClearHeaders();
+        }
+    }
+
+    /// <summary>
+    /// Moves the header associated with the specified column to a new index.
+    /// </summary>
+    /// <param name="column">The column associated with the header to move.</param>
+    /// <param name="newIndex">The new index to move the header to.</param>
+
+    private void MoveHeaders(TableViewColumn column, int newIndex)
+    {
+        if (Headers.FirstOrDefault(h => h.Column == column) is { } header)
+        {
+            RemoveHeader(header);
+            InsertHeader(header);
+        }
+
+        if (newIndex >= 0 && newIndex < TableView?.FrozenColumnCount &&
+            _frozenHeadersPanel?.Children.OfType<TableViewColumnHeader>().LastOrDefault() is { } frozenHeader)
+        {
+            RemoveHeader(frozenHeader);
+            InsertHeader(frozenHeader);
+        }
+    }
+
+    /// <summary>
+    /// Handles the property changed event for a column.
+    /// </summary>
+    private void OnColumnPropertyChanged(object? sender, TableViewColumnPropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TableViewColumn.Visibility))
+        {
+            if (e.Column.Visibility == Visibility.Visible)
+            {
+                AddHeaders([e.Column]);
+            }
+            else
+            {
+                RemoveHeaders([e.Column]);
+            }
+        }
+        else if ((e.PropertyName is nameof(TableViewColumn.Order) ||
+            e.PropertyName is nameof(TableViewColumn.IsFrozen)) &&
+            e.Column.Visibility is Visibility.Visible)
+        {
+            RemoveHeaders([e.Column]);
+            AddHeaders([e.Column]);
+        }
+        else if (e.PropertyName is nameof(TableViewColumn.Width) or
+                                   nameof(TableViewColumn.MinWidth) or
+                                   nameof(TableViewColumn.MaxWidth))
+        {
+            if (!_calculatingHeaderWidths)
+            {
+                CalculateHeaderWidths();
+            }
+        }
+        else if (e.PropertyName is nameof(TableViewColumn.DesiredWidth))
+        {
+            // Coalesce multiple updates (see in-loop Measure() call in CalculateHeaderWidths) to avoid excessive header width calculations.
+            _desiredWidthTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            _desiredWidthTimer.Tick -= OnDesiredWidthTimerTick;
+            _desiredWidthTimer.Tick += OnDesiredWidthTimerTick;
+            _desiredWidthTimer.Stop();
+            _desiredWidthTimer.Start();
+        }
+    }
+
+    /// <summary>
+    /// Recalculates header widths after deferred desired-width updates.
+    /// </summary>
+    private void OnDesiredWidthTimerTick(object? sender, object e)
+    {
+        _desiredWidthTimer?.Stop();
+
+        if (!_calculatingHeaderWidths)
+        {
+            CalculateHeaderWidths();
+        }
+    }
+
+    /// <summary>
+    /// Removes headers for the specified columns.
+    /// </summary>
+    private void RemoveHeaders(IEnumerable<TableViewColumn> columns)
+    {
+        foreach (var column in columns)
+        {
+            var header = Headers.FirstOrDefault(x => x.Column == column);
+            if (header is not null)
+            {
+                RemoveHeader(header);
+            }
+
+            if (column.HeaderControl == header)
+            {
+                column.HeaderControl = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds headers for the specified columns.
+    /// </summary>
+    private void AddHeaders(IEnumerable<TableViewColumn> columns)
+    {
+        if (TableView is not null && _scrollableHeadersPanel is not null)
+        {
+            foreach (var column in columns)
+            {
+                var header = new TableViewColumnHeader { DataContext = column, Column = column };
+                column.HeaderControl = header;
+
+                InsertHeader(header);
+
+                header.SetBinding(ContentControl.ContentProperty, SharedResources.HeaderBinding);
+            }
+
+            CalculateHeaderWidths();
+        }
+    }
+
+    /// <summary>
+    /// Calculates the widths of the headers.
+    /// </summary>
+    internal void CalculateHeaderWidths()
+    {
+        if (TableView?.ActualWidth > 0)
+        {
+            _calculatingHeaderWidths = true;
+
+            var allColumns = TableView.Columns.VisibleColumns.ToList();
+            var starColumns = allColumns.Where(x => x.Width.IsStar).ToList();
+            var autoColumns = allColumns.Where(x => x.Width.IsAuto).ToList();
+            var absoluteColumns = allColumns.Where(x => x.Width.IsAbsolute).ToList();
+
+            var availableWidth = TableView.ActualWidth - 32;
+            var starUnitWeight = starColumns.Sum(x => x.Width.Value);
+
+            var fixedWidth = autoColumns.Sum(GetColumnDesiredWidth);
+            fixedWidth += absoluteColumns.Sum(x => x.ActualWidth);
+
+            availableWidth -= fixedWidth;
+            var starUnitWidth = starUnitWeight > 0 ? availableWidth / starUnitWeight : 0;
+
+            var starWidthAdjusted = false;
+            var startColumnsToAdjust = starColumns.ToList();
+            do
+            {
+                starWidthAdjusted = false;
+
+                foreach (var column in startColumnsToAdjust)
+                {
+                    if (column.HeaderControl is { } header)
+                    {
+                        var width = starUnitWidth * column.Width.Value;
+                        var minWidth = column.MinWidth ?? TableView.MinColumnWidth;
+                        var maxWidth = column.MaxWidth ?? TableView.MaxColumnWidth;
+
+                        width = width < minWidth ? minWidth : width;
+                        width = width > maxWidth ? maxWidth : width;
+
+                        if (width != starUnitWidth * column.Width.Value)
+                        {
+                            availableWidth -= width;
+                            starUnitWeight -= column.Width.Value;
+                            starUnitWidth = starUnitWeight > 0 ? availableWidth / starUnitWeight : 0;
+                            startColumnsToAdjust.Remove(column);
+                            starWidthAdjusted = true;
+                            break;
+                        }
+                    }
+                }
+
+            } while (starWidthAdjusted);
+
+
+            foreach (var column in allColumns)
+            {
+                if (column.HeaderControl is { } header)
+                {
+                    var width = column.Width.IsStar
+                                ? starUnitWidth * column.Width.Value
+                                : column.Width.IsAbsolute ? column.Width.Value
+                                : GetColumnDesiredWidth(column);
+
+                    var minWidth = column.MinWidth ?? TableView.MinColumnWidth;
+                    var maxWidth = column.MaxWidth ?? TableView.MaxColumnWidth;
+
+                    width = width < minWidth ? minWidth : width;
+                    width = width > maxWidth ? maxWidth : width;
+                    header.Width = width;
+                }
+            }
+
+            _calculatingHeaderWidths = false;
+
+            TableView.UpdateHorizontalScrollBarMargin();
+        }
+    }
+
+    /// <summary>
+    /// Gets the desired width of a column based on its header and cells.
+    /// </summary>
+    internal double GetColumnDesiredWidth(TableViewColumn column)
+    {
+        var autoWidthMode = column.ColumnAutoWidthMode ?? TableView?.ColumnAutoWidthMode;
+        var width = column.DesiredWidth;
+
+        if (column.HeaderControl is { } header && autoWidthMode is not TableViewColumnAutoWidthMode.Cells)
+        {
+            if (header.CachedDesiredWidth is null)
+            {
+                header.Width = double.NaN;
+                header.Measure(new Size(double.PositiveInfinity, ActualHeight));
+            }
+
+            width = Math.Max(width, header.CachedDesiredWidth ?? 0d);
+        }
+
+        return width;
+    }
+
+    /// <summary>
+    /// Handles the selection changed event for the TableView.
+    /// </summary>
+    private void OnTableViewSelectionChanged()
+    {
+        if (TableView is not null && _selectAllCheckBox is not null)
+        {
+            // Setting IsChecked below can itself raise Checked/Unchecked (WinUI doesn't distinguish a
+            // programmatic set from a user click) - those handlers call back into TableView.SelectAll()/
+            // DeselectAll(), which re-enters this same method via the resulting SelectionChanged, and so on
+            // forever until the stack overflows. _isSyncingSelectAllCheckBox marks this update as our own
+            // so OnSelectAllCheckBoxChecked/Unchecked can ignore it instead of re-triggering selection.
+            _isSyncingSelectAllCheckBox = true;
+
+            if (TableView.Items.Count == 0)
+            {
+                _selectAllCheckBox.IsChecked = null;
+                _selectAllCheckBox.IsEnabled = false;
+            }
+            else if (TableView.SelectedItems.Count == TableView.Items.Count)
+            {
+                _selectAllCheckBox.IsChecked = true;
+                _selectAllCheckBox.IsEnabled = true;
+            }
+            else if (TableView.SelectedItems.Count > 0)
+            {
+                _selectAllCheckBox.IsChecked = null;
+                _selectAllCheckBox.IsEnabled = true;
+            }
+            else
+            {
+                _selectAllCheckBox.IsChecked = false;
+                _selectAllCheckBox.IsEnabled = true;
+            }
+
+            _isSyncingSelectAllCheckBox = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles the selection changed event of the associated TableView.
+    /// </summary>
+    private void OnTableViewSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        OnTableViewSelectionChanged();
+    }
+
+    /// <summary>
+    /// Handles vector changes in the associated TableView item collection.
+    /// </summary>
+    private void OnTableViewItemsVectorChanged(IObservableVector<object> sender, IVectorChangedEventArgs e)
+    {
+        OnTableViewSelectionChanged();
+    }
+
+    /// <summary>
+    /// Handles changes to the SelectionMode property of the associated TableView.
+    /// </summary>
+    private void OnTableViewSelectionModePropertyChanged(DependencyObject sender, DependencyProperty dp)
+    {
+        SetHeadersVisibility();
+        OnTableViewSelectionChanged();
+    }
+
+    /// <summary>
+    /// Handles changes to the CornerButtonMode property of the associated TableView.
+    /// </summary>
+    private void OnTableViewCornerButtonModePropertyChanged(DependencyObject sender, DependencyProperty dp)
+    {
+        SetCornerButtonState();
+    }
+
+    /// <summary>
+    /// Handles changes to the ItemsSource property of the associated TableView.
+    /// </summary>
+    private void OnTableViewItemsSourcePropertyChanged(DependencyObject sender, DependencyProperty dp)
+    {
+        OnTableViewSelectionChanged();
+    }
+
+    /// <summary>
+    /// Sets the state of the select all button.
+    /// </summary>
+    internal void SetCornerButtonState()
+    {
+        var stateName = VisualStates.StateNoButton;
+
+        if (TableView is ListView { SelectionMode: ListViewSelectionMode.Multiple })
+        {
+            stateName = TableView.IsEditing ? VisualStates.StateSelectAllCheckBoxDisabled : VisualStates.StateSelectAllCheckBox;
+        }
+        else if (TableView is { CornerButtonMode: TableViewCornerButtonMode.Options })
+        {
+            stateName = TableView.IsEditing ? VisualStates.StateOptionsButtonDisabled : VisualStates.StateOptionsButton;
+        }
+        else if (TableView is { CornerButtonMode: TableViewCornerButtonMode.SelectAll })
+        {
+            stateName = TableView.IsEditing ? VisualStates.StateSelectAllButtonDisabled : VisualStates.StateSelectAllButton;
+        }
+
+        VisualStates.GoToState(this, false, stateName);
+    }
+
+    /// <summary>
+    /// Sets the horizontal offset of the cells in the header row based on the TableView settings.
+    /// </summary>
+    internal void SetCellsHorizontalOffset()
+    {
+        // if there are no items, we want to reset the horizontal offset
+        // so that the header row corner can take up the desired width.
+        if (TableView?.CollectionView.Count == 0)
+        {
+            if (TableView is ListView { SelectionMode: ListViewSelectionMode.Multiple })
+            {
+                TableView.CellsHorizontalOffset = double.NaN;
+            }
+            else if (TableView.HeadersVisibility is TableViewHeadersVisibility.All)
+            {
+                var rowHeaderWidth = TableView.RowHeaderWidth is double.NaN ? 0 : TableView.RowHeaderWidth;
+                TableView.CellsHorizontalOffset = Math.Min(TableView.RowHeaderMaxWidth,
+                    Math.Max(TableView.RowHeaderMinWidth, rowHeaderWidth));
+            }
+            else
+            {
+                TableView.CellsHorizontalOffset = 0;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles the SelectAllButton clicked event.
+    /// </summary>
+    private void OnSelectAllButtonClicked(object sender, TappedRoutedEventArgs e)
+    {
+        TableView?.SelectAll();
+    }
+
+    /// <summary>
+    /// Handles the Checked event for the select all checkbox.
+    /// </summary>
+    private void OnSelectAllCheckBoxChecked(object sender, RoutedEventArgs e)
+    {
+        // Ignore our own programmatic update from OnTableViewSelectionChanged - only react to a real
+        // user click, otherwise this and DeselectAll() below recurse into each other via SelectionChanged
+        // until the stack overflows.
+        if (_isSyncingSelectAllCheckBox) return;
+
+        TableView?.SelectAll();
+    }
+
+    /// <summary>
+    /// Handles the Unchecked event for the select all checkbox.
+    /// </summary>
+    private void OnSelectAllCheckBoxUnchecked(object sender, RoutedEventArgs e)
+    {
+        if (_isSyncingSelectAllCheckBox) return;
+
+        TableView?.DeselectAll();
+    }
+
+    /// <summary>
+    /// Ensures grid lines are applied to the header row.
+    /// </summary>
+    internal void EnsureGridLines()
+    {
+        if (_h_gridLine is not null && TableView is not null)
+        {
+            _h_gridLine.Fill = TableView.HorizontalGridLinesStroke;
+            _h_gridLine.Height = TableView.HorizontalGridLinesStrokeThickness;
+            _h_gridLine.Visibility = TableView.HeaderGridLinesVisibility is TableViewGridLinesVisibility.All or TableViewGridLinesVisibility.Horizontal
+                                     ? Visibility.Visible : Visibility.Collapsed;
+
+            if (_v_gridLine is not null)
+            {
+                var vGridLinesVisibility = TableView.HeaderGridLinesVisibility is TableViewGridLinesVisibility.All or TableViewGridLinesVisibility.Vertical
+                                           || TableView.GridLinesVisibility is TableViewGridLinesVisibility.All or TableViewGridLinesVisibility.Vertical;
+                var areHeadersVisible = TableView.HeadersVisibility is TableViewHeadersVisibility.All or TableViewHeadersVisibility.Rows;
+                var isMultiSelection = TableView is ListView { SelectionMode: ListViewSelectionMode.Multiple };
+                var isDetailsToggleButtonVisible = TableView.RowDetailsVisibilityMode is TableViewRowDetailsVisibilityMode.VisibleWhenExpanded
+                                                    && (TableView.RowDetailsTemplate is not null || TableView.RowDetailsTemplateSelector is not null);
+
+
+                _v_gridLine.Fill = TableView.HeaderGridLinesVisibility is TableViewGridLinesVisibility.All or TableViewGridLinesVisibility.Vertical
+                                   ? TableView.VerticalGridLinesStroke : SharedResources.TransparentBrush;
+                _v_gridLine.Width = TableView.VerticalGridLinesStrokeThickness;
+                _v_gridLine.Visibility = vGridLinesVisibility && (areHeadersVisible || isMultiSelection || isDetailsToggleButtonVisible) ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        foreach (var header in Headers)
+        {
+            header.EnsureGridLines();
+        }
+
+        if (!_calculatingHeaderWidths)
+        {
+            CalculateHeaderWidths();
+        }
+    }
+
+    /// <summary>
+    /// Gets the previous header in the header row.
+    /// </summary>
+    internal TableViewColumnHeader? GetPreviousHeader(TableViewColumnHeader currentHeader)
+    {
+        if (TableView is { Columns: { } } && currentHeader is { Column: { } })
+        {
+            var index = TableView.Columns.VisibleColumns.IndexOf(currentHeader.Column);
+
+            if (index > 0)
+            {
+                return TableView.Columns.VisibleColumns[index - 1].HeaderControl;
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
+    /// Sets the visibility of the row header based on the TableView settings.
+    /// </summary>
+    internal void SetHeadersVisibility()
+    {
+        if (_cornerButtonPanel is not null && TableView is not null)
+        {
+            var areRowHeadersVisible = TableView.HeadersVisibility is TableViewHeadersVisibility.All or TableViewHeadersVisibility.Rows;
+            var isMultiSelection = TableView is ListView { SelectionMode: ListViewSelectionMode.Multiple };
+            var isRowDetailExpandable = TableView.RowDetailsVisibilityMode is TableViewRowDetailsVisibilityMode.VisibleWhenExpanded;
+
+            _cornerButtonPanel.Visibility = areRowHeadersVisible || isMultiSelection || isRowDetailExpandable
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        SetCornerButtonState();
+        EnsureGridLines();
+    }
+
+    /// <summary>
+    /// Shows the column drop indicator at the specified position.
+    /// </summary>
+    internal void ShowColumnDropIndicator(double position, RenderTargetBitmap headerVisuals)
+    {
+        if (_columnDropIndicator is not null && FindHeader(new(position, ActualHeight / 2)) is { Column: { } dropColumn } dropHeader)
+        {
+            _isValidDropTarget = true;
+            _dropColumnIndex = TableView?.Columns.VisibleColumns.IndexOf(dropColumn) ?? 0;
+            var transform = dropHeader.TransformToVisual(this);
+            var dropHeaderX = transform.TransformPoint(new Point(0, 0)).X;
+            var midPoint = dropHeaderX + (dropHeader.ActualWidth / 2);
+            var x = dropHeaderX;
+            x += midPoint < position ? dropHeader.ActualWidth : 0d;
+            x -= _columnDropIndicator.ActualWidth / 2;
+            _dropColumnIndex += midPoint > position ? -1 : 0;
+            _columnDropIndicator.Visibility = Visibility.Visible;
+            _columnDropIndicatorTransform?.X = x;
+            _dragHeaderImage?.Source = headerVisuals;
+        }
+        else
+        {
+            _isValidDropTarget = false;
+            _columnDropIndicator?.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    internal void ColumnDropCompleted(TableViewColumn column, bool applyDrop)
+    {
+        if (TableView is not null && _columnDropIndicator is not null)
+        {
+            _columnDropIndicator.Visibility = Visibility.Collapsed;
+            var isValidDropTarget = _isValidDropTarget;
+            _isValidDropTarget = false;
+
+            if (!isValidDropTarget || !applyDrop)
+            {
+                return;
+            }
+
+            var sourceIndex = TableView.Columns.VisibleColumns.IndexOf(column);
+            var dropIndex = sourceIndex > _dropColumnIndex ? _dropColumnIndex + 1 : _dropColumnIndex;
+            dropIndex = Math.Clamp(dropIndex, 0, TableView.Columns.VisibleColumns.Count - 1);
+
+            var reorderingArgs = new TableViewColumnReorderingEventArgs(column, dropIndex);
+            TableView.OnColumnReordering(reorderingArgs);
+
+            if (reorderingArgs.Cancel) return;
+
+            TableView.DeselectAll();
+            TableView.Columns.Move(sourceIndex, dropIndex);
+
+            var reorderedArgs = new TableViewColumnReorderedEventArgs(column, dropIndex);
+            TableView.OnColumnReordered(reorderedArgs);
+        }
+    }
+
+    /// <summary>
+    /// Finds the header at the specified position.
+    /// </summary>
+    private TableViewColumnHeader? FindHeader(Point position)
+    {
+        var transformedPoint = TransformToVisual(null).TransformPoint(position);
+#if WINDOWS
+        return VisualTreeHelper.FindElementsInHostCoordinates(transformedPoint, this)
+#else
+        return VisualTreeHelper.FindElementsInHostCoordinates(transformedPoint, TableView, true)
+                               .OfType<ContentPresenter>()
+                               .Where(x => x.Name is "ContentPresenter")
+                               .Select(x => x.FindAscendant<TableViewColumnHeader>() is { } header ? header : default)
+#endif
+                               .OfType<TableViewColumnHeader>()
+                               .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Inserts a header at the specified index.
+    /// </summary>
+    /// <param name="header">The header to insert.</param>
+    public void InsertHeader(TableViewColumnHeader header)
+    {
+        if (TableView is null || header is not { Column: { } column }) return;
+
+        var _frozenColumns = TableView.Columns.VisibleColumns.Where(x => x.IsFrozen).ToList();
+        var _scrollableColumns = TableView.Columns.VisibleColumns.Where(x => !x.IsFrozen).ToList();
+
+        if (header is { Column.IsFrozen: true } && _frozenHeadersPanel is not null)
+        {
+            var index = _frozenColumns.IndexOf(column);
+            index = Math.Min(index, _frozenColumns.Count);
+            index = Math.Max(index, 0); // handles -ve index;
+
+            _frozenHeadersPanel.Children.Insert(index, header);
+        }
+        else if (_scrollableHeadersPanel is not null)
+        {
+            var index = _scrollableColumns.IndexOf(column);
+            index = Math.Min(index, _scrollableColumns.Count);
+            index = Math.Max(index, 0); // handles -ve index;
+
+            _scrollableHeadersPanel.Children.Insert(index, header);
+        }
+    }
+
+    /// <summary>
+    /// Removes a header from the header row.
+    /// </summary>
+    /// <param name="header">The header to remove.</param>
+    public void RemoveHeader(TableViewColumnHeader header)
+    {
+        if (header.Column?.HeaderControl == header)
+        {
+            header.Column.HeaderControl = null;
+        }
+
+        if (_frozenHeadersPanel?.Children.Contains(header) ?? false)
+        {
+            _frozenHeadersPanel.Children.Remove(header);
+        }
+        else if (_scrollableHeadersPanel?.Children.Contains(header) ?? false)
+        {
+            _scrollableHeadersPanel.Children.Remove(header);
+        }
+    }
+
+    /// <summary>
+    /// Clears all headers from the header row.
+    /// </summary>
+    public void ClearHeaders()
+    {
+        foreach (var header in Headers)
+        {
+            if (header.Column?.HeaderControl == header)
+            {
+                header.Column.HeaderControl = null;
+            }
+        }
+
+        _frozenHeadersPanel?.Children.Clear();
+        _scrollableHeadersPanel?.Children.Clear();
+    }
+
+    /// <summary>
+    /// Handles the SizeChanged event for the TableView.
+    /// </summary>
+    private void OnTableViewSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        CalculateHeaderWidths();
+    }
+
+    /// <summary>
+    /// Handles changes to the TableView property.
+    /// </summary>
+    private static void OnTableViewChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewHeaderRow headerRow)
+        {
+            headerRow.OnTableViewChanged(e);
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the TableView property.
+    /// </summary>
+    private void OnTableViewChanged(DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is TableView oldTableView)
+        {
+            oldTableView.SizeChanged -= OnTableViewSizeChanged;
+            oldTableView.SelectionChanged -= OnTableViewSelectionChanged;
+            oldTableView.Items.VectorChanged -= OnTableViewItemsVectorChanged;
+            oldTableView.Columns.CollectionChanged -= OnTableViewColumnsCollectionChanged;
+            oldTableView.Columns.ColumnPropertyChanged -= OnColumnPropertyChanged;
+
+            UnregisterPropertyChangedCallback(oldTableView, ListViewBase.SelectionModeProperty);
+            UnregisterPropertyChangedCallback(oldTableView, TableView.CornerButtonModeProperty);
+            UnregisterPropertyChangedCallback(oldTableView, TableView.ItemsSourceProperty);
+        }
+
+        if (e.NewValue is TableView newTableView)
+        {
+            newTableView.SizeChanged += OnTableViewSizeChanged;
+            newTableView.SelectionChanged += OnTableViewSelectionChanged;
+            newTableView.Items.VectorChanged += OnTableViewItemsVectorChanged;
+            newTableView.Columns.CollectionChanged += OnTableViewColumnsCollectionChanged;
+            newTableView.Columns.ColumnPropertyChanged += OnColumnPropertyChanged;
+
+            _callbackTokens[ListViewBase.SelectionModeProperty] =
+                newTableView.RegisterPropertyChangedCallback(ListViewBase.SelectionModeProperty, OnTableViewSelectionModePropertyChanged);
+            _callbackTokens[TableView.CornerButtonModeProperty] =
+                newTableView.RegisterPropertyChangedCallback(TableView.CornerButtonModeProperty, OnTableViewCornerButtonModePropertyChanged);
+            _callbackTokens[TableView.ItemsSourceProperty] =
+                newTableView.RegisterPropertyChangedCallback(TableView.ItemsSourceProperty, OnTableViewItemsSourcePropertyChanged);
+        }
+    }
+
+    /// <summary>
+    /// Unregisters a property changed callback from the associated TableView.
+    /// </summary>
+    /// <param name="tableView">The TableView that owns the callback registration.</param>
+    /// <param name="property">The dependency property to unregister.</param>
+    private void UnregisterPropertyChangedCallback(TableView tableView, DependencyProperty property)
+    {
+        if (_callbackTokens.Remove(property, out var callbackToken))
+        {
+            tableView.UnregisterPropertyChangedCallback(property, callbackToken);
+        }
+    }
+
+    /// <summary>
+    /// Gets the list of headers in the header row.
+    /// </summary>
+    public IReadOnlyList<TableViewColumnHeader> Headers =>
+        [.. _frozenHeadersPanel?.Children.OfType<TableViewColumnHeader>() ?? [],
+         .. _scrollableHeadersPanel?.Children.OfType<TableViewColumnHeader>() ?? []];
+
+    /// <summary>
+    /// Gets or sets the TableView associated with the header row.
+    /// </summary>
+    public TableView? TableView
+    {
+        get => (TableView?)GetValue(TableViewProperty);
+        set => SetValue(TableViewProperty, value);
+    }
+
+    /// <summary>
+    /// Identifies the TableView dependency property.
+    /// </summary>
+    public static readonly DependencyProperty TableViewProperty = DependencyProperty.Register(nameof(TableView), typeof(TableView), typeof(TableViewHeaderRow), new PropertyMetadata(null, OnTableViewChanged));
+}

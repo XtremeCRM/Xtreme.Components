@@ -1,0 +1,490 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:converters="using:WinUI.TableView.Converters"
+                    xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
+                    xmlns:not_win="http://uno.ui/not_win"
+                    mc:Ignorable="not_win">
+    
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <x:String x:Key="SortIconAscending">&#xf0ad;</x:String>
+            <x:String x:Key="SortIconDescending">&#xf0ae;</x:String>
+            <x:String x:Key="SortIconUnsorted">&#xe8cb;</x:String>
+            <x:String x:Key="FilterIcon">&#xe71c;</x:String>
+            <x:String x:Key="OptionsButtonIcon">&#xe712;</x:String>
+            <x:String x:Key="SelectAllButtonIcon">&#xE936;</x:String>
+            <x:Double x:Key="TableViewRowDisabledThemeOpacity">0.3</x:Double>
+            <x:Double x:Key="TableViewRowDragThemeOpacity">0.80</x:Double>
+            <x:Double x:Key="TableViewRowReorderHintThemeOffset">10.0</x:Double>
+            <x:Double x:Key="TableViewRowMinWidth">88</x:Double>
+            <x:Double x:Key="TableViewHorizontalGridLineStrokeThickness">1</x:Double>
+            <x:Double x:Key="TableViewVerticalGridLineStrokeThickness">1</x:Double>
+            <x:Boolean x:Key="TableViewRowSelectionCheckMarkVisualEnabled">True</x:Boolean>
+            <x:Boolean x:Key="TableViewRowSelectionIndicatorVisualEnabled">True</x:Boolean>
+            <Thickness x:Key="TableViewCellSelectionBorderThickness">2</Thickness>
+            <Thickness x:Key="TableViewDetailsPadding">8</Thickness>
+            <Thickness x:Key="TableViewDetailsToggleButtonMargin">4,2,4,2</Thickness>
+            <CornerRadius x:Key="TableViewRowCellSelectionBorderCornerRadius">4</CornerRadius>
+            <CornerRadius x:Key="TableViewRowCornerRadius">4</CornerRadius>
+            <CornerRadius x:Key="TableViewRowCheckBoxCornerRadius">3</CornerRadius>
+            <CornerRadius x:Key="TableViewRowSelectionIndicatorCornerRadius">1.5</CornerRadius>
+            <ListViewItemPresenterCheckMode x:Key="TableViewRowCheckMode">Inline</ListViewItemPresenterCheckMode>            
+            <StaticResource x:Key="TableViewBorderBrush" ResourceKey="CardStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewCellSelectionBrush" ResourceKey="FocusStrokeColorOuterBrush" />
+            <StaticResource x:Key="TableViewCellBackgroundPointerOver" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewCellBackgroundSelected" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewHeaderForeground" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewHeaderRowBackground" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundPointerOver" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundPressed" ResourceKey="SubtleFillColorTertiaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelected" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPointerOver" ResourceKey="SubtleFillColorTertiaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPressed" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowForeground" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowForegroundPointerOver" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowForegroundSelected" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowFocusVisualPrimaryBrush" ResourceKey="FocusStrokeColorOuterBrush" />
+            <StaticResource x:Key="TableViewRowFocusVisualSecondaryBrush" ResourceKey="FocusStrokeColorInnerBrush" />
+            <StaticResource x:Key="TableViewRowFocusBorderBrush" ResourceKey="FocusStrokeColorOuterBrush" />
+            <StaticResource x:Key="TableViewRowFocusSecondaryBorderBrush" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBrush" ResourceKey="TextOnAccentFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowDragBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+            <StaticResource x:Key="TableViewRowDragForeground" ResourceKey="TextOnAccentFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowPlaceholderBackground" ResourceKey="ControlStrongFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowCheckPressedBrush" ResourceKey="TextOnAccentFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckDisabledBrush" ResourceKey="TextOnAccentFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPointerOverBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPressedBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxDisabledBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedPointerOverBrush" ResourceKey="AccentFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedPressedBrush" ResourceKey="AccentFillColorTertiaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedDisabledBrush" ResourceKey="AccentFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxBorderBrush" ResourceKey="ControlStrongStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPointerOverBorderBrush" ResourceKey="ControlStrongStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPressedBorderBrush" ResourceKey="ControlStrongStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxDisabledBorderBrush" ResourceKey="ControlStrongStrokeColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedDisabled" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorPointerOverBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorPressedBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorDisabledBrush" ResourceKey="AccentFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewHorizontalGridLineStroke" ResourceKey="CardStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewVerticalGridLineStroke" ResourceKey="CardStrokeColorDefaultBrush" />
+            <SolidColorBrush x:Key="TableViewRowDetailsBackgroundBrush" Color="{StaticResource CardBackgroundFillColorSecondary}" />
+            <SolidColorBrush x:Key="TableViewDragRectangleFill" Color="{StaticResource SystemAccentColor}" Opacity="0.2" />
+            <StaticResource x:Key="TableViewDragRectangleStroke" ResourceKey="AccentFillColorDefaultBrush" />
+            <CornerRadius x:Key="TableViewDragRectangleCornerRadius">0</CornerRadius>
+            <StaticResource x:Key="TableViewGroupHeaderRowBackground" ResourceKey="CardBackgroundFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewGroupHeaderRowForeground" ResourceKey="TextFillColorPrimaryBrush" />
+            <x:Double x:Key="TableViewGroupHeaderRowMinHeight">36</x:Double>
+            <Thickness x:Key="TableViewGroupHeaderRowExpanderMargin">4,0,4,0</Thickness>
+            <Thickness x:Key="TableViewGroupHeaderRowContentMargin">8,0,16,0</Thickness>
+            <x:Double x:Key="TableViewGroupHeaderRowFontSize">18</x:Double>
+        </ResourceDictionary>
+        
+        <ResourceDictionary x:Key="Dark">
+            <x:String x:Key="SortIconAscending">&#xf0ad;</x:String>
+            <x:String x:Key="SortIconDescending">&#xf0ae;</x:String>
+            <x:String x:Key="SortIconUnsorted">&#xe8cb;</x:String>
+            <x:String x:Key="FilterIcon">&#xe71c;</x:String>
+            <x:String x:Key="OptionsButtonIcon">&#xe712;</x:String>
+            <x:String x:Key="SelectAllButtonIcon">&#xE936;</x:String>
+            <x:Double x:Key="TableViewRowDisabledThemeOpacity">0.3</x:Double>
+            <x:Double x:Key="TableViewRowDragThemeOpacity">0.80</x:Double>
+            <x:Double x:Key="TableViewRowReorderHintThemeOffset">10.0</x:Double>
+            <x:Double x:Key="TableViewRowMinWidth">88</x:Double>
+            <x:Double x:Key="TableViewHorizontalGridLineStrokeThickness">1</x:Double>
+            <x:Double x:Key="TableViewVerticalGridLineStrokeThickness">1</x:Double>
+            <x:Boolean x:Key="TableViewRowSelectionCheckMarkVisualEnabled">True</x:Boolean>
+            <x:Boolean x:Key="TableViewRowSelectionIndicatorVisualEnabled">True</x:Boolean>
+            <Thickness x:Key="TableViewCellSelectionBorderThickness">2</Thickness>
+            <Thickness x:Key="TableViewDetailsPadding">8</Thickness>
+            <Thickness x:Key="TableViewDetailsToggleButtonMargin">4,2,4,2</Thickness>
+            <CornerRadius x:Key="TableViewRowCellSelectionBorderCornerRadius">4</CornerRadius>
+            <CornerRadius x:Key="TableViewRowCornerRadius">4</CornerRadius>
+            <CornerRadius x:Key="TableViewRowCheckBoxCornerRadius">3</CornerRadius>
+            <CornerRadius x:Key="TableViewRowSelectionIndicatorCornerRadius">1.5</CornerRadius>
+            <ListViewItemPresenterCheckMode x:Key="TableViewRowCheckMode">Inline</ListViewItemPresenterCheckMode>
+            <StaticResource x:Key="TableViewBorderBrush" ResourceKey="ControlStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewCellSelectionBrush" ResourceKey="FocusStrokeColorOuterBrush" />
+            <StaticResource x:Key="TableViewCellBackgroundPointerOver" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewCellBackgroundSelected" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewHeaderForeground" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewHeaderRowBackground" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundPointerOver" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundPressed" ResourceKey="SubtleFillColorTertiaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelected" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPointerOver" ResourceKey="SubtleFillColorTertiaryBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedPressed" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowForeground" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowForegroundPointerOver" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowForegroundSelected" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowFocusVisualPrimaryBrush" ResourceKey="FocusStrokeColorOuterBrush" />
+            <StaticResource x:Key="TableViewRowFocusVisualSecondaryBrush" ResourceKey="FocusStrokeColorInnerBrush" />
+            <StaticResource x:Key="TableViewRowFocusBorderBrush" ResourceKey="FocusStrokeColorOuterBrush" />
+            <StaticResource x:Key="TableViewRowFocusSecondaryBorderBrush" ResourceKey="TextFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBrush" ResourceKey="TextOnAccentFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowDragBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+            <StaticResource x:Key="TableViewRowDragForeground" ResourceKey="TextOnAccentFillColorPrimaryBrush" />
+            <StaticResource x:Key="TableViewRowPlaceholderBackground" ResourceKey="ControlStrongFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowCheckPressedBrush" ResourceKey="TextOnAccentFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckDisabledBrush" ResourceKey="TextOnAccentFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPointerOverBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPressedBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxDisabledBrush" ResourceKey="ControlAltFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedPointerOverBrush" ResourceKey="AccentFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedPressedBrush" ResourceKey="AccentFillColorTertiaryBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxSelectedDisabledBrush" ResourceKey="AccentFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxBorderBrush" ResourceKey="ControlStrongStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPointerOverBorderBrush" ResourceKey="ControlStrongStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxPressedBorderBrush" ResourceKey="ControlStrongStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowCheckBoxDisabledBorderBrush" ResourceKey="ControlStrongStrokeColorDisabledBrush" />
+            <StaticResource x:Key="TableViewRowBackgroundSelectedDisabled" ResourceKey="SubtleFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorPointerOverBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorPressedBrush" ResourceKey="AccentFillColorDefaultBrush" />
+            <StaticResource x:Key="TableViewRowSelectionIndicatorDisabledBrush" ResourceKey="AccentFillColorDisabledBrush" />
+            <StaticResource x:Key="TableViewHorizontalGridLineStroke" ResourceKey="ControlStrokeColorDefaultBrush" />
+            <StaticResource x:Key="TableViewVerticalGridLineStroke" ResourceKey="ControlStrokeColorDefaultBrush" />
+            <SolidColorBrush x:Key="TableViewRowDetailsBackgroundBrush" Color="{StaticResource CardBackgroundFillColorSecondary}" />
+            <SolidColorBrush x:Key="TableViewDragRectangleFill" Color="{StaticResource SystemAccentColor}" Opacity="0.2" />
+            <StaticResource x:Key="TableViewDragRectangleStroke" ResourceKey="AccentFillColorDefaultBrush" />
+            <CornerRadius x:Key="TableViewDragRectangleCornerRadius">0</CornerRadius>
+            <StaticResource x:Key="TableViewGroupHeaderRowBackground" ResourceKey="CardBackgroundFillColorSecondaryBrush" />
+            <StaticResource x:Key="TableViewGroupHeaderRowForeground" ResourceKey="TextFillColorPrimaryBrush" />
+            <x:Double x:Key="TableViewGroupHeaderRowMinHeight">36</x:Double>
+            <Thickness x:Key="TableViewGroupHeaderRowExpanderMargin">4,0,0,0</Thickness>
+            <Thickness x:Key="TableViewGroupHeaderRowContentMargin">8,0,16,0</Thickness>
+            <x:Double x:Key="TableViewGroupHeaderRowFontSize">18</x:Double>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="HighContrast">
+            <x:String x:Key="SortIconAscending">&#xf0ad;</x:String>
+            <x:String x:Key="SortIconDescending">&#xf0ae;</x:String>
+            <x:String x:Key="SortIconUnsorted">&#xe8cb;</x:String>
+            <x:String x:Key="FilterIcon">&#xe71c;</x:String>
+            <x:String x:Key="OptionsButtonIcon">&#xe712;</x:String>
+            <x:String x:Key="SelectAllButtonIcon">&#xE936;</x:String>
+            <x:Double x:Key="TableViewRowDisabledThemeOpacity">0.3</x:Double>
+            <x:Double x:Key="TableViewRowDragThemeOpacity">0.80</x:Double>
+            <x:Double x:Key="TableViewRowReorderHintThemeOffset">10.0</x:Double>
+            <x:Double x:Key="TableViewRowMinWidth">88</x:Double>
+            <x:Double x:Key="TableViewHorizontalGridLineStrokeThickness">1</x:Double>
+            <x:Double x:Key="TableViewVerticalGridLineStrokeThickness">1</x:Double>
+            <x:Boolean x:Key="TableViewRowSelectionCheckMarkVisualEnabled">True</x:Boolean>
+            <x:Boolean x:Key="TableViewRowSelectionIndicatorVisualEnabled">True</x:Boolean>
+            <Thickness x:Key="TableViewCellSelectionBorderThickness">2</Thickness>
+            <Thickness x:Key="TableViewDetailsPadding">8</Thickness>
+            <Thickness x:Key="TableViewDetailsToggleButtonMargin">4,2,4,2</Thickness>
+            <CornerRadius x:Key="TableViewRowCellSelectionBorderCornerRadius">4</CornerRadius>
+            <CornerRadius x:Key="TableViewRowCornerRadius">4</CornerRadius>
+            <CornerRadius x:Key="TableViewRowCheckBoxCornerRadius">3</CornerRadius>
+            <CornerRadius x:Key="TableViewRowSelectionIndicatorCornerRadius">1.5</CornerRadius>
+            <ListViewItemPresenterCheckMode x:Key="TableViewRowCheckMode">Inline</ListViewItemPresenterCheckMode>
+            <StaticResource x:Key="TableViewBorderBrush" ResourceKey="SystemColorButtonTextColorBrush" />
+            <SolidColorBrush x:Key="TableViewCellSelectionBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewCellBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewCellBackgroundSelected" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewHeaderForeground" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="TableViewHeaderRowBackground" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackgroundPressed" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackgroundSelected" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackgroundSelectedPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackgroundSelectedPressed" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TableViewRowForeground" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowForegroundSelected" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowFocusVisualPrimaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowFocusVisualSecondaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowFocusBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowFocusSecondaryBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="TableViewRowDragBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="TableViewRowDragForeground" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowPlaceholderBackground" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckPressedBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckDisabledBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxPointerOverBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxPressedBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxDisabledBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxSelectedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxSelectedPointerOverBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxSelectedPressedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxSelectedDisabledBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxPointerOverBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxPressedBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowCheckBoxDisabledBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowBackgroundSelectedDisabled" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewRowSelectionIndicatorBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowSelectionIndicatorPointerOverBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowSelectionIndicatorPressedBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="TableViewRowSelectionIndicatorDisabledBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
+            <StaticResource x:Key="TableViewHorizontalGridLineStroke" ResourceKey="SystemColorButtonTextColorBrush" />
+            <StaticResource x:Key="TableViewVerticalGridLineStroke" ResourceKey="SystemColorButtonTextColorBrush" />
+            <SolidColorBrush x:Key="TableViewRowDetailsBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewDragRectangleFill" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.3" />
+            <SolidColorBrush x:Key="TableViewDragRectangleStroke" Color="{ThemeResource SystemColorHighlightColor}" />
+            <CornerRadius x:Key="TableViewDragRectangleCornerRadius">0</CornerRadius>
+            <SolidColorBrush x:Key="TableViewGroupHeaderRowBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TableViewGroupHeaderRowForeground" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <x:Double x:Key="TableViewGroupHeaderRowMinHeight">36</x:Double>
+            <Thickness x:Key="TableViewGroupHeaderRowExpanderMargin">4,0,0,0</Thickness>
+            <Thickness x:Key="TableViewGroupHeaderRowContentMargin">8,0,16,0</Thickness>
+            <x:Double x:Key="TableViewGroupHeaderRowFontSize">18</x:Double>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <Style x:Key="DetailsExpanderToggleButtonStyle"
+           TargetType="ToggleButton">
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid x:Name="ToggleButtonGrid"
+                          CornerRadius="{TemplateBinding CornerRadius}"
+                          Background="{TemplateBinding Background}"
+                          Padding="{TemplateBinding Padding}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderBorderBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+
+                                <VisualState x:Name="PointerOver">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderBorderPointerOverBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPointerOverForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPointerOverBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExpandCollapseChevron.(AnimatedIcon.State)"
+                                                Value="PointerOverOff" />
+
+                                    </VisualState.Setters>
+                                </VisualState>
+
+                                <VisualState x:Name="Pressed">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderBorderPressedBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPressedForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPressedBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExpandCollapseChevron.(AnimatedIcon.State)"
+                                                Value="PressedOff" />
+
+                                    </VisualState.Setters>
+                                </VisualState>
+
+                                <VisualState x:Name="Disabled">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderDisabledBorderBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderDisabledForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+
+                                <VisualState x:Name="Checked">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderBorderBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExpandCollapseChevron.(AnimatedIcon.State)"
+                                                Value="NormalOn" />
+
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="CheckedPointerOver">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderBorderPointerOverBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPointerOverForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPointerOverBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExpandCollapseChevron.(AnimatedIcon.State)"
+                                                Value="PointerOverOn" />
+
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="CheckedPressed">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderBorderPressedBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPressedForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronPressedBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExpandCollapseChevron.(AnimatedIcon.State)"
+                                                Value="PressedOn" />
+
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="CheckedDisabled">
+
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderDisabledBorderBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ExpandCollapseChevron"
+                                                                       Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderHeaderDisabledForeground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ToggleButtonGrid"
+                                                                       Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0"
+                                                                    Value="{ThemeResource ExpanderChevronBackground}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExpandCollapseChevron.(AnimatedIcon.State)"
+                                                Value="NormalOn" />
+
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate" />
+                                <VisualState x:Name="IndeterminatePointerOver" />
+                                <VisualState x:Name="IndeterminatePressed" />
+                                <VisualState x:Name="IndeterminateDisabled" />
+
+                            </VisualStateGroup>
+
+                        </VisualStateManager.VisualStateGroups>
+
+                        <AnimatedIcon Width="{StaticResource ExpanderChevronGlyphSize}"
+                                      Height="{StaticResource ExpanderChevronGlyphSize}"
+                                      x:Name="ExpandCollapseChevron"
+                                      RenderTransformOrigin="0.5, 0.5"
+                                      Foreground="{ThemeResource ExpanderChevronForeground}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      AutomationProperties.AccessibilityView="Raw"
+                                      local:AnimatedIcon.State="NormalOff"
+                                      xmlns:local="using:Microsoft.UI.Xaml.Controls">
+                            <animatedvisuals:AnimatedChevronUpDownSmallVisualSource />
+                            <AnimatedIcon.FallbackIconSource>
+                                <FontIconSource Glyph="{StaticResource ExpanderChevronDownGlyph}"
+                                                FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                FontSize="12"
+                                                IsTextScaleFactorEnabled="False" />
+                            </AnimatedIcon.FallbackIconSource>
+                            <AnimatedIcon.RenderTransform />
+                        </AnimatedIcon>
+                    </Grid>
+
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

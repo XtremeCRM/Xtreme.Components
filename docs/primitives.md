@@ -3,7 +3,7 @@
 `Xtreme.Components.Primitives` is a set of small, unrelated Uno Platform controls built from WinUI
 primitives only: input fields, date pickers, paging, layout panels and editor feedback. It has no
 third-party dependencies; it references only `Xtreme.Components.Core` (theme tokens and the
-`ComponentHost` hooks). Targets `net10.0`.
+`ComponentHost` hooks). Targets `net11.0`.
 
 - Live gallery: <https://xtremecrm.github.io/Xtreme.Components/> (Primitives page)
 - Gallery source: [`samples/Xtreme.Components.Gallery/Pages/PrimitivesPage.xaml`](https://github.com/XtremeCRM/Xtreme.Components/blob/main/samples/Xtreme.Components.Gallery/Pages/PrimitivesPage.xaml)

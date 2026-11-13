@@ -15,23 +15,25 @@ It is recycle-safe and follows each row's actual theme.
 
 | Dependency | How it arrives | Notes |
 |---|---|---|
-| `WinUI.TableView` (w-ahmad, MIT) | Package dependency of `Xtreme.Components.TableView` | Built against `1.5.0-preview2` (pinned in the repo's `Directory.Packages.props`). The decorator's public API takes a `WinUI.TableView.TableView`, so the type is part of this package's surface. |
+| `Xtreme.WinUI.TableView` (WinUI.TableView by w-ahmad, MIT) | Package dependency of `Xtreme.Components.TableView` | Our Uno 7 build of WinUI.TableView `1.5.1`, versioned `1.5.1-uno7.N`. It ships the same `WinUI.TableView` assembly and namespace; upstream's package is built for Uno 6.5, which Uno 7 cannot load. Source and change list: `src/Xtreme.WinUI.TableView` ([UPSTREAM.md](../src/Xtreme.WinUI.TableView/UPSTREAM.md)). The decorator's public API takes a `WinUI.TableView.TableView`, so the type is part of this package's surface. |
 | `Xtreme.Components.Core` | Package dependency | Supplies `ComponentHost.TryGetBrush`, which the default brush resolver uses. See [core.md](core.md). |
 
 The package does not depend on `Xtreme.Components.Primitives` (the dependency diagrams in the
 root README and [architecture.md](architecture.md) show one; the project file references Core
 only).
 
-`WinUI.TableView` comes in transitively, so you do not have to add a separate
-`PackageReference`. Add one explicitly if you want to pin a different version; a version other
-than the one this package was built against is untested. Set-up of the table control itself
+The table control comes in transitively (as `Xtreme.WinUI.TableView`), so you do not have to add a
+separate `PackageReference`. **Do not also reference the upstream `WinUI.TableView` package**: both
+ship `WinUI.TableView.dll`, and upstream's is built for Uno 6.5. An app that referenced
+`WinUI.TableView` directly should switch that reference to `Xtreme.WinUI.TableView` (or drop it and
+rely on this package). Set-up of the table control itself
 (its own resources, platform notes, features such as sorting, filtering and editing) is covered
 by the [WinUI.TableView documentation](https://w-ahmad.dev/WinUI.TableView/), including its
 [Uno getting-started page](https://w-ahmad.dev/WinUI.TableView/docs/getting-started-with-uno.html).
 The gallery merges no WinUI.TableView dictionary and renders the table on Desktop (Skia) and
 WebAssembly.
 
-Like every package in this repository it targets `net10.0` only; the consuming Uno head supplies
+Like every package in this repository it targets `net11.0` only; the consuming Uno head supplies
 the renderer.
 
 ## Setup
@@ -285,5 +287,6 @@ merged dictionary. See [core.md](core.md#brush-lookup-rules) for the full lookup
   container. A re-templated row without one gets neither.
 - **The frame covers the row's outer edge.** Being an overlay, it paints over the outermost
   `FrameThickness` pixels of the row instead of adding space around it.
-- **Third-party versioning.** Built and tested against `WinUI.TableView` `1.5.0-preview2`, itself a
-  pre-release.
+- **Third-party versioning.** Built and tested against `Xtreme.WinUI.TableView` `1.5.1-uno7.1`
+  (upstream WinUI.TableView `1.5.1` built for Uno 7). It goes back to the upstream package once
+  upstream ships an Uno 7 build.

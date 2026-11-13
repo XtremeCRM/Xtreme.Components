@@ -7,6 +7,34 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.9] - 2026-11-13
+
+### Changed
+- **Breaking:** every package is now built with Uno.Sdk 7.0.5 (Uno.WinUI 7.0) and targets `net11.0`.
+  Uno 7 cannot load libraries built for Uno 6.x, and these packages cannot be loaded by an Uno 6.x
+  app, so a consuming app has to move to Uno.Sdk 7 and a `net11.0-*` head at the same time.
+- **Breaking:** `Xtreme.Components.TableView` depends on the new `Xtreme.WinUI.TableView` package
+  instead of `WinUI.TableView`. Upstream WinUI.TableView (through 1.5.1) is built against Uno.WinUI
+  6.5 and does not load on Uno 7, so this repository now builds it: `Xtreme.WinUI.TableView`
+  `1.5.1-uno7.1` is WinUI.TableView 1.5.1 compiled for Uno 7, with the same `WinUI.TableView`
+  assembly and namespace. An app that referenced `WinUI.TableView` directly must switch that
+  reference to `Xtreme.WinUI.TableView` (both ship `WinUI.TableView.dll`). The source changes
+  replace two Uno-only APIs that Uno 7 removed and work around one Uno 7 crash (see below). The
+  full list is in `src/Xtreme.WinUI.TableView/UPSTREAM.md`.
+
+### Added
+- `Xtreme.WinUI.TableView` `1.5.1-uno7.1`. It is versioned on its own (upstream version plus
+  `-uno7.N`) rather than with the other packages; a release re-pushes it with skip-duplicate.
+- `Xtreme.Components.Primitives`: the chip picker's `FlowLayout` uses `MinItemSpacing`. Uno 7
+  aligned `FlowLayout` with WinUI and renamed `MinColumnSpacing` / `MinRowSpacing` to
+  `MinItemSpacing` / `LineSpacing`; apps that use `FlowLayout` in their own XAML need the same rename.
+
+### Fixed
+- Worked around an Uno 7.0.32 crash: a `RenderTargetBitmap.RenderAsync` of a zero-pixel element
+  ends the process from the finalizer thread. To avoid it, `DockHost` skips the unpin slide-out
+  snapshot, and `Xtreme.WinUI.TableView`'s column header skips its reorder drag visual, when the
+  element is under one physical pixel.
+
 ## [0.1.0-preview.8] - 2026-11-11
 
 ### Added

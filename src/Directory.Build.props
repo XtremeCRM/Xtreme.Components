@@ -5,8 +5,8 @@
     Shared settings for every control library under src/. A library csproj only needs
     Sdk="Uno.Sdk", its PackageId / Description / PackageTags and its ProjectReferences.
 
-    Single net10.0 target: per Uno guidance a Skia-renderer-compatible control library targets
-    only net10.0. The consuming head (Desktop / Android / iOS / WASM) consumes this one assembly
+    Single net11.0 target: per Uno guidance a Skia-renderer-compatible control library targets
+    only net11.0. The consuming head (Desktop / Android / iOS / WASM) consumes this one assembly
     through the renderer's bait-and-switch. Adding platform TFMs pulls a platform runtime into
     the library and conflicts with the head's Skia runtime (UNOB0017). Revisit only if a
     native-WinUI consumer appears.
@@ -15,7 +15,7 @@
     base Uno.WinUI reference assemblies; the head supplies the renderer and runtime.
   -->
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>net11.0</TargetFrameworks>
     <UnoSingleProject>true</UnoSingleProject>
     <OutputType>Library</OutputType>
     <GenerateLibraryLayout>true</GenerateLibraryLayout>

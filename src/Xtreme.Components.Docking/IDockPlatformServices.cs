@@ -6,7 +6,7 @@ namespace Xtreme.Components.Docking;
 /// The per-platform capabilities the dock manager needs but cannot determine for itself.
 /// </summary>
 /// <remarks>
-/// <para>Xtreme.Components is a SINGLE <c>net10.0</c> assembly on purpose — platform TFMs would drag a
+/// <para>Xtreme.Components is a SINGLE <c>net11.0</c> assembly on purpose — platform TFMs would drag a
 /// platform runtime into the library and collide with the head's Skia runtime (UNOB0017). That means
 /// there is no <c>#if WINDOWS</c> available here, so anything platform-specific has to be a RUNTIME
 /// decision behind this interface. The consuming head supplies the implementation.</para>

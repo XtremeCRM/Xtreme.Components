@@ -10,7 +10,7 @@ The layout can be saved and restored through an interface the app implements.
 - Packaging and design rules: [architecture.md](architecture.md)
 - Colors and high-contrast overrides: [theming.md](theming.md)
 
-The package targets `net10.0` only; the consuming Uno head supplies the renderer.
+The package targets `net11.0` only; the consuming Uno head supplies the renderer.
 
 Namespaces:
 

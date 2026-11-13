@@ -1,7 +1,7 @@
 # Xtreme.Components
 
 App-agnostic, cross-platform [Uno Platform](https://platform.uno) controls, built from WinUI
-primitives only: no WebView, no third-party control licenses. One `net10.0` assembly per
+primitives only: no WebView, no third-party control licenses. One `net11.0` assembly per
 package runs on Desktop, Android, iOS and WebAssembly through the Uno Skia renderer.
 
 They grew up inside [XtremeCRM](https://github.com/XtremeCRM/XtremeCRM.Uno) and were
@@ -20,10 +20,11 @@ dotnet add package Xtreme.Components.Docking --prerelease
 | `Xtreme.Components.Scheduler` | Day / Week / Month / Agenda and multi-resource Planner views with drag-to-move, resize, click-to-create and external drag-drop. | Primitives |
 | `Xtreme.Components.Docking` | Dock manager: dockable panes, tab groups, auto-hide rails, float to a real OS window and re-dock, layout persistence. | Core |
 | `Xtreme.Components.Cards` | `SectionCard` frame with tab strip, and `CardDockerControl` for arranging cards across a column grid by dragging. | Core |
-| `Xtreme.Components.TableView` | `RowFlagDecorator` for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) rows. | Core |
+| `Xtreme.Components.TableView` | `RowFlagDecorator` for [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) rows. | Core, Xtreme.WinUI.TableView |
+| `Xtreme.WinUI.TableView` | [WinUI.TableView](https://github.com/w-ahmad/WinUI.TableView) (w-ahmad, MIT) built for Uno 7, same assembly and namespace; versioned `<upstream>-uno7.N`, not with the others. See [UPSTREAM.md](src/Xtreme.WinUI.TableView/UPSTREAM.md). | – |
 | `Xtreme.Components` | Meta-package that pulls everything above. | all |
 
-All packages share one version. Pre-release (`0.x-preview`) until the Docking layout document
+All packages except `Xtreme.WinUI.TableView` share one version. Pre-release (`0.x-preview`) until the Docking layout document
 and the Scheduler item model stop changing shape.
 
 ## Quick start
@@ -85,7 +86,7 @@ Every family has a live page in the gallery, published from `main` to
 **https://xtremecrm.github.io/Xtreme.Components/**. Run it locally on desktop with:
 
 ```bash
-dotnet run --project samples/Xtreme.Components.Gallery -f net10.0-desktop
+dotnet run --project samples/Xtreme.Components.Gallery -f net11.0-desktop
 ```
 
 `--selftest` opens every page in turn and exits non-zero if one throws.
