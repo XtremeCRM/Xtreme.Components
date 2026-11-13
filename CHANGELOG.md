@@ -13,9 +13,17 @@ version. The publish workflow refuses a tag whose version has no section below.
 - **Breaking:** every package is now built with Uno.Sdk 7.0.5 (Uno.WinUI 7.0) and targets `net11.0`.
   Uno 7 cannot load libraries built for Uno 6.x, and these packages cannot be loaded by an Uno 6.x
   app, so a consuming app has to move to Uno.Sdk 7 and a `net11.0-*` head at the same time.
-- `Xtreme.Components.TableView`: PENDING. Upstream WinUI.TableView (through 1.5.1) is built
-  against Uno.WinUI 6.5 and fails to load on Uno 7; this entry is finalised once the Uno 7 build of
-  the dependency is chosen. Do not tag this version until then.
+- **Breaking:** `Xtreme.Components.TableView` depends on the new `Xtreme.WinUI.TableView` package
+  instead of `WinUI.TableView`. Upstream WinUI.TableView (through 1.5.1) is built against Uno.WinUI
+  6.5 and does not load on Uno 7, so this repository now builds it: `Xtreme.WinUI.TableView`
+  `1.5.1-uno7.1` is WinUI.TableView 1.5.1 compiled for Uno 7, with the same `WinUI.TableView`
+  assembly and namespace. An app that referenced `WinUI.TableView` directly must switch that
+  reference to `Xtreme.WinUI.TableView` (both ship `WinUI.TableView.dll`). The only source changes
+  replace two Uno-only APIs that Uno 7 removed; see `src/Xtreme.WinUI.TableView/UPSTREAM.md`.
+
+### Added
+- `Xtreme.WinUI.TableView` `1.5.1-uno7.1`. It is versioned on its own (upstream version plus
+  `-uno7.N`) rather than with the other packages; a release re-pushes it with skip-duplicate.
 - `Xtreme.Components.Primitives`: the chip picker's `FlowLayout` uses `MinItemSpacing`. Uno 7
   aligned `FlowLayout` with WinUI and renamed `MinColumnSpacing` / `MinRowSpacing` to
   `MinItemSpacing` / `LineSpacing`; apps that use `FlowLayout` in their own XAML need the same rename.

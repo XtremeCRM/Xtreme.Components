@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="using:WinUI.TableView"
+                    xmlns:controls="using:WinUI.TableView.Controls"
+                    xmlns:win="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableView.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewCell.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewRowPresenter.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewColumnHeader.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewGroupHeaderRow.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewHeaderRow.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewRow.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewRowHeader.xaml" />
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/TableViewTimePicker.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!--Hack for auto generated resize issue-->
+    <local:TableViewTextColumn x:Key="ThisNeedsToBeHere" />
+
+    <Style TargetType="local:TableViewRowHeader"
+           BasedOn="{StaticResource DefaultTableViewRowHeaderStyle}" />
+    
+    <Style BasedOn="{StaticResource DefaultTableViewRowPresenterStyle}"
+           TargetType="local:TableViewRowPresenter" />
+
+    <Style TargetType="local:TableViewHeaderRow"
+           BasedOn="{StaticResource DefaultTableViewHeaderRowStyle}" />
+
+    <Style TargetType="local:TableViewColumnHeader"
+           BasedOn="{StaticResource DefaultTableViewColumnHeaderStyle}" />
+
+    <Style TargetType="local:TableViewCell"
+           BasedOn="{StaticResource DefaultTableViewCellStyle}" />
+
+    <Style TargetType="local:TableViewRow"
+           BasedOn="{StaticResource DefaultTableViewRowStyle}" />
+
+    <Style TargetType="local:TableView"
+           BasedOn="{StaticResource DefaultTableViewStyle}" />
+
+    <Style TargetType="controls:TableViewTimePicker"
+           BasedOn="{StaticResource DefaultTableViewTimePickerStyle}" />
+
+    <win:Style TargetType="local:TableViewGroupHeaderRow"
+           BasedOn="{StaticResource DefaultTableViewGroupHeaderRowStyle}" />
+
+</ResourceDictionary>

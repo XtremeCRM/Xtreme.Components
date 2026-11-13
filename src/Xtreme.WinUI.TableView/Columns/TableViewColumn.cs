@@ -1,0 +1,701 @@
+﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Data;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using WinUI.TableView.Extensions;
+using SD = WinUI.TableView.SortDirection;
+
+namespace WinUI.TableView;
+
+/// <summary>
+/// Represents a column in a TableView.
+/// </summary>
+[StyleTypedProperty(Property = nameof(HeaderStyle), StyleTargetType = typeof(TableViewColumnHeader))]
+[StyleTypedProperty(Property = nameof(CellStyle), StyleTargetType = typeof(TableViewCell))]
+public abstract partial class TableViewColumn : DependencyObject
+{
+    private Func<object, object?>? _compliedValueGetter;
+    private Func<object, object?>? _compliedClipboardValueGetter;
+    private Action<object, object?>? _compliedClipboardValueSetter;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TableViewColumn"/> class with default conditional cell styles.
+    /// </summary>
+    public TableViewColumn()
+    {
+        SetValue(ConditionalCellStylesProperty, new TableViewConditionalCellStylesCollection());
+    }
+
+    /// <summary>
+    /// Generates a display element for the cell.
+    /// </summary>
+    /// <param name="cell">The cell for which the element is generated.</param>
+    /// <param name="dataItem">The data item associated with the cell.</param>
+    /// <returns>A FrameworkElement representing the display element.</returns>
+    public abstract FrameworkElement GenerateElement(TableViewCell cell, object? dataItem);
+
+    /// <summary>
+    /// Generates an editing element for the cell.
+    /// </summary>
+    /// <param name="cell">The cell for which the editing element is generated.</param>
+    /// <param name="dataItem">The data item associated with the cell.</param>
+    /// <returns>A FrameworkElement representing the editing element.</returns>
+    public abstract FrameworkElement GenerateEditingElement(TableViewCell cell, object? dataItem);
+
+    /// <summary>
+    /// Refreshes the display element for the cell.
+    /// </summary>
+    /// <param name="cell">The cell for which the element is refreshed.</param>
+    /// <param name="dataItem">The data item associated with the cell.</param>
+    public virtual void RefreshElement(TableViewCell cell, object? dataItem) { }
+
+    /// <summary>
+    /// Called to prepare the cell for editing.
+    /// </summary>
+    /// <param name="cell">The cell to prepare for editing.</param>
+    /// <param name="routedEvent">The routed event.</param>
+    /// <returns>Should return the unedited cell value.</returns>
+    protected internal virtual object? PrepareCellForEdit(TableViewCell cell, RoutedEventArgs routedEvent)
+    {
+        return default;
+    }
+
+    /// <summary>
+    /// Called to end the editing session for the cell.
+    /// </summary>
+    /// <param name="cell">The cell whose editing session is being ended.</param>
+    /// <param name="dataItem">The data item associated with the cell.</param>
+    /// <param name="editAction">The edit action.</param>
+    /// <param name="uneditedValue">The unedited value of the cell.</param>
+    protected internal virtual void EndCellEditing(TableViewCell cell, object? dataItem, TableViewEditAction editAction, object? uneditedValue)
+    {
+        // Nothing to do here by default. Derived classes can override to commit changes if needed.
+    }
+
+    /// <summary>
+    /// Updates the state of the element for the cell.
+    /// </summary>
+    /// <param name="cell">The cell for which the element state is updated.</param>
+    /// <param name="dataItem">The data item associated with the cell.</param>
+    public virtual void UpdateElementState(TableViewCell cell, object? dataItem) { }
+
+    /// <summary>
+    /// Sets the owning collection for the column.
+    /// </summary>
+    /// <param name="collection">The owning collection.</param>
+    internal void SetOwningCollection(TableViewColumnsCollection collection)
+    {
+        OwningCollection = collection;
+    }
+
+    /// <summary>
+    /// Sets the owning TableView for the column.
+    /// </summary>
+    /// <param name="tableView">The owning TableView.</param>
+    internal void SetOwningTableView(TableView tableView)
+    {
+        TableView = tableView;
+    }
+
+    /// <summary>
+    /// Gets the content of the cell for the specified data item.
+    /// </summary>
+    /// <param name="dataItem">The data item.</param>
+    /// <returns>The content of the cell.</returns>
+    public virtual object? GetCellContent(object? dataItem)
+    {
+        if (dataItem is null)
+            return null;
+
+        if (_compliedValueGetter is null && !string.IsNullOrWhiteSpace(OperationContentBindingPropertyPath))
+            _compliedValueGetter = dataItem.GetCompiledValueGetter(OperationContentBindingPropertyPath!);
+
+        if (_compliedValueGetter is not null)
+            dataItem = _compliedValueGetter(dataItem);
+
+        if (OperationContentBinding?.Converter is not null)
+        {
+            dataItem = OperationContentBinding.Converter.Convert(
+                dataItem,
+                typeof(object),
+                OperationContentBinding.ConverterParameter,
+                OperationContentBinding.ConverterLanguage);
+        }
+
+        return dataItem;
+    }
+
+    /// <summary>
+    /// Gets the clipboard content of the cell for the specified data item.
+    /// </summary>
+    /// <param name="dataItem">The data item.</param>
+    /// <returns>The clipboard content of the cell.</returns>
+    public virtual object? GetClipboardContent(object? dataItem)
+    {
+        if (dataItem is null)
+            return null;
+
+        if (_compliedClipboardValueGetter is null && !string.IsNullOrWhiteSpace(ClipboardContentBindingPropertyPath))
+            _compliedClipboardValueGetter = dataItem.GetCompiledValueGetter(ClipboardContentBindingPropertyPath!);
+
+        if (_compliedClipboardValueGetter is not null)
+            dataItem = _compliedClipboardValueGetter(dataItem);
+
+        if (ClipboardContentBinding?.Converter is not null)
+        {
+            dataItem = ClipboardContentBinding.Converter.Convert(
+                dataItem,
+                typeof(object),
+                ClipboardContentBinding.ConverterParameter,
+                ClipboardContentBinding.ConverterLanguage);
+        }
+
+        return dataItem;
+    }
+
+    /// <summary>
+    /// Sets the content from the clipboard to the specified data item.
+    /// </summary>
+    /// <param name="dataItem">The data item.</param>
+    /// <param name="value">The value to set.</param>
+    /// <returns><see langword="true"/> if the value was set; otherwise, <see langword="false"/>.</returns>
+    public virtual bool SetClipboardContent(object? dataItem, object? value)
+    {
+        if (dataItem is null)
+            return false;
+
+        try
+        {
+            if (_compliedClipboardValueSetter is null && !string.IsNullOrWhiteSpace(ClipboardContentBindingPropertyPath))
+                _compliedClipboardValueSetter = dataItem.GetCompiledValueSetter(ClipboardContentBindingPropertyPath!);
+
+            if (_compliedClipboardValueSetter is null)
+                return false;
+
+            if (ClipboardContentBinding?.Converter is not null)
+            {
+                value = ClipboardContentBinding.Converter.ConvertBack(
+                    value,
+                    typeof(object),
+                    ClipboardContentBinding.ConverterParameter,
+                    ClipboardContentBinding.ConverterLanguage);
+            }
+
+            _compliedClipboardValueSetter(dataItem, value);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"TableViewColumn: SetClipboardContent failed: {ex}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the header content of the column.
+    /// </summary>
+    public object Header
+    {
+        get => GetValue(HeaderProperty);
+        set => SetValue(HeaderProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the width of the column.
+    /// </summary>
+    public GridLength Width
+    {
+        get => (GridLength)GetValue(WidthProperty);
+        set => SetValue(WidthProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the minimum width of the column.
+    /// </summary>
+    public double? MinWidth
+    {
+        get => (double?)GetValue(MinWidthProperty);
+        set => SetValue(MinWidthProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the maximum width of the column.
+    /// </summary>
+    public double? MaxWidth
+    {
+        get => (double?)GetValue(MaxWidthProperty);
+        set => SetValue(MaxWidthProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the actual width of the column.
+    /// </summary>
+    public double ActualWidth
+    {
+        get => (double)GetValue(ActualWidthProperty);
+        set => SetValue(ActualWidthProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the ColumnAutoWidthMode of the column.
+    /// </summary>
+    public TableViewColumnAutoWidthMode? ColumnAutoWidthMode
+    {
+        get => (TableViewColumnAutoWidthMode?)GetValue(ColumnAutoWidthModeProperty);
+        set => SetValue(ColumnAutoWidthModeProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column can be grouped.
+    /// </summary>
+    public bool CanGroup
+    {
+        get => (bool)GetValue(CanGroupProperty);
+        set => SetValue(CanGroupProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column can be resized.
+    /// </summary>
+    public bool CanResize
+    {
+        get => (bool)GetValue(CanResizeProperty);
+        set => SetValue(CanResizeProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is currently being resized by the user.
+    /// Used to skip expensive auto-width measurement while a manual pixel resize preview is active.
+    /// </summary>
+    internal bool IsResizing { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is read-only.
+    /// </summary>
+    public bool IsReadOnly
+    {
+        get => (bool)GetValue(IsReadOnlyProperty);
+        set => SetValue(IsReadOnlyProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the style that is used when rendering the column header.
+    /// </summary>
+    public Style? HeaderStyle
+    {
+        get => (Style?)GetValue(HeaderStyleProperty);
+        set => SetValue(HeaderStyleProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the style that is used to render cells in the column.
+    /// </summary>
+    public Style CellStyle
+    {
+        get => (Style)GetValue(CellStyleProperty);
+        set => SetValue(CellStyleProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the header control for the column.
+    /// </summary>
+    public TableViewColumnHeader? HeaderControl
+    {
+        get;
+        internal set
+        {
+            if (field != value)
+            {
+                field = value;
+                EnsureHeaderStyle();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the visibility of the column.
+    /// </summary>
+    public Visibility Visibility
+    {
+        get => (Visibility)GetValue(VisibilityProperty);
+        set => SetValue(VisibilityProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a custom tag object for the column.
+    /// </summary>
+    public object Tag
+    {
+        get => GetValue(TagProperty);
+        set => SetValue(TagProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column can be sorted. This can be overridden by the TableView.
+    /// </summary>
+    public bool CanSort
+    {
+        get => (bool)GetValue(CanSortProperty);
+        set => SetValue(CanSortProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column can be filtered.
+    /// </summary>
+    public bool CanFilter
+    {
+        get => (bool)GetValue(CanFilterProperty);
+        set => SetValue(CanFilterProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the order in which this column should be displayed.
+    /// </summary>
+    public int? Order
+    {
+        get => (int?)GetValue(OrderProperty);
+        set => SetValue(OrderProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column can be reordered.
+    /// </summary>
+    public bool CanReorder
+    {
+        get => (bool)GetValue(CanReorderProperty);
+        set => SetValue(CanReorderProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the collection of conditional cell styles for the column.
+    /// </summary>
+    public IList<TableViewConditionalCellStyle> ConditionalCellStyles
+    {
+        get => (IList<TableViewConditionalCellStyle>)GetValue(ConditionalCellStylesProperty);
+        set => SetValue(ConditionalCellStylesProperty, value);
+    }
+
+    internal TableViewColumnsCollection? OwningCollection { get; set; }
+
+    /// <summary>
+    /// Gets or sets the desired width of the column.
+    /// </summary>
+    internal double DesiredWidth
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                OwningCollection?.HandleColumnPropertyChanged(this, nameof(DesiredWidth));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is auto-generated.
+    /// </summary>
+    public bool IsAutoGenerated { get; internal set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column uses a single element for display and editing.
+    /// </summary>
+    public bool UseSingleElement { get; set; }
+
+    /// <summary>
+    /// Gets or sets the sort direction for the column.
+    /// </summary>
+    public SD? SortDirection
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                OnSortDirectionChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is filtered.
+    /// </summary>
+    public bool IsFiltered
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                OnIsFilteredChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the column can be horizontally scrolled.
+    /// </summary>
+    public bool IsFrozen
+    {
+        get;
+        internal set
+        {
+            if (field != value)
+            {
+                field = value;
+                OwningCollection?.HandleColumnPropertyChanged(this, nameof(IsFrozen));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the optional data binding used to perform operations on cell content, for example sorting, filtering and exporting.
+    /// </summary>
+    public virtual Binding? OperationContentBinding { get; set; }
+
+    /// <summary>
+    /// Gets the property path for the <see cref="OperationContentBinding"/>.
+    /// </summary>
+    internal string? OperationContentBindingPropertyPath => OperationContentBinding?.Path?.Path;
+
+    /// <summary>
+    /// Gets or sets the data binding used to retrieve cell content when copying to the clipboard.
+    /// If no explicit clipboard binding is set, the column's <see cref="OperationContentBinding"/> is returned as a fallback.
+    /// </summary>
+    public Binding? ClipboardContentBinding
+    {
+        get => field ?? OperationContentBinding;
+        set;
+    }
+
+    /// <summary>
+    /// Gets the property path for the <see cref="ClipboardContentBinding"/>.
+    /// </summary>
+    internal string? ClipboardContentBindingPropertyPath => ClipboardContentBinding?.Path?.Path;
+
+    /// <summary>
+    /// Gets the owning TableView for the column.
+    /// </summary>
+    protected internal TableView? TableView { get; private set; }
+
+    /// <summary>
+    /// Handles changes to the SortDirection property.
+    /// </summary>
+    private void OnSortDirectionChanged()
+    {
+        HeaderControl?.OnSortDirectionChanged();
+    }
+
+    /// <summary>
+    /// Handles changes to the IsFiltered property.
+    /// </summary>
+    private void OnIsFilteredChanged()
+    {
+        HeaderControl?.OnIsFilteredChanged();
+    }
+
+    /// <summary>
+    /// Ensures the header style is applied to the header control.
+    /// </summary>
+    internal void EnsureHeaderStyle()
+    {
+        HeaderControl?.Style = HeaderStyle ?? TableView?.ColumnHeaderStyle;
+    }
+
+    /// <summary>
+    /// Handles changes to the Width property.
+    /// </summary>
+    private static void OnPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewColumn { OwningCollection: { } } column)
+        {
+            if (e.Property == CellStyleProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(CellStyle));
+            else if (e.Property == WidthProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(Width));
+            else if (e.Property == MinWidthProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(MinWidth));
+            else if (e.Property == MaxWidthProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(MaxWidth));
+            else if (e.Property == ActualWidthProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(ActualWidth));
+            else if (e.Property == VisibilityProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(Visibility));
+            else if (e.Property == OrderProperty)
+                column.OwningCollection.HandleColumnPropertyChanged(column, nameof(Order));
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the ColumnAutoWidthMode property.
+    /// </summary>
+    private static void OnColumnAutoWidthModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewColumn column)
+        {
+            column.TableView?.RefreshColumnsAutoWidth([column]);
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the IsReadOnly property.
+    /// </summary>
+    private static void OnIsReadOnlyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewColumn column)
+        {
+            if (column.TableView is TableView tableView &&
+                tableView.IsReadOnly &&
+                tableView.IsEditing &&
+                tableView.CurrentCellSlot is not null &&
+                tableView.GetCellFromSlot(tableView.CurrentCellSlot.Value) is { } currentCell &&
+                tableView.EndCellEditing(TableViewEditAction.Cancel, currentCell))
+            {
+                tableView.SetIsEditing(false);
+            }
+
+            column.OwningCollection?.HandleColumnPropertyChanged(column, nameof(IsReadOnly));
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the CanFilter property.
+    /// </summary>
+    private static void OnCanFilterChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewColumn column && column.HeaderControl is not null)
+        {
+            column.HeaderControl.SetFilterButtonVisibility();
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the CanSort property.
+    /// </summary>
+    private static void OnCanSortChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewColumn column && column.HeaderControl is not null)
+        {
+            column.HeaderControl.OnSortDirectionChanged();
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the HeaderStyle property.
+    /// </summary>
+    private static void OnHeaderStyleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TableViewColumn column)
+        {
+            column.EnsureHeaderStyle();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the member path to use for sorting instead of the default binding path.
+    /// </summary>
+    public string? SortMemberPath
+    {
+        get => (string?)GetValue(SortMemberPathProperty);
+        set => SetValue(SortMemberPathProperty, value);
+    }
+
+    /// <summary>
+    /// Identifies the SortMemberPath dependency property.
+    /// </summary>
+    public static readonly DependencyProperty SortMemberPathProperty = DependencyProperty.Register(nameof(SortMemberPath), typeof(string), typeof(TableViewColumn), new PropertyMetadata(null));
+
+    /// <summary>
+    /// Identifies the HeaderStyle dependency property.
+    /// </summary>
+    public static readonly DependencyProperty HeaderStyleProperty = DependencyProperty.Register(nameof(HeaderStyle), typeof(Style), typeof(TableViewColumn), new PropertyMetadata(null, OnHeaderStyleChanged));
+
+    /// <summary>
+    /// Identifies the CellStyle dependency property.
+    /// </summary>
+    public static readonly DependencyProperty CellStyleProperty = DependencyProperty.Register(nameof(CellStyle), typeof(Style), typeof(TableViewColumn), new PropertyMetadata(null, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the Header dependency property.
+    /// </summary>
+    public static readonly DependencyProperty HeaderProperty = DependencyProperty.Register(nameof(Header), typeof(object), typeof(TableViewColumn), new PropertyMetadata(null));
+
+    /// <summary>
+    /// Identifies the Width dependency property.
+    /// </summary>
+    public static readonly DependencyProperty WidthProperty = DependencyProperty.Register(nameof(Width), typeof(GridLength), typeof(TableViewColumn), new PropertyMetadata(GridLength.Auto, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the MinWidth dependency property.
+    /// </summary>
+    public static readonly DependencyProperty MinWidthProperty = DependencyProperty.Register(nameof(MinWidth), typeof(double?), typeof(TableViewColumn), new PropertyMetadata(default, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the MaxWidth dependency property.
+    /// </summary>
+    public static readonly DependencyProperty MaxWidthProperty = DependencyProperty.Register(nameof(MaxWidth), typeof(double?), typeof(TableViewColumn), new PropertyMetadata(default, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the ActualWidth dependency property.
+    /// </summary>
+    public static readonly DependencyProperty ActualWidthProperty = DependencyProperty.Register(nameof(ActualWidth), typeof(double), typeof(TableViewColumn), new PropertyMetadata(0d, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the ColumnAutoWidthMode dependency property.
+    /// </summary>
+    public static readonly DependencyProperty ColumnAutoWidthModeProperty = DependencyProperty.Register(nameof(ColumnAutoWidthMode), typeof(TableViewColumnAutoWidthMode?), typeof(TableViewColumn), new PropertyMetadata(null, OnColumnAutoWidthModeChanged));
+
+    /// <summary>
+    /// Identifies the CanGroup dependency property.
+    /// </summary>
+    public static readonly DependencyProperty CanGroupProperty = DependencyProperty.Register(nameof(CanGroup), typeof(bool), typeof(TableViewColumn), new PropertyMetadata(true));
+
+    /// <summary>
+    /// Identifies the CanResize dependency property.
+    /// </summary>
+    public static readonly DependencyProperty CanResizeProperty = DependencyProperty.Register(nameof(CanResize), typeof(bool), typeof(TableViewColumn), new PropertyMetadata(true));
+
+    /// <summary>
+    /// Identifies the IsReadOnly dependency property.
+    /// </summary>
+    public static readonly DependencyProperty IsReadOnlyProperty = DependencyProperty.Register(nameof(IsReadOnly), typeof(bool), typeof(TableViewColumn), new PropertyMetadata(false, OnIsReadOnlyChanged));
+
+    /// <summary>
+    /// Identifies the Visibility dependency property.
+    /// </summary>
+    public static readonly DependencyProperty VisibilityProperty = DependencyProperty.Register(nameof(Visibility), typeof(Visibility), typeof(TableViewColumn), new PropertyMetadata(Visibility.Visible, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the Tag dependency property.
+    /// </summary>
+    public static readonly DependencyProperty TagProperty = DependencyProperty.Register(nameof(Tag), typeof(object), typeof(TableViewColumn), new PropertyMetadata(null));
+
+    /// <summary>
+    /// Identifies the CanSort dependency property.
+    /// </summary>
+    public static readonly DependencyProperty CanSortProperty = DependencyProperty.Register(nameof(CanSort), typeof(bool), typeof(TableViewColumn), new PropertyMetadata(true, OnCanSortChanged));
+
+    /// <summary>
+    /// Identifies the CanFilter dependency property.
+    /// </summary>
+    public static readonly DependencyProperty CanFilterProperty = DependencyProperty.Register(nameof(CanFilter), typeof(bool), typeof(TableViewColumn), new PropertyMetadata(true, OnCanFilterChanged));
+
+    /// <summary>
+    /// Identifies the Order dependency property.
+    /// </summary>
+    public static readonly DependencyProperty OrderProperty = DependencyProperty.Register(nameof(Order), typeof(int?), typeof(TableViewColumn), new PropertyMetadata(null, OnPropertyChanged));
+
+    /// <summary>
+    /// Identifies the CanReorder dependency property.
+    /// </summary>
+    public static readonly DependencyProperty CanReorderProperty = DependencyProperty.Register(nameof(CanReorder), typeof(bool), typeof(TableViewColumn), new PropertyMetadata(true));
+
+    /// <summary>
+    /// Identifies the <see cref="ConditionalCellStyles"/> dependency property.
+    /// </summary>
+    public static readonly DependencyProperty ConditionalCellStylesProperty = DependencyProperty.Register(nameof(ConditionalCellStyles), typeof(IList<TableViewConditionalCellStyle>), typeof(TableViewColumn), new PropertyMetadata(default));
+}

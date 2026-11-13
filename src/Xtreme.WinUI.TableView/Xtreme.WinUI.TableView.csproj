@@ -1,0 +1,33 @@
+<Project Sdk="Uno.Sdk">
+  <!--
+    Fork of WinUI.TableView (https://github.com/w-ahmad/WinUI.TableView, MIT) built against Uno 7.
+    Upstream (through 1.5.1) ships an Uno.WinUI 6.5 build, which Uno 7 cannot load. See UPSTREAM.md
+    for the base commit and every change from it; drop this project once upstream ships for Uno 7.
+
+    The assembly name and namespace stay WinUI.TableView so app code is unchanged and the
+    ms-appx:///WinUI.TableView/... theme URIs and the WinUI.TableView resource map still resolve.
+    Only the package ID differs.
+
+    Versioned on its own (upstream version + -uno7.N), NOT with the lockstep $(Version): publish.yml
+    packs it on every release and pushes with skip-duplicate, so a given fork version goes up once.
+    Bump the -uno7.N suffix whenever these sources change.
+  -->
+  <PropertyGroup>
+    <Version>1.5.1-uno7.1</Version>
+    <AssemblyName>WinUI.TableView</AssemblyName>
+    <RootNamespace>WinUI.TableView</RootNamespace>
+    <PackageId>Xtreme.WinUI.TableView</PackageId>
+    <ApplicationTitle>WinUI.TableView</ApplicationTitle>
+    <Authors>w-ahmad; Xtreme.Components contributors</Authors>
+    <Copyright>Copyright © 2024 w-ahmad. Uno 7 changes copyright © 2026 Data Access Inc. and Xtreme.Components contributors.</Copyright>
+    <Description>WinUI.TableView (TableView/DataGrid control by w-ahmad) built for Uno Platform 7. Same WinUI.TableView assembly and namespace as the upstream package, compiled against Uno.WinUI 7 with the few Uno-only APIs that Uno 7 removed replaced. Use it instead of the WinUI.TableView package in an Uno 7 app until upstream ships an Uno 7 build.</Description>
+    <PackageTags>uno;uno-platform;winui;tableview;datagrid;cross-platform;skia</PackageTags>
+    <PackageProjectUrl>https://github.com/XtremeCRM/Xtreme.Components/tree/main/src/Xtreme.WinUI.TableView</PackageProjectUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Update="TableView.*.cs" DependentUpon="TableView.cs" />
+    <None Include="LICENSE.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

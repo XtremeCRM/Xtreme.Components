@@ -36,6 +36,18 @@ provenance → exchanges the OIDC token for a short-lived NuGet key → pushes `
 A `workflow_dispatch` run with `dry-run` left on validates and packs only, for checking a
 release before tagging it.
 
+## Xtreme.WinUI.TableView (the WinUI.TableView fork)
+
+`src/Xtreme.WinUI.TableView` is upstream WinUI.TableView built for Uno 7 (see its `UPSTREAM.md`).
+It is the one package NOT on the lockstep version: its `<Version>` in its own csproj is the
+upstream version plus `-uno7.N`. `publish.yml` packs it with everything else on every release and
+pushes with `--skip-duplicate`, so a given fork version reaches nuget.org once and later releases
+leave it alone. Bump the `-uno7.N` suffix whenever its sources change, or nuget.org keeps the old
+build under that version.
+
+It ships under the same nuget.org account and Trusted Publishing policy as the other packages. The
+first release that carries it creates the `Xtreme.WinUI.TableView` ID.
+
 ## Pre-release policy
 
 - `0.x-preview.N` until the Docking layout document and the Scheduler item model stop changing

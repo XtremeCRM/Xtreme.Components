@@ -89,7 +89,7 @@ Xtreme.Components (meta)
  ├── Xtreme.Components.Docking   ─────────────────> Core
  ├── Xtreme.Components.Cards     ─────────────────> Core
  ├── Xtreme.Components.Primitives ────────────────> Core
- └── Xtreme.Components.TableView ──> Core (+ WinUI.TableView)
+ └── Xtreme.Components.TableView ──> Core (+ Xtreme.WinUI.TableView)
 ```
 
 | Package | Contents | Notes |
@@ -99,7 +99,7 @@ Xtreme.Components (meta)
 | `Xtreme.Components.Scheduler` | Day / Week / Month / Agenda / Planner views, drag-move/resize, click-to-create, external drag-drop, per-resource time zones, recurrence indicators | Namespace `Xtreme.Components.Scheduler.*` already in place |
 | `Xtreme.Components.Docking` | `DockHost`, `DockItem`, `DockItemHeader`, `DockSplitter`, auto-hide, layout document v5 serializer, `IDockPersistence`, `IDockPlatformServices` | OS-window tear-out ships as the interface plus a desktop reference implementation; consumers on WASM/mobile get in-surface behavior |
 | `Xtreme.Components.Cards` | `CardDockerControl` + models, `SectionCard` / `SectionCardTab` | `SectionCard` moves out of Shell; `GeneralInfoControl` and all card bodies stay in the app |
-| `Xtreme.Components.TableView` | `RowFlagDecorator` + `RowFlag` | Separate because it depends on the third-party `WinUI.TableView` package; Primitives stays dependency-free |
+| `Xtreme.Components.TableView` | `RowFlagDecorator` + `RowFlag` | Separate because it depends on WinUI.TableView (shipped as `Xtreme.WinUI.TableView`, its Uno 7 build); Primitives stays dependency-free |
 | `Xtreme.Components` | No code; `PackageReference` to all of the above | The "give me everything" entry point |
 
 Dependency direction is strictly downward. Families never reference each other;
@@ -306,7 +306,7 @@ Xtreme.Components (meta)
  ├── Xtreme.Components.Docking   ─────────────────> Core
  ├── Xtreme.Components.Cards     ─────────────────> Core
  ├── Xtreme.Components.Primitives ────────────────> Core
- └── Xtreme.Components.TableView ──> Core (+ WinUI.TableView)
+ └── Xtreme.Components.TableView ──> Core (+ Xtreme.WinUI.TableView)
 Core = Xc* theme tokens + ActualTheme surface helper (today's DockTheme). No controls.
 ```
 

@@ -1,0 +1,243 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="using:WinUI.TableView"
+                    xmlns:win="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="ms-appx:///WinUI.TableView/Themes/Resources.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style x:Key="DefaultTableViewHeaderRowStyle"
+           TargetType="local:TableViewHeaderRow">
+        <Setter Property="Background"
+                Value="{ThemeResource TableViewHeaderRowBackground}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:TableViewHeaderRow">
+                    <Grid x:Name="root"
+                          Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="cornerButtonColumn" Width="Auto" />
+                            <ColumnDefinition x:Name="VerticalGridLineColumn" Width="Auto" />
+                            <ColumnDefinition x:Name="FrozenHeadersPanelColumn" Width="Auto" />
+                            <ColumnDefinition x:Name="ScrollableHeadersPanelColumn" Width="*" />
+                        </Grid.ColumnDefinitions>
+                            
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CornerButtonStates">
+                                <VisualState x:Name="NoButton" />
+                                <VisualState x:Name="SelectAllButton">
+                                    <VisualState.Setters>
+                                        <Setter Target="selectAllButton.Visibility"
+                                                Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="SelectAllButtonDisabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="selectAllButton.IsEnabled"
+                                                Value="False" />
+                                        <Setter Target="selectAllButton.Visibility"
+                                                Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="OptionsButton">
+                                    <VisualState.Setters>
+                                        <Setter Target="optionsButton.Visibility"
+                                                Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="OptionsButtonDisabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="optionsButton.IsEnabled"
+                                                Value="False" />
+                                        <Setter Target="optionsButton.Visibility"
+                                                Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="SelectAllCheckBox">
+                                    <VisualState.Setters>
+                                        <Setter Target="selectAllCheckBox.Visibility"
+                                                Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="SelectAllCheckBoxDisabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="selectAllCheckBox.IsEnabled"
+                                                Value="False" />
+                                        <Setter Target="selectAllCheckBox.Visibility"
+                                                Value="Visible" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+
+                        <Grid x:Name="CornerButtonPanel">
+                            <Button x:Name="selectAllButton"
+                                    BorderThickness="0"
+                                    Background="Transparent"
+                                    Padding="0,0,2,2"
+                                    CornerRadius="4,0,0,0"
+                                    Visibility="Collapsed"
+                                    IsTabStop="False"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Bottom"
+                                    HorizontalContentAlignment="Right">
+                                <FontIcon Opacity="0.5"
+                                          Margin="-12,0,0,0"
+                                          Glyph="&#xE788;"
+                                          VerticalAlignment="Bottom" />
+                            </Button>
+
+                            <Button x:Name="optionsButton"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    BorderThickness="0"
+                                    Background="Transparent"
+                                    Padding="0"
+                                    CornerRadius="4,0,0,0"
+                                    Visibility="Collapsed"
+                                    IsTabStop="False">
+                                <FontIcon FontSize="12"
+                                          MaxWidth="10"
+                                          VerticalAlignment="Center"
+                                          HorizontalAlignment="Center"
+                                          Glyph="{ThemeResource OptionsButtonIcon}"
+                                          RenderTransformOrigin="0.5,0.5">
+                                    <FontIcon.RenderTransform>
+                                        <RotateTransform Angle="90" />
+                                    </FontIcon.RenderTransform>
+                                </FontIcon>
+                                <Button.Flyout>
+                                    <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                        <MenuFlyoutItem x:Name="SelectAllMenuItem">
+                                            <MenuFlyoutItem.KeyboardAccelerators>
+                                                <KeyboardAccelerator Key="A"
+                                                                     Modifiers="Control"
+                                                                     ScopeOwner="{TemplateBinding TableView}" />
+                                            </MenuFlyoutItem.KeyboardAccelerators>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutItem x:Name="ClearSelectionMenuItem"
+                                                        Icon="ClearSelection">
+                                            <MenuFlyoutItem.KeyboardAccelerators>
+                                                <KeyboardAccelerator Key="A"
+                                                                     Modifiers="Control,Shift" />
+                                            </MenuFlyoutItem.KeyboardAccelerators>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem x:Name="CopyMenuItem"
+                                                        Icon="Copy">
+                                            <MenuFlyoutItem.KeyboardAccelerators>
+                                                <KeyboardAccelerator Key="C"
+                                                                     Modifiers="Control"
+                                                                     ScopeOwner="{TemplateBinding TableView}" />
+                                            </MenuFlyoutItem.KeyboardAccelerators>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutItem x:Name="PasteMenuItem"
+                                                        Icon="Paste">
+                                            <MenuFlyoutItem.KeyboardAccelerators>
+                                                <KeyboardAccelerator Key="V"
+                                                                     Modifiers="Control"
+                                                                     ScopeOwner="{TemplateBinding TableView}" />
+                                            </MenuFlyoutItem.KeyboardAccelerators>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutItem x:Name="CopyWithHeadersMenuItem">
+                                            <MenuFlyoutItem.KeyboardAccelerators>
+                                                <KeyboardAccelerator Key="C"
+                                                                     Modifiers="Control,Shift" />
+                                            </MenuFlyoutItem.KeyboardAccelerators>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem x:Name="ClearSortingMenuItem" />
+                                        <MenuFlyoutItem x:Name="ClearFilterMenuItem" />
+                                        <win:MenuFlyoutItem x:Name="UngroupAllMenuItem" />
+                                        <MenuFlyoutSeparator Visibility="{Binding Visibility, ElementName=ExportAllMenuItem}" />
+                                        <MenuFlyoutItem x:Name="ExportAllMenuItem">
+                                            <MenuFlyoutItem.Icon>
+                                                <FontIcon Glyph="&#xede1;" />
+                                            </MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutItem x:Name="ExportSelectedMenuItem">
+                                            <MenuFlyoutItem.Icon>
+                                                <FontIcon Glyph="&#xede1;" />
+                                            </MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+
+                            <CheckBox x:Name="selectAllCheckBox"
+                                      Padding="0"
+                                      Margin="10,0,10,0"
+                                      MinWidth="20"
+                                      MinHeight="20"
+                                      IsTabStop="False"
+                                      Visibility="Collapsed"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left" />
+                        </Grid>
+
+                        <Rectangle x:Name="VerticalGridLine"
+                                   Grid.Column="1"
+                                   Width="1"
+                                   VerticalAlignment="Stretch" />
+
+                        <StackPanel x:Name="FrozenHeadersPanel"
+                                    Grid.Column="2"
+                                    Orientation="Horizontal" />
+
+                        <StackPanel x:Name="ScrollableHeadersPanel"
+                                    Grid.Column="3"
+                                    Orientation="Horizontal" />
+
+                        <Border x:Name="ColumnDropIndicator"
+                                Grid.ColumnSpan="4"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Left"
+                                Translation="0, 0, 32"
+                                BorderThickness="1"
+                                RenderTransformOrigin="0.5,0.5"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <Border.Shadow>
+                                <ThemeShadow />
+                            </Border.Shadow>
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="ColumnDropIndicatorTransform" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <FontIcon Glyph="&#xEB0F;"
+                                          FontSize="12"
+                                          Margin="0,-2,0,0"
+                                          VerticalAlignment="Top" 
+                                          Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                <FontIcon Glyph="&#xEB11;"
+                                          FontSize="12"
+                                          Margin="0,0,0,-2"
+                                          VerticalAlignment="Bottom" 
+                                          Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                <Image x:Name="DragHeaderImage"
+                                       Stretch="None" />
+                            </Grid>
+                        </Border>
+                        <Rectangle x:Name="HorizontalGridLine"
+                                   Grid.Row="1"
+                                   Grid.ColumnSpan="4"
+                                   HorizontalAlignment="Stretch" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
