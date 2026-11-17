@@ -261,7 +261,8 @@ public sealed partial class SchedulerToolbar : UserControl
         }
         else
         {
-            button.Click += (_, _) => raise(model);
+            // Raise the CURRENT model: an in-place update (SetAdornmentButtons) swaps Tag, not the button.
+            button.Click += (_, _) => raise(button.Tag as SchedulerToolbarButton ?? model);
         }
         return button;
     }
@@ -288,7 +289,7 @@ public sealed partial class SchedulerToolbar : UserControl
         item.IsEnabled = model.IsEnabled;
         item.Tag = model;
         item.Icon = BuildMenuIcon(model);
-        item.Click += (_, _) => raise(model);
+        item.Click += (_, _) => raise(item.Tag as SchedulerToolbarButton ?? model);
         return item;
     }
 
@@ -358,6 +359,31 @@ public sealed partial class SchedulerToolbar : UserControl
     /// <see cref="AdornmentClicked"/> with the clicked entry. Empty hides the group.</summary>
     public void SetAdornmentButtons(IReadOnlyList<SchedulerToolbarButton> buttons)
     {
+        // A host typically re-supplies the same templates with only IsEnabled flipped (enabled while
+        // something is selected). Rebuilding then costs every button, menu item and icon decode, which
+        // for a few dozen image templates is hundreds of ms on the UI thread per selection change
+        // (XU-1264: it broke double-click). Same entries in the same order → update them in place.
+        if (DiffersOnlyInEnabled(_adornments, buttons)
+            && AdornmentGroupPanel.Children.Count == buttons.Count
+            && AdornmentMenu.Items.Count == buttons.Count)
+        {
+            _adornments = buttons;
+            for (var i = 0; i < buttons.Count; i++)
+            {
+                if (AdornmentGroupPanel.Children[i] is Control button)
+                {
+                    button.Tag = buttons[i];
+                    button.IsEnabled = buttons[i].IsEnabled;
+                }
+                if (AdornmentMenu.Items[i] is MenuFlyoutItemBase item)
+                {
+                    item.Tag = buttons[i];
+                    item.IsEnabled = buttons[i].IsEnabled;
+                }
+            }
+            return;
+        }
+
         _adornments = buttons;
         AdornmentGroupPanel.Children.Clear();
         AdornmentMenu.Items.Clear();
@@ -370,6 +396,38 @@ public sealed partial class SchedulerToolbar : UserControl
 
         ApplyResponsiveLayout(ActualWidth);
     }
+
+    /// <summary>True when <paramref name="next"/> holds the same entries as <paramref name="current"/>, in
+    /// the same order, differing at most in <see cref="SchedulerToolbarButton.IsEnabled"/>; the rendered
+    /// controls can then be updated in place instead of rebuilt. Both empty counts as no change.</summary>
+    internal static bool DiffersOnlyInEnabled(IReadOnlyList<SchedulerToolbarButton> current, IReadOnlyList<SchedulerToolbarButton> next)
+    {
+        if (current.Count != next.Count)
+        {
+            return false;
+        }
+        for (var i = 0; i < next.Count; i++)
+        {
+            var a = current[i];
+            var b = next[i];
+            if (ReferenceEquals(a, b))
+            {
+                continue;
+            }
+            if (a.Id != b.Id || a.Glyph != b.Glyph || a.Label != b.Label || a.Tooltip != b.Tooltip
+                || !ReferenceEquals(a.Command, b.Command) || !Equals(a.CommandParameter, b.CommandParameter)
+                || a.IsToggle != b.IsToggle || a.IsChecked != b.IsChecked
+                || !ReferenceEquals(a.MenuItems, b.MenuItems)
+                || !SameImage(a.Image, b.Image))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool SameImage(byte[]? a, byte[]? b)
+        => ReferenceEquals(a, b) || (a is not null && b is not null && a.AsSpan().SequenceEqual(b));
 
     // A menu item's icon: the model's image as an ImageIcon, else its glyph, else none.
     private static IconElement? BuildMenuIcon(SchedulerToolbarButton model)

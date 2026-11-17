@@ -7,6 +7,19 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.10] - 2026-11-17
+
+### Fixed
+- Scheduler: re-supplying `ToolbarAdornments` no longer rebuilds the adornment group once per change
+  notification. A host that refreshes the group as `Clear()` plus one `Add` per template (for example
+  to enable the buttons only while an appointment is selected) caused N+1 full rebuilds of every
+  button, menu item and icon. With a few dozen image templates that was hundreds of milliseconds of
+  UI-thread work per selection change, enough to push a double-click outside its 400 ms window so
+  the appointment never opened (XtremeCRM XU-1264). Changes are now pushed to the toolbar once per
+  dispatcher tick, and when the new entries match the current ones except for `IsEnabled` the
+  existing controls are updated in place (no rebuild, no icon decode). A toolbar or menu click now
+  raises the entry as last supplied.
+
 ## [0.1.0-preview.9] - 2026-11-13
 
 ### Changed
@@ -248,7 +261,9 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.8...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.10...HEAD
+[0.1.0-preview.10]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.9...v0.1.0-preview.10
+[0.1.0-preview.9]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.8...v0.1.0-preview.9
 [0.1.0-preview.8]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.7...v0.1.0-preview.8
 [0.1.0-preview.7]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.6...v0.1.0-preview.7
 [0.1.0-preview.6]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.5...v0.1.0-preview.6
