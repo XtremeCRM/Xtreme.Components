@@ -72,7 +72,10 @@ public sealed partial class SchedulerControl : UserControl
 
         // Adornment toggle group: its own reactive cluster (button row when wide, an "Adornments" dropdown
         // when narrow). Push the collection on change; bubble a click up as a toggle request for the host.
-        _toolbarAdornments.CollectionChanged += (_, _) => Toolbar.SetAdornmentButtons(_toolbarAdornments);
+        // XU-1264: coalesced. A host re-supplies the group as Clear + one Add per entry; pushing on every
+        // notification rebuilt the whole group N+1 times. One push per dispatcher tick, as a snapshot (the
+        // toolbar compares it with the previous one to update in place when only IsEnabled changed).
+        _toolbarAdornments.CollectionChanged += (_, _) => QueueAdornmentPush();
         Toolbar.AdornmentClicked += (_, b) => AdornmentToggleRequested?.Invoke(this, b);
 
         // Host-supplied per-tile on/off options in the "Visible tiles" menu; bubble toggles up to the host.
@@ -133,6 +136,29 @@ public sealed partial class SchedulerControl : UserControl
     public ObservableCollection<SchedulerToolbarButton> ToolbarAdornments => _toolbarAdornments;
 
     private readonly ObservableCollection<SchedulerToolbarButton> _toolbarAdornments = new();
+
+    private bool _adornmentPushQueued;
+
+    // Push ToolbarAdornments to the toolbar once per dispatcher tick, however many notifications arrive in
+    // it. Without a dispatcher (not yet in a tree) or when the queue refuses, push immediately.
+    private void QueueAdornmentPush()
+    {
+        if (_adornmentPushQueued)
+        {
+            return;
+        }
+        _adornmentPushQueued = true;
+        if (DispatcherQueue?.TryEnqueue(PushAdornments) != true)
+        {
+            PushAdornments();
+        }
+    }
+
+    private void PushAdornments()
+    {
+        _adornmentPushQueued = false;
+        Toolbar.SetAdornmentButtons(_toolbarAdornments.ToArray());
+    }
 
     /// <summary>Raised when an adornment group entry is clicked (after its own <c>Command</c> runs, if any); for
     /// an entry with <c>MenuItems</c>, raised with the picked item. The host runs the toggle. The group honors
