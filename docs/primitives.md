@@ -332,6 +332,9 @@ private void Nav_SelectionChanged(object? sender, EventArgs e)
 |---|---|---|---|
 | `SingleDateMode` | `bool` | `false` | Date-field mode: hides the Days/Range switch, a tap replaces the selection, Ctrl/Shift are ignored, and a single visible month fills its leading/trailing cells with the neighboring months' days. |
 | `FirstDayOfWeek` | `DayOfWeek` | the culture's | First column of each month grid. Defaults to `CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek` when the control is created (Sunday for en-US, Monday for most of Europe). Bindable. |
+| `PlainClickCommits` | `bool` | `false` | When true, a plain mouse or pen click (or Enter / Space) in **Days** mode replaces the selection with that day and raises `DayCommitted`, so the host can apply it at once. Ctrl/Shift-click, touch taps and Range mode still build a set, and the first such gesture starts a new set instead of adding to the seeded one. The Scheduler's date picker turns it on. |
+| `DayCommitted` | `EventHandler<DateTime>` | | Raised after a plain click picks one day while `PlainClickCommits` is on (after `SelectionChanged`). |
+| `IsPickingSeveral` | `bool` (read-only) | | True after a Ctrl/Shift-click (or, with `PlainClickCommits`, a touch tap), or while Range mode is on; `SetSelection` resets it. Hosts that commit on a plain click show Apply only while it is true. `IsPickingSeveralChanged` reports changes. |
 | `SelectionChanged` | `EventHandler` | | Raised whenever the selected set changes, whoever changed it: a click or key, **Today** in single-date mode, `SetSelection` or `ClearSelection`. Not raised when a call leaves the set as it was. |
 | `SetSelection(IReadOnlyList<DateTime> dates)` | method | | Replaces the selection (time parts are dropped) and pages to the earliest date, or to today when the list is empty. |
 | `GetSelection()` | `IReadOnlyList<DateTime>` | | The selected days, ascending. |
@@ -342,7 +345,7 @@ Gestures (multi-select mode):
 
 | Gesture | Effect |
 |---|---|
-| Click | **Days** mode: toggles the day. **Range** mode: first tap selects a start day, second tap fills the range to it, third tap starts again. |
+| Click | **Days** mode: toggles the day (with `PlainClickCommits`: a mouse or pen click picks just that day and raises `DayCommitted`; a touch tap still toggles). **Range** mode: first tap selects a start day, second tap fills the range to it, third tap starts again. |
 | Ctrl+click | Toggles one day, in either mode. |
 | Shift+click | Adds the contiguous range from the last clicked day. |
 | ‹ / › | Pages by the number of months currently visible. |

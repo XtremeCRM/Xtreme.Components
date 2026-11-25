@@ -834,8 +834,8 @@ _scheduler.AppointmentRenderer = ctx => ctx.Surface switch
 ## 11. Toolbar and the view controls
 
 `SchedulerControl` contains its own `SchedulerToolbar`: Previous / Today / Next, a period button that
-opens a multi-date picker (click, Ctrl-click, Shift-click or range mode; a scattered pick sets
-`SelectedDates`), the view switcher, host buttons, the adornment group, the "Visible tiles" button and
+opens a multi-date picker (one mouse click on a day loads it straight away; Ctrl-click, Shift-click,
+touch taps or range mode pick several days, then Apply; a scattered pick sets `SelectedDates`), the view switcher, host buttons, the adornment group, the "Visible tiles" button and
 the Settings flyout. The embedded toolbar instance is not exposed; customize it through the members
 below.
 

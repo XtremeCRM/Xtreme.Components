@@ -63,5 +63,144 @@ public sealed partial class SchedulerToolbar
         return problems;
     }
 
+    /// <summary>
+    /// <c>--selftest</c> check for a toolbar that has been moved into another window after the picker
+    /// already opened in the first one (XU-1360): the picker must open, in this toolbar's window.
+    /// </summary>
+    internal async Task<List<string>> PickerOpensInOwnWindowSelfTestAsync(Action<string> log)
+    {
+        var problems = new List<string>();
+        try
+        {
+            OpenPicker();
+            await Task.Delay(700);
+            var same = ReferenceEquals(PickerContainer.XamlRoot, PeriodButton.XamlRoot);
+            log($"picker (second window): open {PeriodFlyout.IsOpen}, same window {same}, panel {PickerContainer.ActualWidth:0}x{PickerContainer.ActualHeight:0}");
+            if (!PeriodFlyout.IsOpen) problems.Add("picker did not open");
+            if (!same) problems.Add("picker opened in a different window from its button");
+            if (PickerContainer.ActualWidth <= 0 || PickerContainer.ActualHeight <= 0) problems.Add("picker panel has no size");
+        }
+        finally
+        {
+            PeriodFlyout.Hide();
+        }
+        return problems;
+    }
+
+    /// <summary><c>--selftest</c>: open each visible toolbar menu (Adornments, Tiles) and check it opened. In a
+    /// second window, opening threw "XamlRoot is ambiguous" before XU-1360.</summary>
+    internal async Task<List<string>> MenusOpenSelfTestAsync(Action<string> log, string where)
+    {
+        var problems = new List<string>();
+        foreach (var (menu, button, label) in new (MenuFlyout Menu, FrameworkElement Button, string Label)[]
+                 { (AdornmentMenu, AdornmentDropdown, "adornments"), (TileOptionsMenu, TilesButton, "tiles") })
+        {
+            if (menu.Items.Count == 0)
+            {
+                log($"menu {label} ({where}): empty, skipped");
+                continue;
+            }
+            // A wide toolbar shows the adornment group inline and collapses its dropdown; open the menu
+            // against the toolbar then, which still exercises the menu's window.
+            FrameworkElement target = button.Visibility == Visibility.Visible ? button : this;
+            try
+            {
+                var events = new List<string>();
+                void Opened(object? s, object e) => events.Add("opened");
+                void Closed(object? s, object e) => events.Add("closed");
+                await Task.Delay(300); // let the previous flyout finish closing, or this one closes at once
+                menu.Opened += Opened;
+                menu.Closed += Closed;
+                menu.ShowAt(target);
+                await Task.Delay(400);
+                menu.Opened -= Opened;
+                menu.Closed -= Closed;
+                log($"menu {label} ({where}): open {menu.IsOpen}, events [{string.Join(",", events)}], same window {ReferenceEquals(menu.XamlRoot, target.XamlRoot)}, at {(target == this ? "toolbar" : "button")}");
+                if (!menu.IsOpen) problems.Add($"{label} menu did not open ({where})");
+            }
+            catch (Exception ex)
+            {
+                problems.Add($"{label} menu threw ({where}): {ex.Message}");
+            }
+            finally
+            {
+                menu.Hide();
+            }
+        }
+        return problems;
+    }
+
+    /// <summary>
+    /// <c>--selftest</c> checks for the picker's gestures (XU-1360): a plain mouse click commits one day and
+    /// closes; the first Ctrl-click starts a new set (the on-screen dates are dropped) and shows Apply; touch
+    /// taps toggle days and show Apply; switching to Range mode shows Apply and back to Days hides it.
+    /// </summary>
+    internal async Task<List<string>> PickerGesturesSelfTestAsync(Action<string> log)
+    {
+        var problems = new List<string>();
+        void Check(bool ok, string what)
+        {
+            if (!ok) problems.Add(what);
+        }
+        bool ApplyShown() => ApplyDatesButton.Visibility == Visibility.Visible && ClearDatesButton.Visibility == Visibility.Visible;
+        string Picked() => string.Join(",", RangeCalendar.GetSelection().Select(d => d.ToString("MM-dd")));
+
+        IReadOnlyList<DateTime>? committed = null;
+        void OnSelected(object? s, IReadOnlyList<DateTime> dates) => committed = dates;
+        DatesSelected += OnSelected;
+        var day1 = DateTime.Today.AddDays(10);
+        var day2 = DateTime.Today.AddDays(17);
+        try
+        {
+            async Task Reopen()
+            {
+                PeriodFlyout.Hide();
+                await Task.Delay(300);
+                OpenPicker();
+                await Task.Delay(500);
+            }
+
+            await Reopen();
+            Check(!ApplyShown(), "Apply/Clear showing when the picker opened");
+
+            RangeCalendar.Pick(day1, ctrl: true, shift: false);
+            log($"gestures: ctrl-click -> [{Picked()}], apply {ApplyShown()}");
+            Check(ApplyShown(), "Apply/Clear hidden after a Ctrl-click");
+            Check(RangeCalendar.GetSelection().SequenceEqual(new[] { day1 }), $"first Ctrl-click kept the on-screen dates: [{Picked()}]");
+            RangeCalendar.Pick(day2, ctrl: true, shift: false);
+            Check(RangeCalendar.GetSelection().Count == 2, $"second Ctrl-click did not add a day: [{Picked()}]");
+
+            committed = null;
+            RangeCalendar.Pick(day2, ctrl: false, shift: false);
+            await Task.Delay(300);
+            log($"gestures: plain click -> committed [{(committed is null ? "none" : string.Join(",", committed.Select(d => d.ToString("MM-dd"))))}], open {PeriodFlyout.IsOpen}");
+            Check(committed is { Count: 1 } && committed[0] == day2, "a plain click did not commit its day");
+            Check(!PeriodFlyout.IsOpen, "the picker stayed open after a plain click");
+
+            await Reopen();
+            committed = null;
+            RangeCalendar.Pick(day1, ctrl: false, shift: false, touch: true);
+            RangeCalendar.Pick(day2, ctrl: false, shift: false, touch: true);
+            log($"gestures: two touch taps -> [{Picked()}], apply {ApplyShown()}, committed {committed is not null}");
+            Check(committed is null && PeriodFlyout.IsOpen, "a touch tap committed instead of toggling");
+            Check(RangeCalendar.GetSelection().SequenceEqual(new[] { day1, day2 }), $"touch taps picked [{Picked()}]");
+            Check(ApplyShown(), "Apply/Clear hidden after touch taps");
+
+            await Reopen();
+            RangeCalendar.SelectRangeMode(true);
+            log($"gestures: range mode -> apply {ApplyShown()}");
+            Check(ApplyShown(), "Apply/Clear hidden in Range mode");
+            RangeCalendar.SelectRangeMode(false);
+            Check(!ApplyShown(), "Apply/Clear still showing after switching back to Days");
+        }
+        finally
+        {
+            DatesSelected -= OnSelected;
+            RangeCalendar.SelectRangeMode(false);
+            PeriodFlyout.Hide();
+        }
+        return problems;
+    }
+
     private static string Describe(Rect r) => $"({r.Left:0},{r.Top:0}) {r.Width:0}x{r.Height:0}";
 }

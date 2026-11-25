@@ -74,6 +74,40 @@ public sealed partial class MultiMonthDateNavigator : UserControl
     /// </summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>
+    /// When true, a plain mouse or pen click (or Enter / Space) on a day in Days mode picks just that day
+    /// and raises <see cref="DayCommitted"/>, so the host can apply it at once (XU-1360). Ctrl-click and
+    /// Shift-click still build a set of several days, Range mode still takes two taps, and a touch tap
+    /// still toggles days (touch has no Ctrl); the host commits those.
+    /// </summary>
+    public bool PlainClickCommits { get; set; }
+
+    /// <summary>Raised after a plain click picks one day while <see cref="PlainClickCommits"/> is on.
+    /// <see cref="SelectionChanged"/> has already been raised for it.</summary>
+    public event EventHandler<DateTime>? DayCommitted;
+
+    /// <summary>
+    /// True once the user is building a set of several days: after a Ctrl-click, Shift-click or (with
+    /// <see cref="PlainClickCommits"/>) a touch tap, or while Range mode is on. <see cref="SetSelection"/> resets it (unless Range mode is on). Hosts that commit
+    /// on a plain click show their Apply button only while this is true.
+    /// </summary>
+    public bool IsPickingSeveral => _pickingSeveral || _mode == PickMode.Range;
+
+    /// <summary>Raised when <see cref="IsPickingSeveral"/> changes.</summary>
+    public event EventHandler? IsPickingSeveralChanged;
+
+    private bool _pickingSeveral;
+
+    private void SetPickingSeveral(bool value)
+    {
+        var before = IsPickingSeveral;
+        _pickingSeveral = value;
+        if (before != IsPickingSeveral)
+        {
+            IsPickingSeveralChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     public static readonly DependencyProperty FirstDayOfWeekProperty = DependencyProperty.Register(
         nameof(FirstDayOfWeek), typeof(DayOfWeek), typeof(MultiMonthDateNavigator),
         new PropertyMetadata(DayOfWeek.Sunday, OnFirstDayOfWeekChanged));
@@ -142,6 +176,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         _selected.UnionWith(next);
         _anchor = null;
         _pendingRangeAnchor = null;
+        SetPickingSeveral(false);
 
         var first = _selected.Count > 0 ? _selected.Min() : DateTime.Today;
         _anchorDate = first;
@@ -213,13 +248,21 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         }
     }
 
+    /// <summary>Self-test hook: switch Days / Range exactly as the on-screen toggle does.</summary>
+    internal void SelectRangeMode(bool range) => OnModeToggle(range ? RangeModeToggle : DaysModeToggle, new RoutedEventArgs());
+
     private void OnModeToggle(object sender, RoutedEventArgs e)
     {
+        var before = IsPickingSeveral;
         _mode = ReferenceEquals(sender, RangeModeToggle) ? PickMode.Range : PickMode.Days;
         DaysModeToggle.IsChecked = _mode == PickMode.Days;
         RangeModeToggle.IsChecked = _mode == PickMode.Range;
         _pendingRangeAnchor = null; // switching modes abandons a half-built range
         ApplyHighlight();
+        if (before != IsPickingSeveral) // Range mode counts as picking several
+        {
+            IsPickingSeveralChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     // ---- Reflow --------------------------------------------------------------------------------
@@ -484,11 +527,12 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         _focusDate = raw.Date;
         DayGridFocus.Focus(FocusState.Pointer);
 
-        Pick(raw.Date, mods.HasFlag(VirtualKeyModifiers.Control), mods.HasFlag(VirtualKeyModifiers.Shift));
+        Pick(raw.Date, mods.HasFlag(VirtualKeyModifiers.Control), mods.HasFlag(VirtualKeyModifiers.Shift),
+            touch: e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch);
     }
 
-    // One pick gesture, from a click or from Enter/Space on the focus cell.
-    private void Pick(DateTime date, bool ctrl, bool shift)
+    // One pick gesture, from a click or tap, or from Enter/Space on the focus cell (touch: false).
+    internal void Pick(DateTime date, bool ctrl, bool shift, bool touch = false)
     {
         if (SingleDateMode)
         {
@@ -514,6 +558,31 @@ public sealed partial class MultiMonthDateNavigator : UserControl
             return;
         }
 
+        if (PlainClickCommits && !ctrl && !shift && !touch && _mode == PickMode.Days)
+        {
+            // One click loads one day (Legacy's behavior, XU-1360): replace the set and let the host apply it.
+            _selected.Clear();
+            _selected.Add(date);
+            _anchor = date;
+            SetPickingSeveral(false);
+            ApplyHighlight();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            DayCommitted?.Invoke(this, date);
+            return;
+        }
+
+        if (ctrl || shift || (touch && PlainClickCommits && _mode == PickMode.Days))
+        {
+            if (PlainClickCommits && !IsPickingSeveral)
+            {
+                // The first gesture of a several-day pick starts a new set: the seeded selection is the
+                // dates on screen, and keeping it would add today to "the next 4 Saturdays".
+                _selected.Clear();
+                _anchor = null;
+            }
+            SetPickingSeveral(true);
+        }
+
         if (shift && _anchor is { } anchor)
         {
             AddRange(anchor, date); // Shift+click always extends a contiguous range from the anchor
@@ -521,6 +590,14 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         else if (ctrl)
         {
             Toggle(date); // Ctrl+click always toggles a single day in/out
+            _anchor = date;
+        }
+        else if (shift && PlainClickCommits)
+        {
+            // Shift+click with no anchor yet (the picker just opened): start a fresh set at this day
+            // rather than committing it, so the next Shift+click extends a range from here.
+            _selected.Clear();
+            _selected.Add(date);
             _anchor = date;
         }
         else if (_mode == PickMode.Range)

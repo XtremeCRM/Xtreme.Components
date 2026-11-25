@@ -7,6 +7,25 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.11] - 2026-11-25
+
+### Fixed
+- Scheduler: the date picker and the toolbar menus open when the host has moved the scheduler into
+  another window (for example a popped-out Scheduler). A flyout keeps the window it first opened in,
+  so after the move `ShowAt` threw "XamlRoot is ambiguous" and nothing opened (XtremeCRM XU-1360).
+  The toolbar now points its flyouts (its own and those of host-supplied buttons) at its current
+  window whenever it loads into one, and again before the date picker opens.
+
+### Changed
+- Scheduler: one mouse or pen click on a day in the date picker loads that day and closes the picker,
+  with no Apply (XtremeCRM XU-1360). Ctrl-click, Shift-click and touch taps still build a set of several
+  days (the first one starts a new set rather than adding to the dates on screen), and Range mode still
+  takes two taps; Clear and Apply show only while several days are being picked.
+
+### Added
+- Primitives: `MultiMonthDateNavigator.PlainClickCommits`, `DayCommitted`, `IsPickingSeveral` and
+  `IsPickingSeveralChanged`, for hosts that apply a single day on a plain click.
+
 ## [0.1.0-preview.10] - 2026-11-17
 
 ### Fixed
@@ -261,7 +280,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.10...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.11...HEAD
+[0.1.0-preview.11]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.10...v0.1.0-preview.11
 [0.1.0-preview.10]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.9...v0.1.0-preview.10
 [0.1.0-preview.9]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.8...v0.1.0-preview.9
 [0.1.0-preview.8]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.7...v0.1.0-preview.8
