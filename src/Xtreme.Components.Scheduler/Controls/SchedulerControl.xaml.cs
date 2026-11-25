@@ -1269,5 +1269,7 @@ public sealed partial class SchedulerControl : UserControl
     /// (see <see cref="SchedulerToolbar.PickerOpensInOwnWindowSelfTestAsync"/>).</summary>
     internal Task<List<string>> PickerOpensInOwnWindowSelfTestAsync(Action<string> log) => Toolbar.PickerOpensInOwnWindowSelfTestAsync(log);
 
+    internal Task<List<string>> PickerGesturesSelfTestAsync(Action<string> log) => Toolbar.PickerGesturesSelfTestAsync(log);
+
     internal Task<List<string>> ToolbarMenusSelfTestAsync(Action<string> log, string where) => Toolbar.MenusOpenSelfTestAsync(log, where);
 }

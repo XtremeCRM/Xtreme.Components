@@ -41,12 +41,29 @@ public sealed partial class SchedulerToolbar : UserControl
         {
             return;
         }
-        foreach (var flyout in new FlyoutBase?[] { PeriodFlyout, AdornmentMenu, OverflowMenu, TileOptionsMenu, SettingsButton.Flyout })
+        var flyouts = new List<FlyoutBase?> { PeriodFlyout, AdornmentMenu, OverflowMenu, TileOptionsMenu, SettingsButton.Flyout };
+        CollectButtonFlyouts(CustomButtonPanel, flyouts);   // host buttons with children carry a menu
+        CollectButtonFlyouts(AdornmentGroupPanel, flyouts);
+        foreach (var flyout in flyouts)
         {
             if (flyout is { IsOpen: false } && !ReferenceEquals(flyout.XamlRoot, root))
             {
                 flyout.XamlRoot = root;
             }
+        }
+    }
+
+    private static void CollectButtonFlyouts(DependencyObject parent, List<FlyoutBase?> into)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is Button { Flyout: { } flyout })
+            {
+                into.Add(flyout);
+                continue;
+            }
+            CollectButtonFlyouts(child, into);
         }
     }
 
@@ -733,7 +750,9 @@ public sealed partial class SchedulerToolbar : UserControl
 
         if (dates.Count == 0)
         {
-            RangeSummary.Text = "Click a day, or Ctrl-click several (e.g. the next 4 Saturdays) and Apply.";
+            RangeSummary.Text = RangeCalendar.IsPickingSeveral
+                ? "Pick the days, then Apply."
+                : "Click a day, or Ctrl-click several (e.g. the next 4 Saturdays) and Apply.";
             return;
         }
 

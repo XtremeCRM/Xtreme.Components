@@ -13,13 +13,14 @@ version. The publish workflow refuses a tag whose version has no section below.
 - Scheduler: the date picker and the toolbar menus open when the host has moved the scheduler into
   another window (for example a popped-out Scheduler). A flyout keeps the window it first opened in,
   so after the move `ShowAt` threw "XamlRoot is ambiguous" and nothing opened (XtremeCRM XU-1360).
-  The toolbar now points its flyouts at its current window whenever it loads into one, and again
-  before the date picker opens.
+  The toolbar now points its flyouts (its own and those of host-supplied buttons) at its current
+  window whenever it loads into one, and again before the date picker opens.
 
 ### Changed
-- Scheduler: one click on a day in the date picker loads that day and closes the picker, with no
-  Apply (XtremeCRM XU-1360). Ctrl-click and Shift-click still build a set of several days, and Range
-  mode still takes two taps; Clear and Apply show only while several days are being picked.
+- Scheduler: one mouse or pen click on a day in the date picker loads that day and closes the picker,
+  with no Apply (XtremeCRM XU-1360). Ctrl-click, Shift-click and touch taps still build a set of several
+  days (the first one starts a new set rather than adding to the dates on screen), and Range mode still
+  takes two taps; Clear and Apply show only while several days are being picked.
 
 ### Added
 - Primitives: `MultiMonthDateNavigator.PlainClickCommits`, `DayCommitted`, `IsPickingSeveral` and

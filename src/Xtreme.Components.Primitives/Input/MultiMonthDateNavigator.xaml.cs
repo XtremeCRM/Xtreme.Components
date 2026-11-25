@@ -75,9 +75,10 @@ public sealed partial class MultiMonthDateNavigator : UserControl
     public event EventHandler? SelectionChanged;
 
     /// <summary>
-    /// When true, a plain click (or Enter / Space) on a day in Days mode picks just that day and raises
-    /// <see cref="DayCommitted"/>, so the host can apply it at once (XU-1360). Ctrl-click and Shift-click
-    /// still build a set of several days, and Range mode still takes two taps; the host commits those.
+    /// When true, a plain mouse or pen click (or Enter / Space) on a day in Days mode picks just that day
+    /// and raises <see cref="DayCommitted"/>, so the host can apply it at once (XU-1360). Ctrl-click and
+    /// Shift-click still build a set of several days, Range mode still takes two taps, and a touch tap
+    /// still toggles days (touch has no Ctrl); the host commits those.
     /// </summary>
     public bool PlainClickCommits { get; set; }
 
@@ -86,8 +87,8 @@ public sealed partial class MultiMonthDateNavigator : UserControl
     public event EventHandler<DateTime>? DayCommitted;
 
     /// <summary>
-    /// True once the user is building a set of several days: after a Ctrl-click or Shift-click, or while
-    /// Range mode is on. <see cref="SetSelection"/> resets it (unless Range mode is on). Hosts that commit
+    /// True once the user is building a set of several days: after a Ctrl-click, Shift-click or (with
+    /// <see cref="PlainClickCommits"/>) a touch tap, or while Range mode is on. <see cref="SetSelection"/> resets it (unless Range mode is on). Hosts that commit
     /// on a plain click show their Apply button only while this is true.
     /// </summary>
     public bool IsPickingSeveral => _pickingSeveral || _mode == PickMode.Range;
@@ -247,14 +248,21 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         }
     }
 
+    /// <summary>Self-test hook: switch Days / Range exactly as the on-screen toggle does.</summary>
+    internal void SelectRangeMode(bool range) => OnModeToggle(range ? RangeModeToggle : DaysModeToggle, new RoutedEventArgs());
+
     private void OnModeToggle(object sender, RoutedEventArgs e)
     {
+        var before = IsPickingSeveral;
         _mode = ReferenceEquals(sender, RangeModeToggle) ? PickMode.Range : PickMode.Days;
         DaysModeToggle.IsChecked = _mode == PickMode.Days;
         RangeModeToggle.IsChecked = _mode == PickMode.Range;
         _pendingRangeAnchor = null; // switching modes abandons a half-built range
         ApplyHighlight();
-        SetPickingSeveral(_pickingSeveral); // Range mode counts as picking several
+        if (before != IsPickingSeveral) // Range mode counts as picking several
+        {
+            IsPickingSeveralChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     // ---- Reflow --------------------------------------------------------------------------------
@@ -519,11 +527,12 @@ public sealed partial class MultiMonthDateNavigator : UserControl
         _focusDate = raw.Date;
         DayGridFocus.Focus(FocusState.Pointer);
 
-        Pick(raw.Date, mods.HasFlag(VirtualKeyModifiers.Control), mods.HasFlag(VirtualKeyModifiers.Shift));
+        Pick(raw.Date, mods.HasFlag(VirtualKeyModifiers.Control), mods.HasFlag(VirtualKeyModifiers.Shift),
+            touch: e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch);
     }
 
-    // One pick gesture, from a click or from Enter/Space on the focus cell.
-    private void Pick(DateTime date, bool ctrl, bool shift)
+    // One pick gesture, from a click or tap, or from Enter/Space on the focus cell (touch: false).
+    internal void Pick(DateTime date, bool ctrl, bool shift, bool touch = false)
     {
         if (SingleDateMode)
         {
@@ -549,7 +558,7 @@ public sealed partial class MultiMonthDateNavigator : UserControl
             return;
         }
 
-        if (PlainClickCommits && !ctrl && !shift && _mode == PickMode.Days)
+        if (PlainClickCommits && !ctrl && !shift && !touch && _mode == PickMode.Days)
         {
             // One click loads one day (Legacy's behavior, XU-1360): replace the set and let the host apply it.
             _selected.Clear();
@@ -562,8 +571,15 @@ public sealed partial class MultiMonthDateNavigator : UserControl
             return;
         }
 
-        if (ctrl || shift)
+        if (ctrl || shift || (touch && PlainClickCommits && _mode == PickMode.Days))
         {
+            if (PlainClickCommits && !IsPickingSeveral)
+            {
+                // The first gesture of a several-day pick starts a new set: the seeded selection is the
+                // dates on screen, and keeping it would add today to "the next 4 Saturdays".
+                _selected.Clear();
+                _anchor = null;
+            }
             SetPickingSeveral(true);
         }
 

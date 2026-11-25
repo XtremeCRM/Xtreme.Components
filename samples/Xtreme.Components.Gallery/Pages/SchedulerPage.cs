@@ -284,6 +284,9 @@ public sealed partial class SchedulerPage : Grid
     /// showing, and resizes from a fixed corner.</summary>
     internal Task<List<string>> PickerSelfTestAsync() => _scheduler.PickerSelfTestAsync(Console.WriteLine);
 
+    /// <summary><c>--selftest</c>: the date picker's click / Ctrl-click / touch / Range gestures (XU-1360).</summary>
+    internal Task<List<string>> PickerGesturesSelfTestAsync() => _scheduler.PickerGesturesSelfTestAsync(Console.WriteLine);
+
     /// <summary>
     /// <c>--selftest</c>: move this same scheduler into a second window, the way a host pops a screen out
     /// (XU-1354), and check the date picker opens there (XU-1360). The scheduler is put back afterwards.
@@ -304,6 +307,7 @@ public sealed partial class SchedulerPage : Grid
         home.Children.Remove(_scheduler);
         host.Children.Add(_scheduler);
         window.Content = host;
+        window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1600, Height = 900 }); // wide enough for the adornment group
         window.Activate();
         try
         {
