@@ -63,5 +63,70 @@ public sealed partial class SchedulerToolbar
         return problems;
     }
 
+    /// <summary>
+    /// <c>--selftest</c> check for a toolbar that has been moved into another window after the picker
+    /// already opened in the first one (XU-1360): the picker must open, in this toolbar's window.
+    /// </summary>
+    internal async Task<List<string>> PickerOpensInOwnWindowSelfTestAsync(Action<string> log)
+    {
+        var problems = new List<string>();
+        try
+        {
+            OpenPicker();
+            await Task.Delay(700);
+            var same = ReferenceEquals(PickerContainer.XamlRoot, PeriodButton.XamlRoot);
+            log($"picker (second window): open {PeriodFlyout.IsOpen}, same window {same}, panel {PickerContainer.ActualWidth:0}x{PickerContainer.ActualHeight:0}");
+            if (!PeriodFlyout.IsOpen) problems.Add("picker did not open");
+            if (!same) problems.Add("picker opened in a different window from its button");
+            if (PickerContainer.ActualWidth <= 0 || PickerContainer.ActualHeight <= 0) problems.Add("picker panel has no size");
+        }
+        finally
+        {
+            PeriodFlyout.Hide();
+        }
+        return problems;
+    }
+
+    /// <summary><c>--selftest</c>: open each visible toolbar menu (Adornments, Tiles) and check it opened. In a
+    /// second window, opening threw "XamlRoot is ambiguous" before XU-1360.</summary>
+    internal async Task<List<string>> MenusOpenSelfTestAsync(Action<string> log, string where)
+    {
+        var problems = new List<string>();
+        foreach (var (menu, button, label) in new (MenuFlyout Menu, FrameworkElement Button, string Label)[]
+                 { (AdornmentMenu, AdornmentDropdown, "adornments"), (TileOptionsMenu, TilesButton, "tiles") })
+        {
+            if (button.Visibility != Visibility.Visible || menu.Items.Count == 0)
+            {
+                log($"menu {label} ({where}): not shown, skipped");
+                continue;
+            }
+            try
+            {
+
+                var events = new List<string>();
+                void Opened(object? s, object e) => events.Add("opened");
+                void Closed(object? s, object e) => events.Add("closed");
+                await Task.Delay(300); // let the previous flyout finish closing, or this one closes at once
+                menu.Opened += Opened;
+                menu.Closed += Closed;
+                menu.ShowAt(button);
+                await Task.Delay(400);
+                menu.Opened -= Opened;
+                menu.Closed -= Closed;
+                log($"menu {label} ({where}): open {menu.IsOpen}, events [{string.Join(",", events)}], same window {ReferenceEquals(menu.XamlRoot, button.XamlRoot)}");
+                if (!menu.IsOpen) problems.Add($"{label} menu did not open ({where})");
+            }
+            catch (Exception ex)
+            {
+                problems.Add($"{label} menu threw ({where}): {ex.Message}");
+            }
+            finally
+            {
+                menu.Hide();
+            }
+        }
+        return problems;
+    }
+
     private static string Describe(Rect r) => $"({r.Left:0},{r.Top:0}) {r.Width:0}x{r.Height:0}";
 }

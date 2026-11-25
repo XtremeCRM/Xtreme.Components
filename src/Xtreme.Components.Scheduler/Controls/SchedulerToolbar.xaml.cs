@@ -28,6 +28,26 @@ public sealed partial class SchedulerToolbar : UserControl
         _toggles = ViewSegmentPanel.Children.OfType<ToggleButton>().ToArray();
         BuildViewDropdown();
         SizeChanged += OnSizeChanged;
+        Loaded += (_, _) => FollowWindow();
+    }
+
+    // A flyout keeps the window it first opened in. When the host moves this toolbar into another window
+    // (a popped-out Scheduler, XU-1354), ShowAt then throws "XamlRoot is ambiguous" and the date picker
+    // and menus never open (XU-1360). Point every toolbar flyout at the toolbar's current window; runs
+    // whenever the toolbar loads into a window, and again before the date picker opens.
+    private void FollowWindow()
+    {
+        if (XamlRoot is not { } root)
+        {
+            return;
+        }
+        foreach (var flyout in new FlyoutBase?[] { PeriodFlyout, AdornmentMenu, OverflowMenu, TileOptionsMenu, SettingsButton.Flyout })
+        {
+            if (flyout is { IsOpen: false } && !ReferenceEquals(flyout.XamlRoot, root))
+            {
+                flyout.XamlRoot = root;
+            }
+        }
     }
 
     // Mirror the segmented options into the narrow-screen dropdown so both switchers share one
@@ -691,15 +711,29 @@ public sealed partial class SchedulerToolbar : UserControl
 
     private void OnNavigatorSelectionChanged(object? sender, EventArgs e) => UpdateRangeSummary();
 
+    // A plain click on a day loads it straight away, no Apply (XU-1360).
+    private void OnNavigatorDayCommitted(object? sender, DateTime day)
+    {
+        DatesSelected?.Invoke(this, new[] { day.Date });
+        PeriodFlyout.Hide();
+    }
+
+    private void OnNavigatorPickingSeveralChanged(object? sender, EventArgs e) => UpdateRangeSummary();
+
     // Reflect the current picked set in the summary line and gate the Apply button on a non-empty pick.
     private void UpdateRangeSummary()
     {
         var dates = RangeCalendar.GetSelection();
         ApplyDatesButton.IsEnabled = dates.Count > 0;
 
+        // Clear / Apply only matter while several days are being picked; a plain click commits by itself.
+        var several = RangeCalendar.IsPickingSeveral ? Visibility.Visible : Visibility.Collapsed;
+        ApplyDatesButton.Visibility = several;
+        ClearDatesButton.Visibility = several;
+
         if (dates.Count == 0)
         {
-            RangeSummary.Text = "Tap days to select — pick several (e.g. the next 4 Saturdays), then Apply.";
+            RangeSummary.Text = "Click a day, or Ctrl-click several (e.g. the next 4 Saturdays) and Apply.";
             return;
         }
 
@@ -773,6 +807,8 @@ public sealed partial class SchedulerToolbar : UserControl
         }
         PickerContainer.Width = size.Width;
         PickerContainer.Height = size.Height;
+
+        FollowWindow();
         PeriodFlyout.ShowAt(PeriodButton, options);
     }
 

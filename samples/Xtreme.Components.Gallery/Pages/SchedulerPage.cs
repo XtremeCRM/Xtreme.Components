@@ -284,6 +284,42 @@ public sealed partial class SchedulerPage : Grid
     /// showing, and resizes from a fixed corner.</summary>
     internal Task<List<string>> PickerSelfTestAsync() => _scheduler.PickerSelfTestAsync(Console.WriteLine);
 
+    /// <summary>
+    /// <c>--selftest</c>: move this same scheduler into a second window, the way a host pops a screen out
+    /// (XU-1354), and check the date picker opens there (XU-1360). The scheduler is put back afterwards.
+    /// </summary>
+    internal async Task<List<string>> PickerInSecondWindowSelfTestAsync()
+    {
+        var problems = new List<string>();
+        if (_scheduler.Parent is not Panel home)
+        {
+            problems.Add("scheduler has no panel parent to move it from");
+            return problems;
+        }
+        // Open the toolbar menus here first, so they have a window to cling to before the move.
+        problems.AddRange(await _scheduler.ToolbarMenusSelfTestAsync(Console.WriteLine, "first window"));
+        var index = home.Children.IndexOf(_scheduler);
+        var window = new Window { Title = "Selftest: popped-out scheduler" };
+        var host = new Grid();
+        home.Children.Remove(_scheduler);
+        host.Children.Add(_scheduler);
+        window.Content = host;
+        window.Activate();
+        try
+        {
+            await Task.Delay(1000);
+            problems.AddRange(await _scheduler.PickerOpensInOwnWindowSelfTestAsync(Console.WriteLine));
+            problems.AddRange(await _scheduler.ToolbarMenusSelfTestAsync(Console.WriteLine, "second window"));
+        }
+        finally
+        {
+            host.Children.Remove(_scheduler);
+            home.Children.Insert(index, _scheduler);
+            window.Close();
+        }
+        return problems;
+    }
+
     // ---- Appointment editor -------------------------------------------------------------------
 
     private void BuildEditor()

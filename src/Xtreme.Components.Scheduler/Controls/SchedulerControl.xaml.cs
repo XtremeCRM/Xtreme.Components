@@ -1264,4 +1264,10 @@ public sealed partial class SchedulerControl : UserControl
 
     /// <summary>The Gallery's <c>--selftest</c> date-range picker checks (see <see cref="SchedulerToolbar.PickerSelfTestAsync"/>).</summary>
     internal Task<List<string>> PickerSelfTestAsync(Action<string> log) => Toolbar.PickerSelfTestAsync(log);
+
+    /// <summary>The Gallery's <c>--selftest</c> check that the picker opens in the window the scheduler is in
+    /// (see <see cref="SchedulerToolbar.PickerOpensInOwnWindowSelfTestAsync"/>).</summary>
+    internal Task<List<string>> PickerOpensInOwnWindowSelfTestAsync(Action<string> log) => Toolbar.PickerOpensInOwnWindowSelfTestAsync(log);
+
+    internal Task<List<string>> ToolbarMenusSelfTestAsync(Action<string> log, string where) => Toolbar.MenusOpenSelfTestAsync(log, where);
 }

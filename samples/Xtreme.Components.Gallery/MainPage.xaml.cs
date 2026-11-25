@@ -67,6 +67,8 @@ public sealed partial class MainPage : Page
                     await Task.Delay(700);
                     if (await scheduler.PickerSelfTestAsync() is { Count: > 0 } pickerProblems)
                         throw new InvalidOperationException("Date picker checks failed: " + string.Join("; ", pickerProblems));
+                    if (await scheduler.PickerInSecondWindowSelfTestAsync() is { Count: > 0 } windowProblems)
+                        throw new InvalidOperationException("Date picker in a second window failed: " + string.Join("; ", windowProblems));
                 }
                 Host.UpdateLayout();
                 if (Host.Content is TableViewPage table && await table.SelfCheckAsync() is { Count: > 0 } problems)

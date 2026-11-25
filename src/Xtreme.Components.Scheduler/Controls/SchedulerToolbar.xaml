@@ -69,9 +69,10 @@
                             </Style>
                         </Flyout.FlyoutPresenterStyle>
                         <!-- Our own multi-month date navigator (Legacy's DateNavigator): a resizable grid
-                             of months that reflows to show as many as fit, with click / Ctrl+click (toggle)
-                             / Shift+click (range) selection plus a Days/Range mode for touch. Apply commits;
-                             a single day or a solid contiguous run folds back to the ordinary day/range view.
+                             of months that reflows to show as many as fit. A plain click loads that day at
+                             once (XU-1360); Ctrl+click (toggle) / Shift+click (range) or Range mode build a
+                             set of several days, and only then do Clear / Apply show. A single day or a solid
+                             contiguous run folds back to the ordinary day/range view.
                              The corner grip resizes the panel; the size persists to local user cache. -->
                         <Grid x:Name="PickerContainer"
                               Width="560"
@@ -89,13 +90,16 @@
 
                             <primitives:MultiMonthDateNavigator x:Name="RangeCalendar"
                                                               Grid.Row="0"
-                                                              SelectionChanged="OnNavigatorSelectionChanged" />
+                                                              PlainClickCommits="True"
+                                                              SelectionChanged="OnNavigatorSelectionChanged"
+                                                              DayCommitted="OnNavigatorDayCommitted"
+                                                              IsPickingSeveralChanged="OnNavigatorPickingSeveralChanged" />
 
                             <TextBlock Grid.Row="1"
                                        TextWrapping="Wrap"
                                        FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       Text="Click a day to select it. Ctrl-click adds or removes days. Shift-click selects a range — or switch to Range mode and tap the start day, then the end day." />
+                                       Text="Click a day to open it. To pick several, Ctrl-click to add or remove days or Shift-click to select a range, then Apply. Or switch to Range mode and tap the start day, then the end day." />
 
                             <TextBlock x:Name="RangeSummary"
                                        Grid.Row="2"
@@ -112,10 +116,12 @@
                                 </Grid.ColumnDefinitions>
                                 <Button x:Name="ClearDatesButton"
                                         Grid.Column="0"
+                                        Visibility="Collapsed"
                                         Content="Clear"
                                         Click="OnClearDates" />
                                 <Button x:Name="ApplyDatesButton"
                                         Grid.Column="2"
+                                        Visibility="Collapsed"
                                         Content="Apply"
                                         Style="{StaticResource AccentButtonStyle}"
                                         Click="OnApplyDates" />
