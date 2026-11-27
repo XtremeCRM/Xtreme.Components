@@ -36,6 +36,14 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
     internal double? PendingVerticalOffset;
     internal double? PendingHorizontalOffset;
 
+    // A SchedulerControl.ScrollToTime target this render must bring into view once laid out. Takes priority
+    // over the preserved offsets above (the host asked for a specific time, not "where you were").
+    internal (DateTime Time, object? ResourceId)? PendingScrollTarget;
+
+    // This render's column model + body scroller, so ScrollToTime can locate a day/resource column.
+    private IReadOnlyList<GridColumn> _columns = Array.Empty<GridColumn>();
+    private ScrollViewer? _bodyScroll;
+
     // Timed block elements built this render, so selection can be applied without a re-render.
     private readonly List<FrameworkElement> _timedBlocks = new();
 
@@ -126,6 +134,8 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
         _allDayFrames.Clear();
         _hover?.Hide();
         _hover = null;
+        _columns = Array.Empty<GridColumn>();
+        _bodyScroll = null;
 
         if (_dates.Count == 0)
         {
@@ -175,6 +185,7 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
             }
         }
         _columnCount = columns.Count;
+        _columns = columns;
 
         var dayHeight = _increment.DayHeight;
 
@@ -369,6 +380,7 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
         Grid.SetColumn(bodyScroll, 1);
         Root.Children.Add(bodyScroll);
         _hover.Scroll = bodyScroll;
+        _bodyScroll = bodyScroll;
 
         // Freeze the header + gutter to the body's scroll offsets, and report the offset so the host
         // can restore it after a re-render (live upsert) instead of snapping back to business hours.
@@ -395,11 +407,19 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
             if (!scrolledToBusiness && bodyScroll.ScrollableHeight > 0)
             {
                 scrolledToBusiness = true;
-                var targetV = PendingVerticalOffset is double pv
-                    ? Math.Min(pv, bodyScroll.ScrollableHeight)
-                    : Math.Min(7 * 60 * _increment.PixelsPerMinute, bodyScroll.ScrollableHeight);
-                double? targetH = PendingHorizontalOffset is double ph ? Math.Min(ph, bodyScroll.ScrollableWidth) : null;
-                bodyScroll.ChangeView(targetH, targetV, null, disableAnimation: true);
+                if (PendingScrollTarget is { } target && TryComputeScrollTo(target.Time, target.ResourceId) is { } to)
+                {
+                    PendingScrollTarget = null;
+                    bodyScroll.ChangeView(to.H, to.V, null, disableAnimation: true);
+                }
+                else
+                {
+                    var targetV = PendingVerticalOffset is double pv
+                        ? Math.Min(pv, bodyScroll.ScrollableHeight)
+                        : Math.Min(7 * 60 * _increment.PixelsPerMinute, bodyScroll.ScrollableHeight);
+                    double? targetH = PendingHorizontalOffset is double ph ? Math.Min(ph, bodyScroll.ScrollableWidth) : null;
+                    bodyScroll.ChangeView(targetH, targetV, null, disableAnimation: true);
+                }
             }
             if (widthApplied && scrolledToBusiness)
             {
@@ -530,6 +550,81 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
     }
 
     /// <summary>Resize every column (header tiers, all-day, body) to fill the viewport, min-clamped.</summary>
+    /// <summary>
+    /// ScrollToTime: bring <paramref name="time"/> into view, in <paramref name="resourceId"/>'s column when
+    /// that resource is on screen (else the day's first column). Returns false when the day isn't in this
+    /// render, so the host navigates there. Before the first layout the target is parked and applied then.
+    /// </summary>
+    internal bool TryScrollTo(DateTime time, object? resourceId)
+    {
+        if (FindColumn(_columns, time.Date, resourceId) < 0)
+        {
+            return false;
+        }
+        if (TryComputeScrollTo(time, resourceId) is { } to && _bodyScroll is { } scroll)
+        {
+            scroll.ChangeView(to.H, to.V, null, disableAnimation: true);
+        }
+        else
+        {
+            PendingScrollTarget = (time, resourceId);
+        }
+        return true;
+    }
+
+    private (double H, double V)? TryComputeScrollTo(DateTime time, object? resourceId)
+    {
+        if (_bodyScroll is not { } s || s.ViewportWidth <= 0 || s.ViewportHeight <= 0)
+        {
+            return null;
+        }
+        var index = FindColumn(_columns, time.Date, resourceId);
+        if (index < 0)
+        {
+            return null;
+        }
+        return ScrollOffsetFor(index, _columnCount, _columnMinWidth, time.TimeOfDay, _increment.PixelsPerMinute,
+            s.ViewportWidth, s.ViewportHeight, s.ScrollableWidth, s.ScrollableHeight);
+    }
+
+    /// <summary>The column showing <paramref name="date"/> for <paramref name="resourceId"/> (falling back to
+    /// the date's first column when that resource isn't shown, e.g. hidden as idle), or -1.</summary>
+    private static int FindColumn(IReadOnlyList<GridColumn> columns, DateTime date, object? resourceId)
+    {
+        var dayColumn = -1;
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (columns[i].Date.Date != date)
+            {
+                continue;
+            }
+            if (resourceId is null || Equals(columns[i].Resource?.Id, resourceId))
+            {
+                return i;
+            }
+            if (dayColumn < 0)
+            {
+                dayColumn = i;
+            }
+        }
+        return dayColumn;
+    }
+
+    /// <summary>
+    /// Pure offset math for ScrollToTime (unit-tested): centre column <paramref name="columnIndex"/>
+    /// horizontally and put <paramref name="timeOfDay"/> a quarter of the way down the viewport, so the
+    /// slot and a little of what precedes it are visible. Both clamp to the scrollable range.
+    /// </summary>
+    internal static (double H, double V) ScrollOffsetFor(
+        int columnIndex, int columnCount, double columnMinWidth, TimeSpan timeOfDay, double pixelsPerMinute,
+        double viewportWidth, double viewportHeight, double scrollableWidth, double scrollableHeight)
+    {
+        var colW = Math.Max(columnMinWidth, viewportWidth / Math.Max(1, columnCount));
+        var h = columnIndex * colW - (viewportWidth - colW) / 2;
+        var v = timeOfDay.TotalMinutes * pixelsPerMinute - viewportHeight / 4;
+        return (Math.Clamp(h, 0, Math.Max(0, scrollableWidth)), Math.Clamp(v, 0, Math.Max(0, scrollableHeight)));
+    }
+
     private void ApplyColumnWidth(double viewport)
     {
         if (_columnCount <= 0 || viewport <= 0)

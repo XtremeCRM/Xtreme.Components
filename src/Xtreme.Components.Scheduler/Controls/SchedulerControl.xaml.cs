@@ -239,6 +239,46 @@ public sealed partial class SchedulerControl : UserControl
     private double? _scrollV;
     private double? _scrollH;
 
+    // A ScrollToTime target handed to the Day/Week view built while navigating to its day.
+    private (DateTime Time, object? ResourceId)? _pendingScrollTarget;
+
+    /// <summary>
+    /// Bring <paramref name="time"/> into view, e.g. when the host selects an item in a list beside the
+    /// scheduler. Day and Week views scroll so the time sits near the top of the viewport and, when
+    /// <paramref name="resourceId"/> is given and shown, centre that resource's column (otherwise the
+    /// day's first column). When the day isn't on screen the scheduler navigates to it first (clearing a
+    /// multi-date pick); Month, Agenda and Planner only navigate to the day. Selection is unchanged.
+    /// </summary>
+    public void ScrollToTime(DateTime time, object? resourceId = null)
+    {
+        if (ViewHost?.Child is TimeGridView grid && grid.TryScrollTo(time, resourceId))
+        {
+            return;
+        }
+
+        _pendingScrollTarget = (time, resourceId);
+        try
+        {
+            var renderedBefore = ViewHost?.Child;
+            if (HasMultiDateSelection)
+            {
+                SelectedDates = null;
+            }
+            if (SelectedDate.Date != time.Date)
+            {
+                SelectedDate = new DateTimeOffset(time.Date);
+            }
+            if (ReferenceEquals(ViewHost?.Child, renderedBefore))
+            {
+                RenderActiveView(); // nothing changed (already on that date) but the day wasn't drawn
+            }
+        }
+        finally
+        {
+            _pendingScrollTarget = null;
+        }
+    }
+
     private void OnViewScrollOffsetChanged(object? sender, (double V, double H) o)
     {
         _scrollV = o.V;
@@ -1126,6 +1166,7 @@ public sealed partial class SchedulerControl : UserControl
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
                 view.PendingHorizontalOffset = _scrollH;
+                view.PendingScrollTarget = _pendingScrollTarget;
                 view.SetData(EffectiveDayColumns(anchor, visibleDays), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection);
                 ViewHost.Child = view;
                 break;
@@ -1147,6 +1188,7 @@ public sealed partial class SchedulerControl : UserControl
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
                 view.PendingHorizontalOffset = _scrollH;
+                view.PendingScrollTarget = _pendingScrollTarget;
                 view.SetData(WeekDates(anchor, FirstDayOfWeek), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection);
                 ViewHost.Child = view;
                 break;

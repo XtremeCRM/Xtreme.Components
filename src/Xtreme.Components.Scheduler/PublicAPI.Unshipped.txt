@@ -186,6 +186,7 @@ Xtreme.Components.Scheduler.Controls.SchedulerControl.ColumnMinWidth.set -> void
 Xtreme.Components.Scheduler.Controls.SchedulerControl.CurrentView.get -> Xtreme.Components.Scheduler.Models.SchedulerView
 Xtreme.Components.Scheduler.Controls.SchedulerControl.CurrentView.set -> void
 Xtreme.Components.Scheduler.Controls.SchedulerControl.DeleteSelected(bool withShift = false) -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ScrollToTime(System.DateTime time, object? resourceId = null) -> void
 Xtreme.Components.Scheduler.Controls.SchedulerControl.EmptySlotSelected -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.EmptySlotSelectedArgs!>?
 Xtreme.Components.Scheduler.Controls.SchedulerControl.ExternalAppointmentDropped -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.ExternalDropArgs!>?
 Xtreme.Components.Scheduler.Controls.SchedulerControl.FirstDayOfWeek.get -> System.DayOfWeek

@@ -7,6 +7,13 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+### Added
+- Scheduler: `SchedulerControl.ScrollToTime(DateTime time, object? resourceId = null)` brings a time
+  into view, for a host list beside the scheduler (XtremeCRM XU-1366, the optimizer's ranked slots).
+  Day and Week scroll the time to near the top of the viewport and centre the resource's column when
+  it is shown; a day that isn't on screen is navigated to first. Month, Agenda and Planner navigate
+  to the day only.
+
 ## [0.1.0-preview.11] - 2026-11-25
 
 ### Fixed
