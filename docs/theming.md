@@ -73,7 +73,7 @@ these to override the built-in value; put them under `ThemeDictionaries` `Light`
 theme-specific values, or flat for both.
 
 `SurfaceBackground`, `HeaderBackground`, `HeaderForeground`, `SecondaryForeground`, `MinorLine`,
-`MajorLine`, `TodayHighlight`, `OffHoursBackground`, `EventDefaultBack`, `EventDefaultBar`,
+`MajorLine`, `TodayHighlight`, `OffHoursBackground`, `WorkHoursLine`, `EventDefaultBack`, `EventDefaultBar`,
 `EventForeground`, `EventBorder`, `OutsideMonthForeground`, `AgendaRule`, `AccentForeground`,
 `WeekendForeground`, `SelectionFill`, `SelectionForeground`, `OutsideMonthFill`.
 

@@ -480,3 +480,29 @@ Xtreme.Components.Scheduler.Rendering.EventLayout.StartMinutes.get -> double
 Xtreme.Components.Scheduler.Rendering.EventLayout.StartMinutes.init -> void
 Xtreme.Components.Scheduler.Utilities.SchedulerTimeFormatter
 Xtreme.Components.Scheduler.Utilities.TimeZoneConverter
+static readonly Xtreme.Components.Scheduler.Controls.SchedulerControl.ResourceWorkDaysProperty -> Microsoft.UI.Xaml.DependencyProperty!
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ResourceWorkDays.get -> System.Collections.Generic.IReadOnlyList<Xtreme.Components.Scheduler.Models.ResourceWorkDay!>?
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ResourceWorkDays.set -> void
+Xtreme.Components.Scheduler.Controls.SchedulerControl.ResourceHeaderContextRequested -> System.EventHandler<Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs!>?
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.ResourceHeaderContextRequestedArgs() -> void
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.ResourceId.get -> object!
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.ResourceId.init -> void
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.Date.get -> System.DateTime?
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.Date.init -> void
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.Position.get -> Windows.Foundation.Point?
+Xtreme.Components.Scheduler.Contracts.ResourceHeaderContextRequestedArgs.Position.init -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.ResourceWorkDay() -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.ResourceId.get -> object!
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.ResourceId.init -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.Date.get -> System.DateTime
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.Date.init -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.IsOff.get -> bool
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.IsOff.init -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.Start.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.Start.init -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.End.get -> System.TimeSpan
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.End.init -> void
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.IsOverride.get -> bool
+Xtreme.Components.Scheduler.Models.ResourceWorkDay.IsOverride.init -> void

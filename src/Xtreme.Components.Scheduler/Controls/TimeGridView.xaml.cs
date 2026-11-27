@@ -31,6 +31,9 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
     private bool _isReadOnly;
     private IReadOnlyList<AppointmentModel> _selectedSet = Array.Empty<AppointmentModel>();
 
+    // Per-resource working hours (host-supplied), keyed by (resource id, day). Empty = the global band.
+    private Dictionary<(object ResourceId, DateTime Date), ResourceWorkDay> _workDays = new();
+
     // Scroll offset preserved across re-renders (e.g. a live appointment upsert) so the grid doesn't
     // snap back to business hours. The host sets these before SetData and tracks ScrollOffsetChanged.
     internal double? PendingVerticalOffset;
@@ -80,6 +83,7 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
     public event EventHandler<EmptySlotSelectedArgs>? EmptySlotDoubleClicked;
     public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextMenuRequested;
     public event EventHandler<(double V, double H)>? ScrollOffsetChanged;
+    public event EventHandler<ResourceHeaderContextRequestedArgs>? ResourceHeaderContextRequested;
 
     public TimeGridView()
     {
@@ -103,8 +107,10 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
         SchedulerPalette palette,
         bool isReadOnly,
         AppointmentTemplating templating,
-        IReadOnlyList<AppointmentModel>? selected)
+        IReadOnlyList<AppointmentModel>? selected,
+        IReadOnlyList<ResourceWorkDay>? workDays = null)
     {
+        _workDays = WorkHoursShading.Index(workDays);
         _dates = dates;
         _appointments = appointments;
         _resources = resources;
@@ -742,6 +748,10 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
                         Margin = new Thickness(4, 4, 4, 4),
                     },
                 };
+                if (resourceMajor)
+                {
+                    AttachHeaderContext(cell, first.Resource!.Id, date: null);
+                }
                 Grid.SetRow(cell, 0);
                 Grid.SetColumn(cell, start);
                 Grid.SetColumnSpan(cell, groupSize);
@@ -772,12 +782,32 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
                     Margin = new Thickness(2, 3, 2, 3),
                 },
             };
+            AttachHeaderContext(cell, col.Resource!.Id, col.Date.Date);
             Grid.SetRow(cell, 1);
             Grid.SetColumn(cell, i);
             g.Children.Add(cell);
         }
 
         return g;
+    }
+
+    /// <summary>Right-click on a resource header cell raises <see cref="ResourceHeaderContextRequested"/> for
+    /// that resource (and day, when the cell is one day's column). The cell gets a transparent background so
+    /// the whole cell, not just its text, takes the click.</summary>
+    private void AttachHeaderContext(Border cell, object resourceId, DateTime? date)
+    {
+        cell.Background ??= new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        cell.RightTapped += (_, e) =>
+        {
+            e.Handled = true;
+            var root = cell.XamlRoot?.Content;
+            ResourceHeaderContextRequested?.Invoke(this, new ResourceHeaderContextRequestedArgs
+            {
+                ResourceId = resourceId,
+                Date = date,
+                Position = root is null ? null : e.GetPosition(root),
+            });
+        };
     }
 
     // ---- All-day row (per-column chips) ---------------------------------------------------------
@@ -844,46 +874,61 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
 
     // ---- Column body ----------------------------------------------------------------------------
 
+    private const double WorkHoursLineThickness = 1.5;
+    private const double OverrideDotSize = 7;
+
     private Border BuildColumnCell(GridColumn col, bool isFirst, IReadOnlyList<EventLayout> layout)
     {
         var cell = new Grid();
 
         // Off-hours shading (under the today tint + gridlines): the work-hours window stays the
-        // lighter base surface; the hours before workStart and after workEnd get a darker tint.
-        var workStartMin = _workStart.TotalMinutes;
-        var workEndMin = _workEnd.TotalMinutes;
-        const double dayEndMin = 24 * 60;
-        if (workEndMin > workStartMin && workStartMin >= 0 && workEndMin <= dayEndMin)
+        // lighter base surface; the hours outside it get a darker tint. A resource column with host-supplied
+        // hours (ResourceWorkDays) uses its own window and gets a thin line at each end; otherwise the global
+        // WorkDayStart/WorkDayEnd band applies, as before.
+        var workDay = col.Resource is null ? null : _workDays.GetValueOrDefault((col.Resource.Id, col.Date.Date));
+        var plan = WorkHoursShading.For(workDay, _workStart, _workEnd);
+        var ppm = _increment.PixelsPerMinute;
+        foreach (var (from, to) in plan.Shaded)
         {
-            var ppm = _increment.PixelsPerMinute;
-            if (workStartMin > 0)
+            cell.Children.Add(new Border
             {
-                cell.Children.Add(new Border
-                {
-                    Background = _palette.OffHoursBackground,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Height = workStartMin * ppm,
-                    Margin = new Thickness(0),
-                });
-            }
-            if (workEndMin < dayEndMin)
-            {
-                cell.Children.Add(new Border
-                {
-                    Background = _palette.OffHoursBackground,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Height = (dayEndMin - workEndMin) * ppm,
-                    Margin = new Thickness(0, workEndMin * ppm, 0, 0),
-                });
-            }
+                Background = _palette.OffHoursBackground,
+                VerticalAlignment = VerticalAlignment.Top,
+                Height = (to - from) * ppm,
+                Margin = new Thickness(0, from * ppm, 0, 0),
+            });
         }
-
         if (col.Date.Date == DateTime.Today)
         {
             cell.Children.Add(new Border { Background = _palette.TodayHighlight });
         }
 
         cell.Children.Add(TimeGridRenderer.BuildGridlines(_increment, _palette));
+
+        foreach (var minute in plan.Lines)
+        {
+            cell.Children.Add(new Border
+            {
+                Background = _palette.WorkHoursLine,
+                VerticalAlignment = VerticalAlignment.Top,
+                Height = WorkHoursLineThickness,
+                Margin = new Thickness(0, minute * ppm - WorkHoursLineThickness / 2, 0, 0),
+                IsHitTestVisible = false,
+            });
+        }
+        foreach (var minute in plan.Dots)
+        {
+            cell.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse
+            {
+                Width = OverrideDotSize,
+                Height = OverrideDotSize,
+                Fill = _palette.WorkHoursLine,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, minute * ppm - OverrideDotSize / 2, 0, 0),
+                IsHitTestVisible = false,
+            });
+        }
 
         var panel = new DayColumnPanel { Increment = _increment };
         foreach (var el in layout)

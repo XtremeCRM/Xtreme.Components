@@ -214,6 +214,13 @@ public sealed partial class SchedulerControl : UserControl
     /// </summary>
     public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextRequested;
 
+    /// <summary>
+    /// Raised when the user right-clicks a resource's column header in Day or Week, with the resource and,
+    /// for a one-day column, the day. The host builds its own menu (for example "Edit hours for this day")
+    /// and anchors it at <see cref="ResourceHeaderContextRequestedArgs.Position"/>. Raised in read-only mode too.
+    /// </summary>
+    public event EventHandler<ResourceHeaderContextRequestedArgs>? ResourceHeaderContextRequested;
+
     /// <summary>Raised when the user drags a multi-selection — every item shares one (time, lane) delta.</summary>
     public event EventHandler<AppointmentsMoveArgs>? AppointmentsMoveRequested;
 
@@ -482,6 +489,9 @@ public sealed partial class SchedulerControl : UserControl
         AppointmentContextRequested?.Invoke(this, e);
     }
 
+    private void OnViewResourceHeaderContextRequested(object? sender, ResourceHeaderContextRequestedArgs e) =>
+        ResourceHeaderContextRequested?.Invoke(this, e);
+
     // Move keyboard focus onto the scheduler after a pointer-driven selection so the Delete key routes to
     // OnKeyDown. FocusState.Pointer marks it as a pointer-originated focus (no focus rectangle). Only called
     // from genuine user clicks — never from host-driven SelectedAppointments writes, which must not steal focus.
@@ -728,6 +738,31 @@ public sealed partial class SchedulerControl : UserControl
         DependencyProperty.Register(
             nameof(SchedulerResources),
             typeof(IReadOnlyList<ResourceModel>),
+            typeof(SchedulerControl),
+            new PropertyMetadata(null, OnSchedulerInvalidated));
+
+    #endregion
+
+    #region ResourceWorkDays
+
+    /// <summary>
+    /// Per-resource working hours, one row per resource per day (<see cref="ResourceWorkDay"/>). Day and
+    /// Week shade each listed resource's column outside its hours (all of it on a day off) with a thin line
+    /// at the start and end, and a dot on the line for an override; Month lists who is off each day. A
+    /// resource/day with no row, and every column when no resources are shown, keeps the global
+    /// <see cref="WorkDayStart"/>/<see cref="WorkDayEnd"/> band. Replace the list to update (a new instance
+    /// re-renders; mutating the old one does not).
+    /// </summary>
+    public IReadOnlyList<ResourceWorkDay>? ResourceWorkDays
+    {
+        get => (IReadOnlyList<ResourceWorkDay>?)GetValue(ResourceWorkDaysProperty);
+        set => SetValue(ResourceWorkDaysProperty, value);
+    }
+
+    public static readonly DependencyProperty ResourceWorkDaysProperty =
+        DependencyProperty.Register(
+            nameof(ResourceWorkDays),
+            typeof(IReadOnlyList<ResourceWorkDay>),
             typeof(SchedulerControl),
             new PropertyMetadata(null, OnSchedulerInvalidated));
 
@@ -1163,11 +1198,12 @@ public sealed partial class SchedulerControl : UserControl
                 view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
                 view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
+                view.ResourceHeaderContextRequested += OnViewResourceHeaderContextRequested;
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
                 view.PendingHorizontalOffset = _scrollH;
                 view.PendingScrollTarget = _pendingScrollTarget;
-                view.SetData(EffectiveDayColumns(anchor, visibleDays), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection);
+                view.SetData(EffectiveDayColumns(anchor, visibleDays), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection, ResourceWorkDays);
                 ViewHost.Child = view;
                 break;
             }
@@ -1185,11 +1221,12 @@ public sealed partial class SchedulerControl : UserControl
                 view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
                 view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
+                view.ResourceHeaderContextRequested += OnViewResourceHeaderContextRequested;
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
                 view.PendingHorizontalOffset = _scrollH;
                 view.PendingScrollTarget = _pendingScrollTarget;
-                view.SetData(WeekDates(anchor, FirstDayOfWeek), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection);
+                view.SetData(WeekDates(anchor, FirstDayOfWeek), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection, ResourceWorkDays);
                 ViewHost.Child = view;
                 break;
             }
@@ -1201,7 +1238,7 @@ public sealed partial class SchedulerControl : UserControl
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
                 view.EmptySlotClicked += OnViewEmptySlotClicked;
                 view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
-                view.SetData(anchor, appointments, palette, templating, IsReadOnly, _selection);
+                view.SetData(anchor, appointments, palette, templating, IsReadOnly, _selection, resources, ResourceWorkDays);
                 ViewHost.Child = view;
                 break;
             }
