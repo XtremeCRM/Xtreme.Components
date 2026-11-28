@@ -7,6 +7,8 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.12] - 2026-11-27
+
 ### Added
 - Scheduler: `SchedulerControl.ScrollToTime(DateTime time, object? resourceId = null)` brings a time
   into view, for a host list beside the scheduler (XtremeCRM XU-1366, the optimizer's ranked slots).
@@ -21,7 +23,8 @@ version. The publish workflow refuses a tag whose version has no section below.
   days with no row keep the global `WorkDayStart`/`WorkDayEnd` band. New theme token `WorkHoursLine`.
 - Scheduler: `SchedulerControl.ResourceHeaderContextRequested` is raised on a right-click on a resource's
   column header in Day and Week, with the resource, the day (null for a header spanning several days)
-  and the click position, so the host can offer its own menu.
+  and the click position, so the host can offer its own menu. With one day showing (Day view grouped by
+  resource), the resource's name header carries that day too.
 
 ## [0.1.0-preview.11] - 2026-11-25
 
@@ -296,7 +299,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.11...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.12...HEAD
+[0.1.0-preview.12]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.11...v0.1.0-preview.12
 [0.1.0-preview.11]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.10...v0.1.0-preview.11
 [0.1.0-preview.10]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.9...v0.1.0-preview.10
 [0.1.0-preview.9]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.8...v0.1.0-preview.9
