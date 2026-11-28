@@ -25,6 +25,10 @@ internal sealed partial class MonthView : UserControl, ISelectionView
     private readonly List<SelectionFrame> _frames = new();
     private TapInteraction _taps = new();
 
+    // Per-resource working hours (host-supplied): each day lists the shown resources that are off.
+    private IReadOnlyList<ResourceModel> _resources = Array.Empty<ResourceModel>();
+    private Dictionary<(object ResourceId, DateTime Date), ResourceWorkDay> _workDays = new();
+
     public event EventHandler<AppointmentClickArgs>? AppointmentClicked;
     public event EventHandler<AppointmentModel>? AppointmentDoubleClicked;
     public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextMenuRequested;
@@ -43,8 +47,12 @@ internal sealed partial class MonthView : UserControl, ISelectionView
         SchedulerPalette palette,
         AppointmentTemplating templating,
         bool isReadOnly = false,
-        IReadOnlyCollection<AppointmentModel>? selected = null)
+        IReadOnlyCollection<AppointmentModel>? selected = null,
+        IReadOnlyList<ResourceModel>? resources = null,
+        IReadOnlyList<ResourceWorkDay>? workDays = null)
     {
+        _resources = resources ?? Array.Empty<ResourceModel>();
+        _workDays = WorkHoursShading.Index(workDays);
         _anchor = anchor;
         _appointments = appointments;
         _palette = palette;
@@ -147,6 +155,24 @@ internal sealed partial class MonthView : UserControl, ISelectionView
             HorizontalAlignment = HorizontalAlignment.Left,
         });
 
+        // Days off: "Off: Ann, Bo" under the day number; the cell is shaded when every shown resource is off.
+        var off = OffResources(date);
+        if (off.Count > 0)
+        {
+            var names = string.Join(", ", off.Select(r => r.Name));
+            var label = new TextBlock
+            {
+                Text = "Off: " + names,
+                FontSize = 10,
+                Foreground = _palette.SecondaryForeground,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(2, 0, 0, 0),
+            };
+            ToolTipService.SetToolTip(label, "Off: " + names);
+            stack.Children.Add(label);
+        }
+        var allOff = _resources.Count > 0 && off.Count == _resources.Count;
+
         var dayEvents = _appointments
             .Where(a => OnDate(a, date))
             .OrderBy(a => a.IsAllDay ? 0 : 1)
@@ -178,11 +204,25 @@ internal sealed partial class MonthView : UserControl, ISelectionView
             BorderBrush = _palette.MinorLine,
             BorderThickness = new Thickness(0, 0, 1, 1),
             // Transparent (not null) so the empty part of the cell is hit-testable for clicks.
-            Background = isToday ? _palette.TodayHighlight : new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Background = isToday ? _palette.TodayHighlight
+                : allOff ? _palette.OffHoursBackground
+                : new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             Child = stack,
         };
         _taps.AttachEmptyDay(cell, date, resourceId: null);
         return cell;
+    }
+
+    /// <summary>The shown resources marked off on <paramref name="date"/>, in resource order.</summary>
+    private List<ResourceModel> OffResources(DateTime date)
+    {
+        if (_workDays.Count == 0)
+        {
+            return new List<ResourceModel>();
+        }
+        return _resources
+            .Where(r => _workDays.TryGetValue((r.Id, date.Date), out var d) && d.IsOff)
+            .ToList();
     }
 
     private static bool OnDate(AppointmentModel a, DateTime date) =>

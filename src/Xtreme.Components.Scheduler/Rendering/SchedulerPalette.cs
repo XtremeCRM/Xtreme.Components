@@ -21,6 +21,10 @@ internal sealed record SchedulerPalette
     /// <summary>Tint for OFF-hours in the time grid. Work hours keep the lighter base surface, so the
     /// hours before / after the work day read darker. Translucent so it dims rather than covers.</summary>
     public required Brush OffHoursBackground { get; init; }
+
+    /// <summary>The thin line at a resource's start and end of day (and its override dot), drawn when the host
+    /// supplies per-resource working hours.</summary>
+    public required Brush WorkHoursLine { get; init; }
     public required Brush EventDefaultBack { get; init; }
     public required Brush EventDefaultBar { get; init; }
     public required Brush EventForeground { get; init; }
@@ -82,6 +86,7 @@ internal sealed record SchedulerPalette
             MajorLine = Tok(nameof(MajorLine), fallback.MajorLine),
             TodayHighlight = Tok(nameof(TodayHighlight), fallback.TodayHighlight),
             OffHoursBackground = Tok(nameof(OffHoursBackground), fallback.OffHoursBackground),
+            WorkHoursLine = Tok(nameof(WorkHoursLine), fallback.WorkHoursLine),
             EventDefaultBack = Tok(nameof(EventDefaultBack), fallback.EventDefaultBack),
             EventDefaultBar = Tok(nameof(EventDefaultBar), fallback.EventDefaultBar),
             EventForeground = Tok(nameof(EventForeground), fallback.EventForeground),
@@ -109,6 +114,7 @@ internal sealed record SchedulerPalette
         // surface and the hours outside it read a touch darker. Translucent so it doesn't block the
         // today tint / host watermark the way an opaque fill would.
         OffHoursBackground = Solid(0x14, 0x00, 0x00, 0x00),
+        WorkHoursLine = Solid(0xB3, 0x00, 0x6C, 0xBE),
         EventDefaultBack = Solid(0xFF, 0xE6, 0xEC, 0xF6),
         EventDefaultBar = Solid(0xFF, 0x4F, 0x6B, 0xED),
         EventForeground = Solid(0xFF, 0x20, 0x20, 0x20),
@@ -134,6 +140,7 @@ internal sealed record SchedulerPalette
         TodayHighlight = Solid(0x24, 0x60, 0xCD, 0xFF),
         // Off-hours darkening (see Light theme note); work hours keep the lighter #1F1F1F surface.
         OffHoursBackground = Solid(0x33, 0x00, 0x00, 0x00),
+        WorkHoursLine = Solid(0xB3, 0x60, 0xCD, 0xFF),
         EventDefaultBack = Solid(0xFF, 0x33, 0x38, 0x40),
         EventDefaultBar = Solid(0xFF, 0x60, 0xA0, 0xFF),
         EventForeground = Solid(0xFF, 0xF0, 0xF0, 0xF0),

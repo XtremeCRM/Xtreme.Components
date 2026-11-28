@@ -214,6 +214,13 @@ public sealed partial class SchedulerControl : UserControl
     /// </summary>
     public event EventHandler<AppointmentContextRequestedArgs>? AppointmentContextRequested;
 
+    /// <summary>
+    /// Raised when the user right-clicks a resource's column header in Day or Week, with the resource and,
+    /// for a one-day column, the day. The host builds its own menu (for example "Edit hours for this day")
+    /// and anchors it at <see cref="ResourceHeaderContextRequestedArgs.Position"/>. Raised in read-only mode too.
+    /// </summary>
+    public event EventHandler<ResourceHeaderContextRequestedArgs>? ResourceHeaderContextRequested;
+
     /// <summary>Raised when the user drags a multi-selection — every item shares one (time, lane) delta.</summary>
     public event EventHandler<AppointmentsMoveArgs>? AppointmentsMoveRequested;
 
@@ -238,6 +245,46 @@ public sealed partial class SchedulerControl : UserControl
     // Appointments change) doesn't snap the grid back to business hours.
     private double? _scrollV;
     private double? _scrollH;
+
+    // A ScrollToTime target handed to the Day/Week view built while navigating to its day.
+    private (DateTime Time, object? ResourceId)? _pendingScrollTarget;
+
+    /// <summary>
+    /// Bring <paramref name="time"/> into view, e.g. when the host selects an item in a list beside the
+    /// scheduler. Day and Week views scroll so the time sits near the top of the viewport and, when
+    /// <paramref name="resourceId"/> is given and shown, centre that resource's column (otherwise the
+    /// day's first column). When the day isn't on screen the scheduler navigates to it first (clearing a
+    /// multi-date pick); Month, Agenda and Planner only navigate to the day. Selection is unchanged.
+    /// </summary>
+    public void ScrollToTime(DateTime time, object? resourceId = null)
+    {
+        if (ViewHost?.Child is TimeGridView grid && grid.TryScrollTo(time, resourceId))
+        {
+            return;
+        }
+
+        _pendingScrollTarget = (time, resourceId);
+        try
+        {
+            var renderedBefore = ViewHost?.Child;
+            if (HasMultiDateSelection)
+            {
+                SelectedDates = null;
+            }
+            if (SelectedDate.Date != time.Date)
+            {
+                SelectedDate = new DateTimeOffset(time.Date);
+            }
+            if (ReferenceEquals(ViewHost?.Child, renderedBefore))
+            {
+                RenderActiveView(); // nothing changed (already on that date) but the day wasn't drawn
+            }
+        }
+        finally
+        {
+            _pendingScrollTarget = null;
+        }
+    }
 
     private void OnViewScrollOffsetChanged(object? sender, (double V, double H) o)
     {
@@ -441,6 +488,9 @@ public sealed partial class SchedulerControl : UserControl
         }
         AppointmentContextRequested?.Invoke(this, e);
     }
+
+    private void OnViewResourceHeaderContextRequested(object? sender, ResourceHeaderContextRequestedArgs e) =>
+        ResourceHeaderContextRequested?.Invoke(this, e);
 
     // Move keyboard focus onto the scheduler after a pointer-driven selection so the Delete key routes to
     // OnKeyDown. FocusState.Pointer marks it as a pointer-originated focus (no focus rectangle). Only called
@@ -688,6 +738,31 @@ public sealed partial class SchedulerControl : UserControl
         DependencyProperty.Register(
             nameof(SchedulerResources),
             typeof(IReadOnlyList<ResourceModel>),
+            typeof(SchedulerControl),
+            new PropertyMetadata(null, OnSchedulerInvalidated));
+
+    #endregion
+
+    #region ResourceWorkDays
+
+    /// <summary>
+    /// Per-resource working hours, one row per resource per day (<see cref="ResourceWorkDay"/>). Day and
+    /// Week shade each listed resource's column outside its hours (all of it on a day off) with a thin line
+    /// at the start and end, and a dot on the line for an override; Month lists who is off each day. A
+    /// resource/day with no row, and every column when no resources are shown, keeps the global
+    /// <see cref="WorkDayStart"/>/<see cref="WorkDayEnd"/> band. Replace the list to update (a new instance
+    /// re-renders; mutating the old one does not).
+    /// </summary>
+    public IReadOnlyList<ResourceWorkDay>? ResourceWorkDays
+    {
+        get => (IReadOnlyList<ResourceWorkDay>?)GetValue(ResourceWorkDaysProperty);
+        set => SetValue(ResourceWorkDaysProperty, value);
+    }
+
+    public static readonly DependencyProperty ResourceWorkDaysProperty =
+        DependencyProperty.Register(
+            nameof(ResourceWorkDays),
+            typeof(IReadOnlyList<ResourceWorkDay>),
             typeof(SchedulerControl),
             new PropertyMetadata(null, OnSchedulerInvalidated));
 
@@ -1123,10 +1198,12 @@ public sealed partial class SchedulerControl : UserControl
                 view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
                 view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
+                view.ResourceHeaderContextRequested += OnViewResourceHeaderContextRequested;
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
                 view.PendingHorizontalOffset = _scrollH;
-                view.SetData(EffectiveDayColumns(anchor, visibleDays), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection);
+                view.PendingScrollTarget = _pendingScrollTarget;
+                view.SetData(EffectiveDayColumns(anchor, visibleDays), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection, ResourceWorkDays);
                 ViewHost.Child = view;
                 break;
             }
@@ -1144,10 +1221,12 @@ public sealed partial class SchedulerControl : UserControl
                 view.AppointmentDoubleClicked += OnViewAppointmentDoubleClicked;
                 view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
+                view.ResourceHeaderContextRequested += OnViewResourceHeaderContextRequested;
                 view.ScrollOffsetChanged += OnViewScrollOffsetChanged;
                 view.PendingVerticalOffset = _scrollV;
                 view.PendingHorizontalOffset = _scrollH;
-                view.SetData(WeekDates(anchor, FirstDayOfWeek), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection);
+                view.PendingScrollTarget = _pendingScrollTarget;
+                view.SetData(WeekDates(anchor, FirstDayOfWeek), appointments, resources, GroupMode, HideIdleResources, ColumnMinWidth, WorkDayStart, WorkDayEnd, increment, palette, IsReadOnly, templating, _selection, ResourceWorkDays);
                 ViewHost.Child = view;
                 break;
             }
@@ -1159,7 +1238,7 @@ public sealed partial class SchedulerControl : UserControl
                 view.AppointmentContextMenuRequested += OnViewAppointmentContextRequested;
                 view.EmptySlotClicked += OnViewEmptySlotClicked;
                 view.EmptySlotDoubleClicked += OnViewEmptySlotDoubleClicked;
-                view.SetData(anchor, appointments, palette, templating, IsReadOnly, _selection);
+                view.SetData(anchor, appointments, palette, templating, IsReadOnly, _selection, resources, ResourceWorkDays);
                 ViewHost.Child = view;
                 break;
             }

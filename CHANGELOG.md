@@ -7,6 +7,25 @@ version. The publish workflow refuses a tag whose version has no section below.
 
 ## [Unreleased]
 
+## [0.1.0-preview.12] - 2026-11-27
+
+### Added
+- Scheduler: `SchedulerControl.ScrollToTime(DateTime time, object? resourceId = null)` brings a time
+  into view, for a host list beside the scheduler (XtremeCRM XU-1366, the optimizer's ranked slots).
+  Day and Week scroll the time to near the top of the viewport and centre the resource's column when
+  it is shown; a day that isn't on screen is navigated to first. Month, Agenda and Planner navigate
+  to the day only.
+- Scheduler: per-resource working hours (XtremeCRM XU-1370). `SchedulerControl.ResourceWorkDays` takes
+  one `ResourceWorkDay` per resource per day (start, end, day off, override). Day and Week shade each
+  resource's column outside its own hours (all of it on a day off) and draw a thin line at the start and
+  end; an override gets a small dot in the middle of each line (mid-column on a day off). Month lists the
+  resources that are off under each day number and shades a day when all of them are off. Resources and
+  days with no row keep the global `WorkDayStart`/`WorkDayEnd` band. New theme token `WorkHoursLine`.
+- Scheduler: `SchedulerControl.ResourceHeaderContextRequested` is raised on a right-click on a resource's
+  column header in Day and Week, with the resource, the day (null for a header spanning several days)
+  and the click position, so the host can offer its own menu. With one day showing (Day view grouped by
+  resource), the resource's name header carries that day too.
+
 ## [0.1.0-preview.11] - 2026-11-25
 
 ### Fixed
@@ -280,7 +299,8 @@ this first release (XU-898..902). Changes below are relative to the extracted co
   entry point) and the unimplemented default-editor fallback.
 - Primitives: public `ChipPickerControl.WorkingItems`.
 
-[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.11...HEAD
+[Unreleased]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.12...HEAD
+[0.1.0-preview.12]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.11...v0.1.0-preview.12
 [0.1.0-preview.11]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.10...v0.1.0-preview.11
 [0.1.0-preview.10]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.9...v0.1.0-preview.10
 [0.1.0-preview.9]: https://github.com/XtremeCRM/Xtreme.Components/compare/v0.1.0-preview.8...v0.1.0-preview.9

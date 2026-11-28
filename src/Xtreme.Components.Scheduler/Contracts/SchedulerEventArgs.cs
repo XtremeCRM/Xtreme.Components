@@ -165,6 +165,23 @@ public sealed class AppointmentContextRequestedArgs : EventArgs
     public Point? Position { get; init; }
 }
 
+/// <summary>
+/// Raised when the user right-clicks a resource's column header in Day or Week. The library builds no
+/// menu; the host decides what to offer (for example editing that resource's hours for the day).
+/// </summary>
+public sealed class ResourceHeaderContextRequestedArgs : EventArgs
+{
+    /// <summary>The resource whose header was clicked (<see cref="Models.ResourceModel.Id"/>).</summary>
+    public required object ResourceId { get; init; }
+
+    /// <summary>The day of the clicked column, or null for a header that spans several days (the resource's
+    /// name above its day columns when grouped by resource; with one day showing, the name carries that day).</summary>
+    public DateTime? Date { get; init; }
+
+    /// <summary>The click position, relative to the <see cref="Microsoft.UI.Xaml.XamlRoot"/> content. Null when unknown.</summary>
+    public Point? Position { get; init; }
+}
+
 /// <summary>Raised when the user double-clicks or drag-selects an empty slot to create an appointment.</summary>
 public sealed class AppointmentCreateArgs : EventArgs
 {
