@@ -750,7 +750,8 @@ internal sealed partial class TimeGridView : UserControl, ISelectionView
                 };
                 if (resourceMajor)
                 {
-                    AttachHeaderContext(cell, first.Resource!.Id, date: null);
+                    // One day per resource (Day view): the name header is that day's column too.
+                    AttachHeaderContext(cell, first.Resource!.Id, date: groupSize == 1 ? first.Date.Date : null);
                 }
                 Grid.SetRow(cell, 0);
                 Grid.SetColumn(cell, start);

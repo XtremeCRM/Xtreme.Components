@@ -175,7 +175,7 @@ public sealed class ResourceHeaderContextRequestedArgs : EventArgs
     public required object ResourceId { get; init; }
 
     /// <summary>The day of the clicked column, or null for a header that spans several days (the resource's
-    /// name above its day columns when grouped by resource).</summary>
+    /// name above its day columns when grouped by resource; with one day showing, the name carries that day).</summary>
     public DateTime? Date { get; init; }
 
     /// <summary>The click position, relative to the <see cref="Microsoft.UI.Xaml.XamlRoot"/> content. Null when unknown.</summary>
